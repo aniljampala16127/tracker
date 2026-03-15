@@ -198,7 +198,7 @@ export default function DiscussionsPage() {
               <input
                 type="text"
                 className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
-                placeholder="e.g. Anil, PR_India_Feb26, etc."
+                placeholder="e.g. PR_India_Feb26, MyName, etc."
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 maxLength={30}

@@ -20,8 +20,16 @@ export default function DashboardPage() {
     const { data } = await supabase
       .from("applications")
       .select("*, step_events(*)")
-      .order("created_at", { ascending: false });
-    if (data) setApps(data as Application[]);
+      .order("created_at", { ascending: true });
+    if (data) {
+      // Sort by submission date (from step_events)
+      const sorted = (data as Application[]).sort((a, b) => {
+        const aDate = a.step_events?.find(e => e.step_id === "submitted")?.event_date || "";
+        const bDate = b.step_events?.find(e => e.step_id === "submitted")?.event_date || "";
+        return aDate.localeCompare(bDate);
+      });
+      setApps(sorted);
+    }
     setLoading(false);
   }, [supabase]);
 
@@ -64,6 +72,19 @@ export default function DashboardPage() {
   };
 
   if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
+
+  // Compute average weeks per step across all apps
+  const avgPerStep: Record<string, number | null> = {};
+  STEPS.forEach((step, i) => {
+    if (i === 0) { avgPerStep[step.id] = null; return; }
+    const prev = STEPS[i - 1].id;
+    const durations: number[] = [];
+    apps.forEach((a) => {
+      const s = buildStepsMap(a.step_events || []);
+      if (s[prev] && s[step.id]) durations.push(weeksBetween(s[prev]!, s[step.id]!));
+    });
+    avgPerStep[step.id] = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+  });
 
   return (
     <div>
@@ -142,6 +163,24 @@ export default function DashboardPage() {
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="bg-brand-50/50 border-t-2 border-brand-200">
+                <td className="px-3 py-2.5 font-bold text-xs text-brand-700" colSpan={5}>Average</td>
+                {STEPS.slice(1).map((step) => {
+                  const avg = avgPerStep[step.id];
+                  return (
+                    <td key={step.id} className="px-2 py-2.5 text-center">
+                      {avg != null ? (
+                        <span className="text-xs font-bold text-brand-600">{avg}w</span>
+                      ) : (
+                        <span className="text-sand-300 text-xs">—</span>
+                      )}
+                    </td>
+                  );
+                })}
+                <td></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
