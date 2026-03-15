@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, STREAMS, SPONSOR_STATUSES, PROVINCES, getNextStep } from "@/lib/constants";
 import { formatDate, weeksBetween, buildStepsMap } from "@/lib/utils";
-import { PlusIcon } from "@/components/icons";
+import { PlusIcon, StepIcon } from "@/components/icons";
 import { Button, Modal, Input, Select } from "@/components/ui";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -102,14 +102,21 @@ export default function DashboardPage() {
       count: durations.length,
     };
   });
-  const totalDurations: number[] = [];
-  apps.forEach((a) => {
-    const s = buildStepsMap(a.step_events || []);
-    if (s.submitted && s.landing) totalDurations.push(weeksBetween(s.submitted, s.landing));
+  // Also compute cumulative days from submitted
+  const cumulativeDays: Record<string, number | null> = {};
+  STEPS.forEach((step, i) => {
+    if (i === 0) { cumulativeDays[step.id] = null; return; }
+    const durations: number[] = [];
+    apps.forEach((a) => {
+      const s = buildStepsMap(a.step_events || []);
+      if (s.submitted && s[step.id]) {
+        const d1 = new Date(s.submitted + "T00:00:00");
+        const d2 = new Date(s[step.id]! + "T00:00:00");
+        durations.push(Math.round((d2.getTime() - d1.getTime()) / (24 * 60 * 60 * 1000)));
+      }
+    });
+    cumulativeDays[step.id] = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
   });
-  const totalAvg = totalDurations.length ? Math.round(totalDurations.reduce((a, b) => a + b, 0) / totalDurations.length) : null;
-  const maxW = Math.max(...stepPairs.map(p => p.avg || 0), 1);
-  const hasAnyPipelineData = stepPairs.some(p => p.avg != null);
 
   if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
 
@@ -123,48 +130,49 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Pipeline — always visible */}
+      {/* Step cards */}
       {apps.length > 0 && (
-        <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-          <h3 className="text-xs font-bold text-sand-900 mb-3">Average Processing Time</h3>
-          <div className="flex items-center gap-0 overflow-x-auto hide-scrollbar pb-1">
-            {STEPS.map((step, i) => {
-              const pair = i > 0 ? stepPairs[i - 1] : null;
-              return (
-                <div key={step.id} className="flex items-center">
-                  {pair && (
-                    <div className="flex flex-col items-center mx-0.5 sm:mx-1">
-                      <span className={`text-[10px] font-bold mb-0.5 ${pair.avg != null ? "text-brand-600" : "text-sand-300"}`}>
-                        {pair.avg != null ? `${pair.avg}w` : "—"}
-                      </span>
-                      <div className="flex items-center">
-                        <div className={`h-0.5 rounded-full ${pair.avg != null ? "bg-brand-400" : "bg-sand-200"}`}
-                          style={{ width: pair.avg ? Math.max(pair.avg / maxW * 40, 12) : 12 }} />
-                        <svg width="5" height="8" viewBox="0 0 6 8" className={pair.avg != null ? "text-brand-400" : "text-sand-200"}>
-                          <path d="M0 0L6 4L0 8Z" fill="currentColor" />
-                        </svg>
-                      </div>
-                      {pair.count > 0 && <span className="text-[7px] text-sand-300 mt-0.5">{pair.count}</span>}
-                    </div>
-                  )}
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${
-                      i === 0 ? "bg-brand-500" : i === STEPS.length - 1 ? "bg-brand-700" : "bg-brand-400"
-                    }`}>{i + 1}</div>
-                    <span className="text-[8px] font-semibold text-sand-600 mt-1 whitespace-nowrap">{step.label}</span>
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mb-5">
+          {STEPS.map((step, i) => {
+            const pair = i > 0 ? stepPairs[i - 1] : null;
+            const cumDays = cumulativeDays[step.id];
+            const hasData = pair?.avg != null;
+            const isFirst = i === 0;
+            const isLast = i === STEPS.length - 1;
+
+            return (
+              <div
+                key={step.id}
+                className={`rounded-xl border p-3 flex flex-col items-center text-center transition-all ${
+                  isFirst
+                    ? "bg-brand-500 border-brand-500 text-white"
+                    : isLast
+                    ? "bg-brand-700 border-brand-700 text-white"
+                    : hasData
+                    ? "bg-white border-brand-200"
+                    : "bg-sand-50 border-sand-200"
+                }`}
+              >
+                <StepIcon stepId={step.id} size={18} className={isFirst || isLast ? "text-white/80" : hasData ? "text-brand-500" : "text-sand-300"} />
+                <span className={`text-[10px] font-bold mt-1.5 ${isFirst || isLast ? "text-white" : "text-sand-800"}`}>
+                  {step.label}
+                </span>
+                {isFirst ? (
+                  <span className="text-[9px] text-white/70 mt-0.5">Day 0</span>
+                ) : hasData ? (
+                  <div className="mt-1">
+                    <div className="text-sm font-bold text-brand-600">~{pair!.avg! * 7}d</div>
+                    {cumDays != null && (
+                      <div className="text-[8px] text-sand-400">day {cumDays}</div>
+                    )}
+                    <div className="text-[7px] text-sand-300 mt-0.5">{pair!.count} reports</div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-3 pt-2 border-t border-sand-100 flex items-center justify-between">
-            <span className="text-[10px] text-sand-400">Submitted → Landing</span>
-            {totalAvg != null ? (
-              <span className="text-xs font-bold text-brand-700">{totalAvg}w (~{Math.round(totalAvg / 4.3)}mo)</span>
-            ) : (
-              <span className="text-[10px] text-sand-400">No completed cases yet</span>
-            )}
-          </div>
+                ) : (
+                  <span className="text-[9px] text-sand-400 mt-1">awaiting data</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
