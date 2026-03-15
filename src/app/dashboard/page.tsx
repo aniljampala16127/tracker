@@ -237,10 +237,17 @@ function AddModal({ open, onClose, onSubmit, loading }: {
   open: boolean; onClose: () => void;
   onSubmit: (f: ApplicationFormData) => void; loading: boolean;
 }) {
-  const [form, setForm] = useState<ApplicationFormData>({
+  const emptyForm: ApplicationFormData = {
     initials: "", sponsor_status: "PR", stream: "Outland",
     country_origin: "", province: "Ontario", submitted_date: "", notes: "",
-  });
+  };
+  const [form, setForm] = useState<ApplicationFormData>(emptyForm);
+
+  // Reset form every time modal opens
+  useEffect(() => {
+    if (open) setForm(emptyForm);
+  }, [open]);
+
   const u = (f: keyof ApplicationFormData, v: string) => setForm((p) => ({ ...p, [f]: v }));
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,7 +256,7 @@ function AddModal({ open, onClose, onSubmit, loading }: {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Application">
+    <Modal open={open} onClose={onClose} title="Add Entry">
       <form onSubmit={submit} className="flex flex-col gap-3">
         <Input label="Initials *" placeholder="AB" maxLength={4} value={form.initials} onChange={(e) => u("initials", e.target.value.toUpperCase())} required />
         <div className="grid grid-cols-2 gap-3">
@@ -258,7 +265,17 @@ function AddModal({ open, onClose, onSubmit, loading }: {
         </div>
         <Select label="Country *" value={form.country_origin} onChange={(e) => u("country_origin", e.target.value)} options={[{ value: "", label: "Select..." }, ...COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))]} />
         <Select label="Province" value={form.province} onChange={(e) => u("province", e.target.value)} options={PROVINCES.map((p) => ({ value: p, label: p }))} />
-        <Input type="date" label="Submitted *" value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} required />
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date *</label>
+          <input
+            type="date"
+            className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+            value={form.submitted_date}
+            onChange={(e) => u("submitted_date", e.target.value)}
+            max={new Date().toISOString().split("T")[0]}
+            required
+          />
+        </div>
         <Input label="Notes" placeholder="Optional" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
         <Button type="submit" disabled={loading} className="w-full mt-1">
           {loading ? "Adding..." : "Add"}
