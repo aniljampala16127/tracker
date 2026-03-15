@@ -8,12 +8,15 @@ import { formatDate, weeksBetween, buildStepsMap } from "@/lib/utils";
 import { PlusIcon } from "@/components/icons";
 import { Button, Modal, Input, Select } from "@/components/ui";
 
+const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 export default function DashboardPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editApp, setEditApp] = useState<Application | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
@@ -22,11 +25,10 @@ export default function DashboardPage() {
       .select("*, step_events(*)")
       .order("created_at", { ascending: true });
     if (data) {
-      // Sort by submission date (from step_events)
       const sorted = (data as Application[]).sort((a, b) => {
-        const aDate = a.step_events?.find(e => e.step_id === "submitted")?.event_date || "";
-        const bDate = b.step_events?.find(e => e.step_id === "submitted")?.event_date || "";
-        return aDate.localeCompare(bDate);
+        const aD = a.step_events?.find(e => e.step_id === "submitted")?.event_date || "";
+        const bD = b.step_events?.find(e => e.step_id === "submitted")?.event_date || "";
+        return aD.localeCompare(bD);
       });
       setApps(sorted);
     }
@@ -53,14 +55,9 @@ export default function DashboardPage() {
   };
 
   const handleMarkStep = async (appId: string, stepId: StepId, date: string) => {
-    await supabase.from("step_events").insert({
-      application_id: appId, step_id: stepId, event_date: date,
-    });
-    await supabase.from("applications").update({
-      current_step: stepId, is_complete: stepId === "landing",
-    }).eq("id", appId);
+    await supabase.from("step_events").insert({ application_id: appId, step_id: stepId, event_date: date });
+    await supabase.from("applications").update({ current_step: stepId, is_complete: stepId === "landing" }).eq("id", appId);
     fetchApps();
-    // Refresh the edit modal data
     const { data } = await supabase.from("applications").select("*, step_events(*)").eq("id", appId).single();
     if (data) setEditApp(data as Application);
   };
@@ -71,148 +68,27 @@ export default function DashboardPage() {
     setEditApp(null); fetchApps();
   };
 
-  if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
-
-  // Compute average weeks per step across all apps
-  const avgPerStep: Record<string, number | null> = {};
-  STEPS.forEach((step, i) => {
-    if (i === 0) { avgPerStep[step.id] = null; return; }
-    const prev = STEPS[i - 1].id;
-    const durations: number[] = [];
-    apps.forEach((a) => {
-      const s = buildStepsMap(a.step_events || []);
-      if (s[prev] && s[step.id]) durations.push(weeksBetween(s[prev]!, s[step.id]!));
+  const toggleMonth = (key: string) => {
+    setExpandedMonths(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
     });
-    avgPerStep[step.id] = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+  };
+
+  // Group by month
+  const monthGroups: Record<string, Application[]> = {};
+  apps.forEach((app) => {
+    const sub = app.step_events?.find(e => e.step_id === "submitted");
+    if (!sub) return;
+    const d = new Date(sub.event_date + "T00:00:00");
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!monthGroups[key]) monthGroups[key] = [];
+    monthGroups[key].push(app);
   });
+  const sortedMonths = Object.keys(monthGroups).sort();
 
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-sand-400">{apps.length} entries</div>
-        <Button onClick={() => setShowAdd(true)} size="sm">
-          <PlusIcon size={14} className="text-white" /> Add
-        </Button>
-      </div>
-
-      {apps.length === 0 ? (
-        <div className="text-center py-20 bg-white border border-sand-200 rounded-xl">
-          <p className="text-sand-500 text-sm mb-4">No entries yet</p>
-          <Button onClick={() => setShowAdd(true)} size="sm">
-            <PlusIcon size={14} className="text-white" /> Add First Entry
-          </Button>
-        </div>
-      ) : (
-        <div className="bg-white border border-sand-200 rounded-xl overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-sand-200 bg-sand-50 text-[10px] font-semibold text-sand-500 uppercase tracking-wider">
-                <th className="text-left px-3 py-2">Name</th>
-                <th className="text-left px-3 py-2">Status</th>
-                <th className="text-left px-3 py-2">Country</th>
-                <th className="text-left px-3 py-2">Stream</th>
-                <th className="text-left px-3 py-2">Submitted</th>
-                {STEPS.slice(1).map((s) => (
-                  <th key={s.id} className="text-center px-2 py-2">{s.label}</th>
-                ))}
-                <th className="text-left px-3 py-2">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {apps.map((app) => {
-                const stepsMap = buildStepsMap(app.step_events || []);
-                return (
-                  <tr
-                    key={app.id}
-                    className="border-b border-sand-100 hover:bg-brand-50/30 cursor-pointer transition-colors"
-                    onClick={() => setEditApp(app)}
-                  >
-                    <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap">{app.initials}</td>
-                    <td className="px-3 py-2 text-sand-600 whitespace-nowrap">
-                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                        app.sponsor_status === "Citizen" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
-                      }`}>{app.sponsor_status}</span>
-                    </td>
-                    <td className="px-3 py-2 text-sand-700 whitespace-nowrap">{app.country_origin}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                        app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
-                      }`}>{app.stream}</span>
-                    </td>
-                    <td className="px-3 py-2 text-sand-600 whitespace-nowrap text-xs">{formatDate(stepsMap.submitted)}</td>
-                    {STEPS.slice(1).map((step) => {
-                      const date = stepsMap[step.id];
-                      const prevStep = STEPS[STEPS.findIndex(s => s.id === step.id) - 1];
-                      const prevDate = stepsMap[prevStep.id];
-                      const weeks = date && prevDate ? weeksBetween(prevDate, date) : null;
-                      return (
-                        <td key={step.id} className="px-2 py-2 text-center whitespace-nowrap">
-                          {date ? (
-                            <div>
-                              <div className="text-[10px] text-brand-600 font-bold">{weeks}w</div>
-                              <div className="text-[9px] text-sand-400">{formatDate(date).replace(/, \d{4}/, "")}</div>
-                            </div>
-                          ) : (
-                            <span className="text-sand-200">·</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                    <td className="px-3 py-2 text-xs text-sand-400 max-w-[120px] truncate">{app.notes || ""}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="bg-brand-50/50 border-t-2 border-brand-200">
-                <td className="px-3 py-2.5 font-bold text-xs text-brand-700" colSpan={5}>Average</td>
-                {STEPS.slice(1).map((step) => {
-                  const avg = avgPerStep[step.id];
-                  return (
-                    <td key={step.id} className="px-2 py-2.5 text-center">
-                      {avg != null ? (
-                        <span className="text-xs font-bold text-brand-600">{avg}w</span>
-                      ) : (
-                        <span className="text-sand-300 text-xs">—</span>
-                      )}
-                    </td>
-                  );
-                })}
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
-
-      <p className="text-[10px] text-sand-400 mt-3 mb-6 text-center">
-        Click any row to update steps or delete · Anyone can edit
-      </p>
-
-      {/* Insights */}
-      {apps.length > 2 && <Insights apps={apps} />}
-
-      {/* Add modal */}
-      <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} />
-
-      {/* Edit modal - click a row to open */}
-      {editApp && (
-        <EditModal
-          app={editApp}
-          onClose={() => setEditApp(null)}
-          onMarkStep={handleMarkStep}
-          onDelete={handleDelete}
-        />
-      )}
-    </div>
-  );
-}
-
-// ============================================
-// Insights — step-to-step avg processing pipeline
-// ============================================
-function Insights({ apps }: { apps: Application[] }) {
-  // Compute avg weeks between each consecutive step pair
+  // Step-to-step averages
   const stepPairs = STEPS.slice(1).map((step, i) => {
     const prev = STEPS[i];
     const durations: number[] = [];
@@ -220,83 +96,231 @@ function Insights({ apps }: { apps: Application[] }) {
       const s = buildStepsMap(a.step_events || []);
       if (s[prev.id] && s[step.id]) durations.push(weeksBetween(s[prev.id]!, s[step.id]!));
     });
-    const avg = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
-    return { from: prev, to: step, avg, count: durations.length };
+    return {
+      from: prev, to: step,
+      avg: durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null,
+      count: durations.length,
+    };
   });
-
-  // Total end-to-end
   const totalDurations: number[] = [];
   apps.forEach((a) => {
     const s = buildStepsMap(a.step_events || []);
     if (s.submitted && s.landing) totalDurations.push(weeksBetween(s.submitted, s.landing));
   });
-  const totalAvg = totalDurations.length
-    ? Math.round(totalDurations.reduce((a, b) => a + b, 0) / totalDurations.length)
-    : null;
+  const totalAvg = totalDurations.length ? Math.round(totalDurations.reduce((a, b) => a + b, 0) / totalDurations.length) : null;
+  const maxW = Math.max(...stepPairs.map(p => p.avg || 0), 1);
+  const hasAnyPipelineData = stepPairs.some(p => p.avg != null);
 
-  const hasAnyData = stepPairs.some(p => p.avg != null);
-  if (!hasAnyData) return null;
-
-  const maxWeeks = Math.max(...stepPairs.map(p => p.avg || 0), 1);
+  if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
 
   return (
-    <div className="bg-white border border-sand-200 rounded-xl p-4">
-      <h3 className="text-xs font-bold text-sand-900 mb-3">Average Processing Time</h3>
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-sm text-sand-400">{apps.length} entries</div>
+        <Button onClick={() => setShowAdd(true)} size="sm">
+          <PlusIcon size={14} className="text-white" /> Add
+        </Button>
+      </div>
 
-      {/* Pipeline visualization */}
-      <div className="flex items-center gap-0 overflow-x-auto hide-scrollbar pb-2">
-        {STEPS.map((step, i) => {
-          const pair = i > 0 ? stepPairs[i - 1] : null;
-          return (
-            <div key={step.id} className="flex items-center">
-              {/* Arrow + duration between steps */}
-              {pair && (
-                <div className="flex flex-col items-center mx-1">
-                  <span className={`text-[10px] font-bold mb-0.5 ${pair.avg != null ? "text-brand-600" : "text-sand-300"}`}>
-                    {pair.avg != null ? `${pair.avg}w` : "—"}
-                  </span>
-                  <div className="flex items-center">
-                    <div className={`h-0.5 rounded-full ${pair.avg != null ? "bg-brand-400" : "bg-sand-200"}`}
-                      style={{ width: pair.avg ? Math.max(pair.avg / maxWeeks * 48, 16) : 16 }} />
-                    <svg width="6" height="8" viewBox="0 0 6 8" fill="none" className={pair.avg != null ? "text-brand-400" : "text-sand-200"}>
-                      <path d="M0 0L6 4L0 8Z" fill="currentColor" />
-                    </svg>
-                  </div>
-                  {pair.count > 0 && (
-                    <span className="text-[8px] text-sand-300 mt-0.5">{pair.count} reports</span>
+      {/* Pipeline — always visible */}
+      {apps.length > 0 && (
+        <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
+          <h3 className="text-xs font-bold text-sand-900 mb-3">Average Processing Time</h3>
+          <div className="flex items-center gap-0 overflow-x-auto hide-scrollbar pb-1">
+            {STEPS.map((step, i) => {
+              const pair = i > 0 ? stepPairs[i - 1] : null;
+              return (
+                <div key={step.id} className="flex items-center">
+                  {pair && (
+                    <div className="flex flex-col items-center mx-0.5 sm:mx-1">
+                      <span className={`text-[10px] font-bold mb-0.5 ${pair.avg != null ? "text-brand-600" : "text-sand-300"}`}>
+                        {pair.avg != null ? `${pair.avg}w` : "—"}
+                      </span>
+                      <div className="flex items-center">
+                        <div className={`h-0.5 rounded-full ${pair.avg != null ? "bg-brand-400" : "bg-sand-200"}`}
+                          style={{ width: pair.avg ? Math.max(pair.avg / maxW * 40, 12) : 12 }} />
+                        <svg width="5" height="8" viewBox="0 0 6 8" className={pair.avg != null ? "text-brand-400" : "text-sand-200"}>
+                          <path d="M0 0L6 4L0 8Z" fill="currentColor" />
+                        </svg>
+                      </div>
+                      {pair.count > 0 && <span className="text-[7px] text-sand-300 mt-0.5">{pair.count}</span>}
+                    </div>
                   )}
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${
+                      i === 0 ? "bg-brand-500" : i === STEPS.length - 1 ? "bg-brand-700" : "bg-brand-400"
+                    }`}>{i + 1}</div>
+                    <span className="text-[8px] font-semibold text-sand-600 mt-1 whitespace-nowrap">{step.label}</span>
+                  </div>
                 </div>
-              )}
+              );
+            })}
+          </div>
+          <div className="mt-3 pt-2 border-t border-sand-100 flex items-center justify-between">
+            <span className="text-[10px] text-sand-400">Submitted → Landing</span>
+            {totalAvg != null ? (
+              <span className="text-xs font-bold text-brand-700">{totalAvg}w (~{Math.round(totalAvg / 4.3)}mo)</span>
+            ) : (
+              <span className="text-[10px] text-sand-400">No completed cases yet</span>
+            )}
+          </div>
+        </div>
+      )}
 
-              {/* Step node */}
-              <div className="flex flex-col items-center flex-shrink-0">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${
-                  i === 0 ? "bg-brand-500" : i === STEPS.length - 1 ? "bg-brand-700" : "bg-brand-400"
-                }`}>
-                  {i + 1}
+      {/* Empty state */}
+      {apps.length === 0 && (
+        <div className="text-center py-20 bg-white border border-sand-200 rounded-xl">
+          <p className="text-sand-500 text-sm mb-4">No entries yet</p>
+          <Button onClick={() => setShowAdd(true)} size="sm">
+            <PlusIcon size={14} className="text-white" /> Add First Entry
+          </Button>
+        </div>
+      )}
+
+      {/* Monthly groups — collapsed by default */}
+      {sortedMonths.map((monthKey) => {
+        const group = monthGroups[monthKey];
+        const expanded = expandedMonths.has(monthKey);
+        const [y, m] = monthKey.split("-");
+        const label = `${MO[parseInt(m) - 1]} ${y}`;
+        const outland = group.filter(a => a.stream === "Outland").length;
+        const inland = group.filter(a => a.stream === "Inland").length;
+
+        return (
+          <div key={monthKey} className="mb-3 bg-white border border-sand-200 rounded-xl overflow-hidden">
+            {/* Month header — click to toggle */}
+            <button
+              onClick={() => toggleMonth(monthKey)}
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-sand-50 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-brand-100 flex flex-col items-center justify-center flex-shrink-0">
+                  <span className="text-[10px] font-bold text-brand-700 leading-none">{MO[parseInt(m) - 1]}</span>
+                  <span className="text-[8px] text-brand-500 leading-none">{y}</span>
                 </div>
-                <span className="text-[9px] font-semibold text-sand-700 mt-1 whitespace-nowrap">{step.label}</span>
+                <div>
+                  <span className="text-sm font-bold text-sand-900">{label}</span>
+                  <div className="text-[10px] text-sand-400">
+                    {group.length} {group.length === 1 ? "entry" : "entries"}
+                    <span className="mx-1">·</span>
+                    {outland} outland{inland > 0 && <>, {inland} inland</>}
+                  </div>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                className={`text-sand-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}>
+                <path d="M6 9L12 15L18 9" />
+              </svg>
+            </button>
 
-      {/* Total */}
-      <div className="mt-4 pt-3 border-t border-sand-100 flex items-center justify-between">
-        <span className="text-[11px] text-sand-500">Total (Submitted → Landing)</span>
-        {totalAvg != null ? (
-          <span className="text-sm font-bold text-brand-700">{totalAvg} weeks (~{Math.round(totalAvg / 4.3)} months)</span>
-        ) : (
-          <span className="text-xs text-sand-400">No completed applications yet</span>
-        )}
-      </div>
+            {/* Expanded table */}
+            {expanded && (
+              <div className="border-t border-sand-100 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-sand-50 text-[9px] font-semibold text-sand-500 uppercase tracking-wider">
+                      <th className="text-left px-3 py-1.5">Name</th>
+                      <th className="text-left px-2 py-1.5">Status</th>
+                      <th className="text-left px-2 py-1.5">Country</th>
+                      <th className="text-left px-2 py-1.5">Stream</th>
+                      <th className="text-left px-2 py-1.5">Submitted</th>
+                      {STEPS.slice(1).map(s => (
+                        <th key={s.id} className="text-center px-1.5 py-1.5">{s.label}</th>
+                      ))}
+                      <th className="text-left px-2 py-1.5">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.map((app) => {
+                      const stepsMap = buildStepsMap(app.step_events || []);
+                      return (
+                        <tr key={app.id}
+                          className="border-t border-sand-100 hover:bg-brand-50/30 cursor-pointer transition-colors"
+                          onClick={() => setEditApp(app)}
+                        >
+                          <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap">{app.initials}</td>
+                          <td className="px-2 py-2 whitespace-nowrap">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                              app.sponsor_status === "Citizen" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
+                            }`}>{app.sponsor_status}</span>
+                          </td>
+                          <td className="px-2 py-2 text-sand-700 text-xs whitespace-nowrap">{app.country_origin}</td>
+                          <td className="px-2 py-2 whitespace-nowrap">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                              app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
+                            }`}>{app.stream}</span>
+                          </td>
+                          <td className="px-2 py-2 text-xs text-sand-600 whitespace-nowrap">{formatDate(stepsMap.submitted)}</td>
+                          {STEPS.slice(1).map((step) => {
+                            const date = stepsMap[step.id];
+                            const prevStep = STEPS[STEPS.findIndex(s => s.id === step.id) - 1];
+                            const prevDate = stepsMap[prevStep.id];
+                            const weeks = date && prevDate ? weeksBetween(prevDate, date) : null;
+                            return (
+                              <td key={step.id} className="px-1.5 py-2 text-center whitespace-nowrap">
+                                {date ? (
+                                  <div>
+                                    <div className="text-[10px] text-brand-600 font-bold">{weeks}w</div>
+                                    <div className="text-[8px] text-sand-400">{formatDate(date).replace(/, \d{4}/, "")}</div>
+                                  </div>
+                                ) : (
+                                  <span className="text-sand-200">·</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="px-2 py-2 text-[10px] text-sand-400 max-w-[100px] truncate">{app.notes || ""}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  {/* Month average row */}
+                  <tfoot>
+                    <tr className="bg-brand-50/50 border-t border-brand-200">
+                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700" colSpan={5}>Avg</td>
+                      {STEPS.slice(1).map((step, i) => {
+                        const prev = STEPS[i];
+                        const durations: number[] = [];
+                        group.forEach(a => {
+                          const s = buildStepsMap(a.step_events || []);
+                          if (s[prev.id] && s[step.id]) durations.push(weeksBetween(s[prev.id]!, s[step.id]!));
+                        });
+                        const avg = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+                        return (
+                          <td key={step.id} className="px-1.5 py-2 text-center">
+                            {avg != null ? (
+                              <span className="text-[10px] font-bold text-brand-600">{avg}w</span>
+                            ) : (
+                              <span className="text-sand-300 text-[10px]">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <p className="text-[9px] text-sand-400 mt-3 text-center">
+        Click any row to update steps or delete · Anyone can edit
+      </p>
+
+      <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} />
+      {editApp && (
+        <EditModal app={editApp} onClose={() => setEditApp(null)} onMarkStep={handleMarkStep} onDelete={handleDelete} />
+      )}
     </div>
   );
 }
 
 // ============================================
-// Edit modal — update steps
+// Edit modal
 // ============================================
 function EditModal({ app, onClose, onMarkStep, onDelete }: {
   app: Application; onClose: () => void;
@@ -311,12 +335,9 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
   return (
     <Modal open={true} onClose={onClose} title={`${app.initials} — ${app.country_origin}`}>
       <div className="flex gap-3 text-xs text-sand-500 mb-4">
-        <span>{app.sponsor_status}</span>
-        <span>·</span>
-        <span>{app.stream}</span>
+        <span>{app.sponsor_status}</span><span>·</span><span>{app.stream}</span>
         {app.notes && <><span>·</span><span className="italic">{app.notes}</span></>}
       </div>
-
       <div className="space-y-1">
         {STEPS.map((step, i) => {
           const date = stepsMap[step.id];
@@ -324,67 +345,42 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
           const weeks = date && prevDate ? weeksBetween(prevDate, date) : null;
           const isNext = step.id === nextStep;
           const isDone = !!date;
-          const isFuture = !isDone && !isNext;
 
           return (
             <div key={step.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${isDone ? "bg-brand-50/50" : isNext ? "bg-warn-light/30" : "opacity-40"}`}>
-              {/* Status dot */}
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isDone ? "bg-brand-500" : isNext ? "bg-warn" : "bg-sand-200"}`} />
-
-              {/* Step info */}
               <div className="flex-1">
                 <div className="text-sm font-medium text-sand-900">{step.label}</div>
                 {isDone && (
                   <div className="text-xs text-sand-500">
-                    {formatDate(date)}{weeks != null && i > 0 && <span className="text-brand-500 font-semibold ml-1">({weeks} weeks)</span>}
+                    {formatDate(date)}{weeks != null && i > 0 && <span className="text-brand-500 font-semibold ml-1">({weeks}w)</span>}
                   </div>
                 )}
               </div>
-
-              {/* Action */}
               {isNext && (
                 <div className="flex items-center gap-2">
                   {activeStep === step.id ? (
-                    <input
-                      type="date"
-                      autoFocus
-                      className="text-xs px-2 py-1 border border-sand-200 rounded-md bg-white"
-                      max={new Date().toISOString().split("T")[0]}
-                      value={stepDate}
+                    <input type="date" autoFocus className="text-xs px-2 py-1 border border-sand-200 rounded-md bg-white"
+                      max={new Date().toISOString().split("T")[0]} value={stepDate}
                       onChange={(e) => setStepDate(e.target.value)}
                       onBlur={() => { if (!stepDate) setActiveStep(null); }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && stepDate) {
-                          onMarkStep(app.id, step.id, stepDate);
-                          setStepDate(""); setActiveStep(null);
-                        }
-                      }}
-                    />
+                      onKeyDown={(e) => { if (e.key === "Enter" && stepDate) { onMarkStep(app.id, step.id, stepDate); setStepDate(""); setActiveStep(null); }}} />
                   ) : null}
                   {activeStep === step.id && stepDate ? (
-                    <button
-                      className="text-xs bg-brand-500 text-white px-3 py-1 rounded-md font-medium hover:bg-brand-600"
-                      onClick={() => { onMarkStep(app.id, step.id, stepDate); setStepDate(""); setActiveStep(null); }}
-                    >Save</button>
+                    <button className="text-xs bg-brand-500 text-white px-3 py-1 rounded-md font-medium hover:bg-brand-600"
+                      onClick={() => { onMarkStep(app.id, step.id, stepDate); setStepDate(""); setActiveStep(null); }}>Save</button>
                   ) : activeStep !== step.id ? (
-                    <button
-                      className="text-xs bg-warn text-white px-3 py-1 rounded-md font-medium hover:bg-warn-dark"
-                      onClick={() => setActiveStep(step.id)}
-                    >Update</button>
+                    <button className="text-xs bg-warn text-white px-3 py-1 rounded-md font-medium hover:bg-warn-dark"
+                      onClick={() => setActiveStep(step.id)}>Update</button>
                   ) : null}
                 </div>
               )}
-
-              {isDone && <span className="text-brand-500">✓</span>}
+              {isDone && <span className="text-brand-500 text-xs">✓</span>}
             </div>
           );
         })}
       </div>
-
-      <button
-        onClick={() => onDelete(app.id)}
-        className="mt-4 text-xs text-error hover:text-error-dark transition-colors"
-      >
+      <button onClick={() => onDelete(app.id)} className="mt-4 text-xs text-error hover:text-error-dark transition-colors">
         Delete this entry
       </button>
     </Modal>
