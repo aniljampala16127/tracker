@@ -32,15 +32,8 @@ export default function RootLayout({
         <Nav />
         <main className="max-w-4xl mx-auto px-4 py-6">{children}</main>
         <footer className="border-t border-sand-200 mt-16">
-          <div className="max-w-4xl mx-auto px-4 py-8 text-center text-xs text-sand-400">
-            <p>
-              SponsorTrack is a community tool. Not affiliated with IRCC or the
-              Government of Canada.
-            </p>
-            <p className="mt-1">
-              Processing times are community-reported and may not reflect
-              official IRCC estimates.
-            </p>
+          <div className="max-w-4xl mx-auto px-4 py-6 text-center text-[10px] text-sand-400">
+            SponsorTrack · Not affiliated with IRCC · Community-reported data
           </div>
         </footer>
       </body>
