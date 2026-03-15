@@ -209,146 +209,88 @@ export default function DashboardPage() {
 }
 
 // ============================================
-// Insights — monthly trend + stuck applications
+// Insights — step-to-step avg processing pipeline
 // ============================================
 function Insights({ apps }: { apps: Application[] }) {
-  const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-  // Group by submission month
-  const monthGroups: Record<string, Application[]> = {};
-  apps.forEach((app) => {
-    const sub = app.step_events?.find((e) => e.step_id === "submitted");
-    if (!sub) return;
-    const d = new Date(sub.event_date + "T00:00:00");
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    if (!monthGroups[key]) monthGroups[key] = [];
-    monthGroups[key].push(app);
-  });
-  const sortedMonths = Object.keys(monthGroups).sort();
-
-  // Monthly avg: for each month, avg weeks from submitted to latest step
-  const monthlyAvgs = sortedMonths.map((key) => {
-    const group = monthGroups[key];
+  // Compute avg weeks between each consecutive step pair
+  const stepPairs = STEPS.slice(1).map((step, i) => {
+    const prev = STEPS[i];
     const durations: number[] = [];
-    group.forEach((a) => {
+    apps.forEach((a) => {
       const s = buildStepsMap(a.step_events || []);
-      const sub = s.submitted;
-      const dates = Object.values(s).filter(Boolean).sort() as string[];
-      const last = dates[dates.length - 1];
-      if (sub && last && sub !== last) durations.push(weeksBetween(sub, last));
+      if (s[prev.id] && s[step.id]) durations.push(weeksBetween(s[prev.id]!, s[step.id]!));
     });
-    const [y, m] = key.split("-");
-    return {
-      key,
-      label: `${MO[parseInt(m) - 1]} ${y}`,
-      shortLabel: MO[parseInt(m) - 1],
-      count: group.length,
-      avgWeeks: durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null,
-      dataPoints: durations.length,
-    };
+    const avg = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+    return { from: prev, to: step, avg, count: durations.length };
   });
 
-  const maxAvgWeeks = Math.max(...monthlyAvgs.map(m => m.avgWeeks || 0), 1);
+  // Total end-to-end
+  const totalDurations: number[] = [];
+  apps.forEach((a) => {
+    const s = buildStepsMap(a.step_events || []);
+    if (s.submitted && s.landing) totalDurations.push(weeksBetween(s.submitted, s.landing));
+  });
+  const totalAvg = totalDurations.length
+    ? Math.round(totalDurations.reduce((a, b) => a + b, 0) / totalDurations.length)
+    : null;
 
-  // Stuck applications: submitted 4+ weeks ago, still at "submitted" step
-  const now = new Date();
-  const stuck = apps.filter((a) => {
-    if (a.current_step !== "submitted") return false;
-    const sub = a.step_events?.find(e => e.step_id === "submitted");
-    if (!sub) return false;
-    const subDate = new Date(sub.event_date + "T00:00:00");
-    const weeksSince = Math.round((now.getTime() - subDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-    return weeksSince >= 4;
-  }).map((a) => {
-    const sub = a.step_events?.find(e => e.step_id === "submitted");
-    const subDate = new Date(sub!.event_date + "T00:00:00");
-    const weeksSince = Math.round((now.getTime() - subDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-    return { ...a, weeksSince, submittedDate: sub!.event_date };
-  }).sort((a, b) => b.weeksSince - a.weeksSince);
+  const hasAnyData = stepPairs.some(p => p.avg != null);
+  if (!hasAnyData) return null;
+
+  const maxWeeks = Math.max(...stepPairs.map(p => p.avg || 0), 1);
 
   return (
-    <div className="space-y-5">
-      {/* Monthly trend */}
-      {monthlyAvgs.length > 1 && (
-        <div className="bg-white border border-sand-200 rounded-xl p-4">
-          <h3 className="text-xs font-bold text-sand-900 mb-1">Monthly Trend</h3>
-          <p className="text-[10px] text-sand-400 mb-3">Avg processing time by submission month</p>
-          <div className="flex items-end gap-2 h-24">
-            {monthlyAvgs.map((m) => {
-              const pct = m.avgWeeks ? (m.avgWeeks / maxAvgWeeks) * 100 : 0;
-              return (
-                <div key={m.key} className="flex-1 flex flex-col items-center gap-1">
-                  {m.avgWeeks != null ? (
-                    <span className="text-[10px] font-bold text-brand-600">{m.avgWeeks}w</span>
-                  ) : (
-                    <span className="text-[9px] text-sand-300">—</span>
-                  )}
-                  <div className="w-full flex flex-col justify-end" style={{ height: 64 }}>
-                    <div
-                      className={`w-full rounded-t-md transition-all duration-500 ${m.avgWeeks ? "bg-brand-400" : "bg-sand-100"}`}
-                      style={{ height: m.avgWeeks ? `${Math.max(pct, 10)}%` : 4 }}
-                    />
-                  </div>
-                  <span className="text-[9px] text-sand-500 font-medium">{m.shortLabel}</span>
-                  <span className="text-[8px] text-sand-300">{m.count}</span>
-                </div>
-              );
-            })}
-          </div>
-          {monthlyAvgs.filter(m => m.avgWeeks != null).length >= 2 && (() => {
-            const withData = monthlyAvgs.filter(m => m.avgWeeks != null);
-            const first = withData[0];
-            const last = withData[withData.length - 1];
-            if (!first.avgWeeks || !last.avgWeeks) return null;
-            const diff = last.avgWeeks - first.avgWeeks;
-            return (
-              <p className="text-[10px] text-sand-500 mt-3">
-                {diff < 0 ? (
-                  <span className="text-brand-600 font-semibold">↓ Getting faster</span>
-                ) : diff > 0 ? (
-                  <span className="text-error font-semibold">↑ Getting slower</span>
-                ) : (
-                  <span className="text-sand-500 font-semibold">→ Holding steady</span>
-                )}
-                {" "}— {first.label}: {first.avgWeeks}w → {last.label}: {last.avgWeeks}w
-              </p>
-            );
-          })()}
-        </div>
-      )}
+    <div className="bg-white border border-sand-200 rounded-xl p-4">
+      <h3 className="text-xs font-bold text-sand-900 mb-3">Average Processing Time</h3>
 
-      {/* Stuck applications */}
-      {stuck.length > 0 && (
-        <div className="bg-white border border-sand-200 rounded-xl p-4">
-          <h3 className="text-xs font-bold text-sand-900 mb-1">
-            Waiting for Update
-            <span className="ml-1.5 text-[10px] font-normal text-sand-400">({stuck.length})</span>
-          </h3>
-          <p className="text-[10px] text-sand-400 mb-3">Submitted 4+ weeks ago, still at first step</p>
-          <div className="space-y-1.5">
-            {stuck.slice(0, 10).map((app) => (
-              <div key={app.id} className="flex items-center gap-3 px-2 py-1.5 rounded-md bg-sand-50">
-                <div className="w-6 h-6 rounded-full bg-warn-light flex items-center justify-center text-[9px] font-bold text-warn-dark flex-shrink-0">
-                  {app.initials.slice(0, 2)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium text-sand-800">{app.initials}</span>
-                  <span className="text-[10px] text-sand-400 ml-1">{app.country_origin} · {app.stream}</span>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <span className={`text-xs font-bold ${app.weeksSince >= 8 ? "text-error" : "text-warn-dark"}`}>
-                    {app.weeksSince}w
+      {/* Pipeline visualization */}
+      <div className="flex items-center gap-0 overflow-x-auto hide-scrollbar pb-2">
+        {STEPS.map((step, i) => {
+          const pair = i > 0 ? stepPairs[i - 1] : null;
+          return (
+            <div key={step.id} className="flex items-center">
+              {/* Arrow + duration between steps */}
+              {pair && (
+                <div className="flex flex-col items-center mx-1">
+                  <span className={`text-[10px] font-bold mb-0.5 ${pair.avg != null ? "text-brand-600" : "text-sand-300"}`}>
+                    {pair.avg != null ? `${pair.avg}w` : "—"}
                   </span>
-                  <div className="text-[9px] text-sand-400">waiting</div>
+                  <div className="flex items-center">
+                    <div className={`h-0.5 rounded-full ${pair.avg != null ? "bg-brand-400" : "bg-sand-200"}`}
+                      style={{ width: pair.avg ? Math.max(pair.avg / maxWeeks * 48, 16) : 16 }} />
+                    <svg width="6" height="8" viewBox="0 0 6 8" fill="none" className={pair.avg != null ? "text-brand-400" : "text-sand-200"}>
+                      <path d="M0 0L6 4L0 8Z" fill="currentColor" />
+                    </svg>
+                  </div>
+                  {pair.count > 0 && (
+                    <span className="text-[8px] text-sand-300 mt-0.5">{pair.count} reports</span>
+                  )}
                 </div>
+              )}
+
+              {/* Step node */}
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${
+                  i === 0 ? "bg-brand-500" : i === STEPS.length - 1 ? "bg-brand-700" : "bg-brand-400"
+                }`}>
+                  {i + 1}
+                </div>
+                <span className="text-[9px] font-semibold text-sand-700 mt-1 whitespace-nowrap">{step.label}</span>
               </div>
-            ))}
-          </div>
-          {stuck.length > 10 && (
-            <p className="text-[10px] text-sand-400 mt-2">+{stuck.length - 10} more</p>
-          )}
-        </div>
-      )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Total */}
+      <div className="mt-4 pt-3 border-t border-sand-100 flex items-center justify-between">
+        <span className="text-[11px] text-sand-500">Total (Submitted → Landing)</span>
+        {totalAvg != null ? (
+          <span className="text-sm font-bold text-brand-700">{totalAvg} weeks (~{Math.round(totalAvg / 4.3)} months)</span>
+        ) : (
+          <span className="text-xs text-sand-400">No completed applications yet</span>
+        )}
+      </div>
     </div>
   );
 }
