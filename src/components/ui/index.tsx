@@ -390,7 +390,7 @@ export function Avatar({ initials, size = "md", className }: AvatarProps) {
         className
       )}
     >
-      {initials}
+      {initials.slice(0, 2).toUpperCase()}
     </div>
   );
 }

@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   const { data: app, error: appError } = await supabase
     .from("applications")
     .insert({
-      initials: initials.toUpperCase().slice(0, 4),
+      initials: initials.trim().slice(0, 20),
       sponsor_status,
       stream,
       country_origin,

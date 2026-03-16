@@ -42,7 +42,7 @@ export default function DashboardPage() {
     const { data: app } = await supabase
       .from("applications")
       .insert({
-        initials: form.initials.toUpperCase(), sponsor_status: form.sponsor_status,
+        initials: form.initials.trim(), sponsor_status: form.sponsor_status,
         stream: form.stream, country_origin: form.country_origin,
         subcategory: form.subcategory || null,
         province: form.province, current_step: "submitted", notes: form.notes || null,
@@ -424,7 +424,7 @@ function AddModal({ open, onClose, onSubmit, loading }: {
   return (
     <Modal open={open} onClose={onClose} title="Add Entry">
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <Input label="Initials *" placeholder="AB" maxLength={4} value={form.initials} onChange={(e) => u("initials", e.target.value.toUpperCase())} required />
+        <Input label="Name *" placeholder="e.g. Anil, DE7, Goku" maxLength={20} value={form.initials} onChange={(e) => u("initials", e.target.value)} required />
         <div className="grid grid-cols-2 gap-3">
           <Select label="Sponsor Status" value={form.sponsor_status} onChange={(e) => u("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map((s) => ({ value: s, label: s }))} />
           <Select label="Stream" value={form.stream} onChange={(e) => u("stream", e.target.value)} options={STREAMS.map((s) => ({ value: s, label: s }))} />
