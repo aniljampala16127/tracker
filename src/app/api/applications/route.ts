@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const supabase = getSupabase();
   const body = await request.json();
-  const { initials, sponsor_status, stream, country_origin, visa_country, subcategory, province, submitted_date, notes } = body;
+  const { initials, sponsor_status, stream, country_origin, subcategory, province, submitted_date, notes } = body;
 
   if (!initials || !sponsor_status || !stream || !country_origin || !submitted_date) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -37,7 +37,6 @@ export async function POST(request: Request) {
       sponsor_status,
       stream,
       country_origin,
-      visa_country: visa_country || null,
       subcategory: subcategory || null,
       province: province || "Ontario",
       current_step: "submitted",

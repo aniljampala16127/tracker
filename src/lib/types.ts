@@ -77,7 +77,6 @@ export interface ApplicationFormData {
   sponsor_status: SponsorStatus;
   stream: Stream;
   country_origin: string;
-  visa_country: string;
   subcategory: string;
   province: string;
   submitted_date: string;
