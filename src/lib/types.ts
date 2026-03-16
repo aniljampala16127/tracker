@@ -8,13 +8,14 @@ export interface Application {
   sponsor_status: SponsorStatus;
   stream: Stream;
   country_origin: string;
+  visa_country: string | null;
+  subcategory: string | null;
   province: string;
   current_step: StepId;
   is_complete: boolean;
   notes: string | null;
   created_at: string;
   updated_at: string;
-  // Joined data
   step_events?: StepEvent[];
 }
 
@@ -76,6 +77,8 @@ export interface ApplicationFormData {
   sponsor_status: SponsorStatus;
   stream: Stream;
   country_origin: string;
+  visa_country: string;
+  subcategory: string;
   province: string;
   submitted_date: string;
   notes: string;

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
-import { STEPS, COMMON_COUNTRIES, STREAMS, SPONSOR_STATUSES, PROVINCES, getNextStep } from "@/lib/constants";
+import { STEPS, COMMON_COUNTRIES, VISA_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, PROVINCES, getNextStep } from "@/lib/constants";
 import { formatDate, weeksBetween, buildStepsMap } from "@/lib/utils";
 import { PlusIcon, StepIcon } from "@/components/icons";
 import { Button, Modal, Input, Select } from "@/components/ui";
@@ -44,6 +44,7 @@ export default function DashboardPage() {
       .insert({
         initials: form.initials.toUpperCase(), sponsor_status: form.sponsor_status,
         stream: form.stream, country_origin: form.country_origin,
+        visa_country: form.visa_country || null, subcategory: form.subcategory || null,
         province: form.province, current_step: "submitted", notes: form.notes || null,
       }).select().single();
     if (app) {
@@ -231,6 +232,8 @@ export default function DashboardPage() {
                       <th className="text-left px-3 py-1.5">Name</th>
                       <th className="text-left px-2 py-1.5">Status</th>
                       <th className="text-left px-2 py-1.5">Country</th>
+                      <th className="text-left px-2 py-1.5">Visa From</th>
+                      <th className="text-left px-2 py-1.5">Type</th>
                       <th className="text-left px-2 py-1.5">Stream</th>
                       <th className="text-left px-2 py-1.5">Submitted</th>
                       {STEPS.slice(1).map(s => (
@@ -254,6 +257,8 @@ export default function DashboardPage() {
                             }`}>{app.sponsor_status}</span>
                           </td>
                           <td className="px-2 py-2 text-sand-700 text-xs whitespace-nowrap">{app.country_origin}</td>
+                          <td className="px-2 py-2 text-sand-500 text-[10px] whitespace-nowrap">{app.visa_country || "—"}</td>
+                          <td className="px-2 py-2 text-sand-500 text-[10px] whitespace-nowrap max-w-[80px] truncate">{app.subcategory || "—"}</td>
                           <td className="px-2 py-2 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                               app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
@@ -286,7 +291,7 @@ export default function DashboardPage() {
                   {/* Month average row */}
                   <tfoot>
                     <tr className="bg-brand-50/50 border-t border-brand-200">
-                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700" colSpan={5}>Avg</td>
+                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700" colSpan={7}>Avg</td>
                       {STEPS.slice(1).map((step, i) => {
                         const prev = STEPS[i];
                         const durations: number[] = [];
@@ -342,8 +347,10 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
 
   return (
     <Modal open={true} onClose={onClose} title={`${app.initials} — ${app.country_origin}`}>
-      <div className="flex gap-3 text-xs text-sand-500 mb-4">
+      <div className="flex flex-wrap gap-2 text-xs text-sand-500 mb-4">
         <span>{app.sponsor_status}</span><span>·</span><span>{app.stream}</span>
+        {app.visa_country && <><span>·</span><span>{app.visa_country}</span></>}
+        {app.subcategory && <><span>·</span><span>{app.subcategory}</span></>}
         {app.notes && <><span>·</span><span className="italic">{app.notes}</span></>}
       </div>
       <div className="space-y-1">
@@ -404,7 +411,8 @@ function AddModal({ open, onClose, onSubmit, loading }: {
 }) {
   const empty: ApplicationFormData = {
     initials: "", sponsor_status: "PR", stream: "Outland",
-    country_origin: "", province: "Ontario", submitted_date: "", notes: "",
+    country_origin: "", visa_country: "", subcategory: "",
+    province: "Ontario", submitted_date: "", notes: "",
   };
   const [form, setForm] = useState<ApplicationFormData>(empty);
   useEffect(() => { if (open) setForm(empty); }, [open]);
@@ -421,10 +429,12 @@ function AddModal({ open, onClose, onSubmit, loading }: {
       <form onSubmit={submit} className="flex flex-col gap-3">
         <Input label="Initials *" placeholder="AB" maxLength={4} value={form.initials} onChange={(e) => u("initials", e.target.value.toUpperCase())} required />
         <div className="grid grid-cols-2 gap-3">
-          <Select label="Status" value={form.sponsor_status} onChange={(e) => u("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map((s) => ({ value: s, label: s }))} />
+          <Select label="Sponsor Status" value={form.sponsor_status} onChange={(e) => u("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map((s) => ({ value: s, label: s }))} />
           <Select label="Stream" value={form.stream} onChange={(e) => u("stream", e.target.value)} options={STREAMS.map((s) => ({ value: s, label: s }))} />
         </div>
-        <Select label="Country *" value={form.country_origin} onChange={(e) => u("country_origin", e.target.value)} options={[{ value: "", label: "Select..." }, ...COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))]} />
+        <Select label="PA Country *" value={form.country_origin} onChange={(e) => u("country_origin", e.target.value)} options={[{ value: "", label: "Select country..." }, ...COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))]} />
+        <Select label="Visa Country" value={form.visa_country} onChange={(e) => u("visa_country", e.target.value)} options={[{ value: "", label: "Same as PA country" }, ...VISA_COUNTRIES.map((c) => ({ value: c, label: c }))]} />
+        <Select label="Subcategory" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
         <Select label="Province" value={form.province} onChange={(e) => u("province", e.target.value)} options={PROVINCES.map((p) => ({ value: p, label: p }))} />
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date *</label>
