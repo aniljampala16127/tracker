@@ -6,7 +6,7 @@ import { Application, ApplicationFormData, StepId } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, VISA_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, PROVINCES, getNextStep } from "@/lib/constants";
 import { formatDate, weeksBetween, buildStepsMap } from "@/lib/utils";
 import { PlusIcon, StepIcon } from "@/components/icons";
-import { Button, Modal, Input, Select } from "@/components/ui";
+import { Button, Modal, Input, Select, SearchableSelect } from "@/components/ui";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -432,7 +432,7 @@ function AddModal({ open, onClose, onSubmit, loading }: {
           <Select label="Sponsor Status" value={form.sponsor_status} onChange={(e) => u("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map((s) => ({ value: s, label: s }))} />
           <Select label="Stream" value={form.stream} onChange={(e) => u("stream", e.target.value)} options={STREAMS.map((s) => ({ value: s, label: s }))} />
         </div>
-        <Select label="PA Country *" value={form.country_origin} onChange={(e) => u("country_origin", e.target.value)} options={[{ value: "", label: "Select country..." }, ...COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))]} />
+        <SearchableSelect label="PA Country *" value={form.country_origin} onChange={(v) => u("country_origin", v)} placeholder="Type to search country..." options={COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))} />
         <Select label="Current Status in Canada" value={form.visa_country} onChange={(e) => u("visa_country", e.target.value)} options={[{ value: "", label: "Not in Canada" }, ...VISA_COUNTRIES.map((c) => ({ value: c, label: c }))]} />
         <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
         <Select label="Province" value={form.province} onChange={(e) => u("province", e.target.value)} options={PROVINCES.map((p) => ({ value: p, label: p }))} />

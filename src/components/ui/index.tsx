@@ -142,6 +142,104 @@ export function Select({ label, options, className, ...props }: SelectProps) {
 }
 
 // ============================================
+// SearchableSelect (type to filter + pick)
+// ============================================
+interface SearchableSelectProps {
+  label?: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}
+
+export function SearchableSelect({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = "Search...",
+}: SearchableSelectProps) {
+  const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  const filtered = search
+    ? options.filter((o) =>
+        o.label.toLowerCase().includes(search.toLowerCase())
+      )
+    : options;
+
+  const selected = options.find((o) => o.value === value);
+
+  // Close on outside click
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-1" ref={ref}>
+      {label && (
+        <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        <input
+          type="text"
+          className={cn(
+            "w-full px-3 py-2 rounded-lg border border-sand-200 text-sm font-sans bg-white",
+            "focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400",
+            "placeholder:text-sand-400"
+          )}
+          placeholder={selected ? selected.label : placeholder}
+          value={open ? search : selected?.label || ""}
+          onFocus={() => { setOpen(true); setSearch(""); }}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {value && !open && (
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-sand-400 hover:text-sand-600 text-xs"
+            onClick={(e) => { e.stopPropagation(); onChange(""); setSearch(""); }}
+          >
+            ✕
+          </button>
+        )}
+        {open && (
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-sand-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-sand-400">No matches</div>
+            ) : (
+              filtered.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className={cn(
+                    "w-full text-left px-3 py-1.5 text-sm hover:bg-brand-50 transition-colors",
+                    o.value === value && "bg-brand-50 text-brand-700 font-medium"
+                  )}
+                  onClick={() => {
+                    onChange(o.value);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                >
+                  {o.label}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // Card
 // ============================================
 interface CardProps {
