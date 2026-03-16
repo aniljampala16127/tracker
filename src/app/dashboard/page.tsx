@@ -424,12 +424,12 @@ function AddModal({ open, onClose, onSubmit, loading }: {
   return (
     <Modal open={open} onClose={onClose} title="Add Entry">
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <Input label="Name *" placeholder="e.g. Anil, DE7, Goku" maxLength={20} value={form.initials} onChange={(e) => u("initials", e.target.value)} required />
+        <Input label="Name *" maxLength={20} value={form.initials} onChange={(e) => u("initials", e.target.value)} required />
         <div className="grid grid-cols-2 gap-3">
           <Select label="Sponsor Status" value={form.sponsor_status} onChange={(e) => u("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map((s) => ({ value: s, label: s }))} />
           <Select label="Stream" value={form.stream} onChange={(e) => u("stream", e.target.value)} options={STREAMS.map((s) => ({ value: s, label: s }))} />
         </div>
-        <SearchableSelect label="PA Country *" value={form.country_origin} onChange={(v) => u("country_origin", v)} placeholder="Type to search country..." options={COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))} />
+        <SearchableSelect label="PA Country *" value={form.country_origin} onChange={(v) => u("country_origin", v)} options={COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))} />
         <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
         <Select label="Province" value={form.province} onChange={(e) => u("province", e.target.value)} options={PROVINCES.map((p) => ({ value: p, label: p }))} />
         <div className="flex flex-col gap-1">
@@ -437,7 +437,7 @@ function AddModal({ open, onClose, onSubmit, loading }: {
           <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
             value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} max={new Date().toISOString().split("T")[0]} required />
         </div>
-        <Input label="Notes" placeholder="Optional" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
+        <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
         <Button type="submit" disabled={loading} className="w-full mt-1">{loading ? "Adding..." : "Add"}</Button>
       </form>
     </Modal>
