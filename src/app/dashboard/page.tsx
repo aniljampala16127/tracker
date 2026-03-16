@@ -232,8 +232,8 @@ export default function DashboardPage() {
                       <th className="text-left px-3 py-1.5">Name</th>
                       <th className="text-left px-2 py-1.5">Status</th>
                       <th className="text-left px-2 py-1.5">Country</th>
-                      <th className="text-left px-2 py-1.5">Visa From</th>
-                      <th className="text-left px-2 py-1.5">Type</th>
+                      <th className="text-left px-2 py-1.5">CA Status</th>
+                      <th className="text-left px-2 py-1.5">App Type</th>
                       <th className="text-left px-2 py-1.5">Stream</th>
                       <th className="text-left px-2 py-1.5">Submitted</th>
                       {STEPS.slice(1).map(s => (
@@ -257,8 +257,8 @@ export default function DashboardPage() {
                             }`}>{app.sponsor_status}</span>
                           </td>
                           <td className="px-2 py-2 text-sand-700 text-xs whitespace-nowrap">{app.country_origin}</td>
-                          <td className="px-2 py-2 text-sand-500 text-[10px] whitespace-nowrap">{app.visa_country || "—"}</td>
-                          <td className="px-2 py-2 text-sand-500 text-[10px] whitespace-nowrap max-w-[80px] truncate">{app.subcategory || "—"}</td>
+                          <td className="px-2 py-2 text-sand-500 text-[10px] whitespace-nowrap">{app.visa_country ? app.visa_country.replace("Canada — ", "") : "—"}</td>
+                          <td className="px-2 py-2 text-sand-500 text-[10px] whitespace-nowrap max-w-[100px] truncate" title={app.subcategory || ""}>{app.subcategory ? app.subcategory.replace("Spousal — ", "").replace("Express Entry — ", "EE: ").replace("Provincial Nominee — ", "PN: ").replace("Work Permit — ", "WP: ") : "—"}</td>
                           <td className="px-2 py-2 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                               app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
@@ -433,8 +433,8 @@ function AddModal({ open, onClose, onSubmit, loading }: {
           <Select label="Stream" value={form.stream} onChange={(e) => u("stream", e.target.value)} options={STREAMS.map((s) => ({ value: s, label: s }))} />
         </div>
         <Select label="PA Country *" value={form.country_origin} onChange={(e) => u("country_origin", e.target.value)} options={[{ value: "", label: "Select country..." }, ...COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))]} />
-        <Select label="Visa Country" value={form.visa_country} onChange={(e) => u("visa_country", e.target.value)} options={[{ value: "", label: "Same as PA country" }, ...VISA_COUNTRIES.map((c) => ({ value: c, label: c }))]} />
-        <Select label="Subcategory" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
+        <Select label="Current Status in Canada" value={form.visa_country} onChange={(e) => u("visa_country", e.target.value)} options={[{ value: "", label: "Not in Canada" }, ...VISA_COUNTRIES.map((c) => ({ value: c, label: c }))]} />
+        <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
         <Select label="Province" value={form.province} onChange={(e) => u("province", e.target.value)} options={PROVINCES.map((p) => ({ value: p, label: p }))} />
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date *</label>
