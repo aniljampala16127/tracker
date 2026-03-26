@@ -479,15 +479,44 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
   const stepsMap = buildStepsMap(app.step_events || []);
   const [stepDate, setStepDate] = useState("");
   const [activeStep, setActiveStep] = useState<StepId | null>(null);
+  const [meiType, setMeiType] = useState(app.mei_type || "");
   const nextStep = getNextStep(app.current_step);
+  const supabase = createClient();
+
+  const handleMeiChange = async (val: string) => {
+    setMeiType(val);
+    await supabase.from("applications").update({ mei_type: val || null }).eq("id", app.id);
+  };
 
   return (
     <Modal open={true} onClose={onClose} title={`${app.initials} — ${app.country_origin}`}>
-      <div className="flex flex-wrap gap-2 text-xs text-sand-500 mb-4">
+      <div className="flex flex-wrap gap-2 text-xs text-sand-500 mb-3">
         <span>{app.sponsor_status}</span><span>·</span><span>{app.stream}</span>
+        {app.visa_country && <><span>·</span><span>{app.visa_country}</span></>}
         {app.subcategory && <><span>·</span><span>{app.subcategory}</span></>}
         {app.notes && <><span>·</span><span className="italic">{app.notes}</span></>}
       </div>
+
+      {/* MEI / Medical Exam */}
+      <div className="bg-sand-50 rounded-lg px-3 py-2.5 mb-3">
+        <div className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider mb-1.5">Medical Exam (MEI)</div>
+        <div className="flex gap-2">
+          {["Upfront", "Request", ""].map((opt) => (
+            <button
+              key={opt || "none"}
+              onClick={() => handleMeiChange(opt)}
+              className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all ${
+                meiType === opt
+                  ? opt === "Upfront" ? "bg-brand-500 text-white" : opt === "Request" ? "bg-warn text-white" : "bg-sand-300 text-sand-700"
+                  : "bg-white border border-sand-200 text-sand-500 hover:bg-sand-100"
+              }`}
+            >
+              {opt || "Not set"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-1">
         {STEPS.map((step, i) => {
           const date = stepsMap[step.id];
