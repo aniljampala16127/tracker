@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, PROVINCES, getNextStep } from "@/lib/constants";
 import { formatDate, weeksBetween, buildStepsMap } from "@/lib/utils";
+import { hashPin, isValidPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
 import { PlusIcon, StepIcon } from "@/components/icons";
 import { Button, Modal, Input, Select, SearchableSelect } from "@/components/ui";
+import { PinModal, PinInput } from "@/components/PinModal";
+import { ClaimPinModal } from "@/components/ClaimPinModal";
+import { FilterBar, Filters, EMPTY_FILTERS } from "@/components/FilterBar";
+import { StepChart } from "@/components/StepChart";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -17,6 +22,10 @@ export default function DashboardPage() {
   const [editApp, setEditApp] = useState<Application | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  // PIN state
+  const [pinTarget, setPinTarget] = useState<Application | null>(null);
+  const [claimTarget, setClaimTarget] = useState<Application | null>(null);
   const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
@@ -37,8 +46,24 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
-  const handleAdd = async (form: ApplicationFormData) => {
+  // Filtered apps
+  const filteredApps = useMemo(() => {
+    return apps.filter((a) => {
+      if (filters.stream && a.stream !== filters.stream) return false;
+      if (filters.country && a.country_origin !== filters.country) return false;
+      if (filters.sponsor_status && a.sponsor_status !== filters.sponsor_status) return false;
+      if (filters.subcategory && a.subcategory !== filters.subcategory) return false;
+      return true;
+    });
+  }, [apps, filters]);
+
+  // Unique values for filter dropdowns (from actual data)
+  const availableCountries = useMemo(() => [...new Set(apps.map(a => a.country_origin))].sort(), [apps]);
+  const availableSubcategories = useMemo(() => [...new Set(apps.map(a => a.subcategory).filter(Boolean) as string[])].sort(), [apps]);
+
+  const handleAdd = async (form: ApplicationFormData & { pin: string }) => {
     setSubmitting(true);
+    const pinHash = await hashPin(form.pin);
     const { data: app } = await supabase
       .from("applications")
       .insert({
@@ -46,13 +71,30 @@ export default function DashboardPage() {
         stream: form.stream, country_origin: form.country_origin,
         subcategory: form.subcategory || null,
         province: form.province, current_step: "submitted", notes: form.notes || null,
+        pin_hash: pinHash,
       }).select().single();
     if (app) {
       await supabase.from("step_events").insert({
         application_id: app.id, step_id: "submitted", event_date: form.submitted_date,
       });
+      savePinForApp(app.id, pinHash);
     }
     setSubmitting(false); setShowAdd(false); fetchApps();
+  };
+
+  /** Row click — PIN check or claim */
+  const handleRowClick = (app: Application) => {
+    if (!app.pin_hash) {
+      // No PIN — show claim modal
+      setClaimTarget(app);
+    } else {
+      const savedHash = getSavedPinHash(app.id);
+      if (savedHash === app.pin_hash) {
+        setEditApp(app);
+      } else {
+        setPinTarget(app);
+      }
+    }
   };
 
   const handleMarkStep = async (appId: string, stepId: StepId, date: string) => {
@@ -66,6 +108,7 @@ export default function DashboardPage() {
   const handleDelete = async (appId: string) => {
     if (!confirm("Delete this entry?")) return;
     await supabase.from("applications").delete().eq("id", appId);
+    removeSavedPin(appId);
     setEditApp(null); fetchApps();
   };
 
@@ -77,9 +120,9 @@ export default function DashboardPage() {
     });
   };
 
-  // Group by month
+  // Group filtered apps by month
   const monthGroups: Record<string, Application[]> = {};
-  apps.forEach((app) => {
+  filteredApps.forEach((app) => {
     const sub = app.step_events?.find(e => e.step_id === "submitted");
     if (!sub) return;
     const d = new Date(sub.event_date + "T00:00:00");
@@ -89,11 +132,11 @@ export default function DashboardPage() {
   });
   const sortedMonths = Object.keys(monthGroups).sort();
 
-  // Step-to-step averages
+  // Step-to-step averages (from filtered data)
   const stepPairs = STEPS.slice(1).map((step, i) => {
     const prev = STEPS[i];
     const durations: number[] = [];
-    apps.forEach((a) => {
+    filteredApps.forEach((a) => {
       const s = buildStepsMap(a.step_events || []);
       if (s[prev.id] && s[step.id]) durations.push(weeksBetween(s[prev.id]!, s[step.id]!));
     });
@@ -103,12 +146,12 @@ export default function DashboardPage() {
       count: durations.length,
     };
   });
-  // Also compute cumulative days from submitted
+
   const cumulativeDays: Record<string, number | null> = {};
   STEPS.forEach((step, i) => {
     if (i === 0) { cumulativeDays[step.id] = null; return; }
     const durations: number[] = [];
-    apps.forEach((a) => {
+    filteredApps.forEach((a) => {
       const s = buildStepsMap(a.step_events || []);
       if (s.submitted && s[step.id]) {
         const d1 = new Date(s.submitted + "T00:00:00");
@@ -121,18 +164,35 @@ export default function DashboardPage() {
 
   if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
 
+  const isFiltered = Object.values(filters).some(Boolean);
+
   return (
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-sand-400">{apps.length} entries</div>
+        <div className="text-sm text-sand-400">
+          {isFiltered ? `${filteredApps.length} of ${apps.length} entries` : `${apps.length} entries`}
+        </div>
         <Button onClick={() => setShowAdd(true)} size="sm">
           <PlusIcon size={14} className="text-white" /> Add
         </Button>
       </div>
 
-      {/* Step cards */}
+      {/* Filters */}
       {apps.length > 0 && (
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          availableCountries={availableCountries}
+          availableSubcategories={availableSubcategories}
+        />
+      )}
+
+      {/* Bar Chart */}
+      {apps.length > 0 && <StepChart apps={filteredApps} />}
+
+      {/* Step cards */}
+      {filteredApps.length > 0 && (
         <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mb-5">
           {STEPS.map((step, i) => {
             const pair = i > 0 ? stepPairs[i - 1] : null;
@@ -145,12 +205,9 @@ export default function DashboardPage() {
               <div
                 key={step.id}
                 className={`rounded-xl border p-3 flex flex-col items-center text-center transition-all ${
-                  isFirst
-                    ? "bg-brand-500 border-brand-500 text-white"
-                    : isLast
-                    ? "bg-brand-700 border-brand-700 text-white"
-                    : hasData
-                    ? "bg-white border-brand-200"
+                  isFirst ? "bg-brand-500 border-brand-500 text-white"
+                    : isLast ? "bg-brand-700 border-brand-700 text-white"
+                    : hasData ? "bg-white border-brand-200"
                     : "bg-sand-50 border-sand-200"
                 }`}
               >
@@ -163,9 +220,7 @@ export default function DashboardPage() {
                 ) : hasData ? (
                   <div className="mt-1">
                     <div className="text-sm font-bold text-brand-600">~{pair!.avg! * 7}d</div>
-                    {cumDays != null && (
-                      <div className="text-[8px] text-sand-400">day {cumDays}</div>
-                    )}
+                    {cumDays != null && <div className="text-[8px] text-sand-400">day {cumDays}</div>}
                     <div className="text-[7px] text-sand-300 mt-0.5">{pair!.count} reports</div>
                   </div>
                 ) : (
@@ -178,16 +233,24 @@ export default function DashboardPage() {
       )}
 
       {/* Empty state */}
-      {apps.length === 0 && (
+      {filteredApps.length === 0 && (
         <div className="text-center py-20 bg-white border border-sand-200 rounded-xl">
-          <p className="text-sand-500 text-sm mb-4">No entries yet</p>
-          <Button onClick={() => setShowAdd(true)} size="sm">
-            <PlusIcon size={14} className="text-white" /> Add First Entry
-          </Button>
+          <p className="text-sand-500 text-sm mb-4">
+            {isFiltered ? "No entries match your filters" : "No entries yet"}
+          </p>
+          {isFiltered ? (
+            <Button onClick={() => setFilters(EMPTY_FILTERS)} size="sm" variant="secondary">
+              Clear Filters
+            </Button>
+          ) : (
+            <Button onClick={() => setShowAdd(true)} size="sm">
+              <PlusIcon size={14} className="text-white" /> Add First Entry
+            </Button>
+          )}
         </div>
       )}
 
-      {/* Monthly groups — collapsed by default */}
+      {/* Monthly groups */}
       {sortedMonths.map((monthKey) => {
         const group = monthGroups[monthKey];
         const expanded = expandedMonths.has(monthKey);
@@ -198,7 +261,6 @@ export default function DashboardPage() {
 
         return (
           <div key={monthKey} className="mb-3 bg-white border border-sand-200 rounded-xl overflow-hidden">
-            {/* Month header — click to toggle */}
             <button
               onClick={() => toggleMonth(monthKey)}
               className="w-full flex items-center justify-between px-4 py-3 hover:bg-sand-50 transition-colors text-left"
@@ -223,7 +285,6 @@ export default function DashboardPage() {
               </svg>
             </button>
 
-            {/* Expanded table */}
             {expanded && (
               <div className="border-t border-sand-100 overflow-x-auto">
                 <table className="w-full text-sm">
@@ -239,15 +300,22 @@ export default function DashboardPage() {
                         <th key={s.id} className="text-center px-1.5 py-1.5">{s.label}</th>
                       ))}
                       <th className="text-left px-2 py-1.5">Notes</th>
+                      <th className="text-center px-2 py-1.5 w-8">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline text-sand-400">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {group.map((app) => {
                       const stepsMap = buildStepsMap(app.step_events || []);
+                      const hasPin = !!app.pin_hash;
+                      const isOwner = hasPin && getSavedPinHash(app.id) === app.pin_hash;
                       return (
                         <tr key={app.id}
                           className="border-t border-sand-100 hover:bg-brand-50/30 cursor-pointer transition-colors"
-                          onClick={() => setEditApp(app)}
+                          onClick={() => handleRowClick(app)}
                         >
                           <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap">{app.initials}</td>
                           <td className="px-2 py-2 whitespace-nowrap">
@@ -282,11 +350,27 @@ export default function DashboardPage() {
                             );
                           })}
                           <td className="px-2 py-2 text-[10px] text-sand-400 max-w-[100px] truncate">{app.notes || ""}</td>
+                          <td className="px-2 py-2 text-center">
+                            {hasPin ? (
+                              <span title={isOwner ? "Your entry" : "PIN protected"}>
+                                {isOwner ? (
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline text-brand-500">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                                  </svg>
+                                ) : (
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline text-sand-400">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                  </svg>
+                                )}
+                              </span>
+                            ) : (
+                              <span title="Unclaimed — click to claim" className="text-[9px] text-warn font-medium">open</span>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
                   </tbody>
-                  {/* Month average row */}
                   <tfoot>
                     <tr className="bg-brand-50/50 border-t border-brand-200">
                       <td className="px-3 py-2 font-bold text-[10px] text-brand-700" colSpan={6}>Avg</td>
@@ -300,15 +384,11 @@ export default function DashboardPage() {
                         const avg = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
                         return (
                           <td key={step.id} className="px-1.5 py-2 text-center">
-                            {avg != null ? (
-                              <span className="text-[10px] font-bold text-brand-600">{avg}w</span>
-                            ) : (
-                              <span className="text-sand-300 text-[10px]">—</span>
-                            )}
+                            {avg != null ? <span className="text-[10px] font-bold text-brand-600">{avg}w</span> : <span className="text-sand-300 text-[10px]">—</span>}
                           </td>
                         );
                       })}
-                      <td></td>
+                      <td></td><td></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -319,12 +399,38 @@ export default function DashboardPage() {
       })}
 
       <p className="text-[9px] text-sand-400 mt-3 text-center">
-        Click any row to update steps or delete · Anyone can edit
+        Click any row to update steps · PIN required to edit · Unclaimed entries can be claimed
       </p>
 
       <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} />
-      {editApp && (
-        <EditModal app={editApp} onClose={() => setEditApp(null)} onMarkStep={handleMarkStep} onDelete={handleDelete} />
+      {editApp && <EditModal app={editApp} onClose={() => setEditApp(null)} onMarkStep={handleMarkStep} onDelete={handleDelete} />}
+
+      {/* PIN verification */}
+      {pinTarget && pinTarget.pin_hash && (
+        <PinModal
+          open={!!pinTarget}
+          onClose={() => setPinTarget(null)}
+          expectedHash={pinTarget.pin_hash}
+          appId={pinTarget.id}
+          onVerified={() => { setEditApp(pinTarget); setPinTarget(null); }}
+        />
+      )}
+
+      {/* Claim modal for unclaimed entries */}
+      {claimTarget && (
+        <ClaimPinModal
+          open={!!claimTarget}
+          onClose={() => setClaimTarget(null)}
+          appId={claimTarget.id}
+          appInitials={claimTarget.initials}
+          onClaimed={(pinHash) => {
+            // After claiming, open edit modal
+            const claimed = { ...claimTarget, pin_hash: pinHash };
+            setClaimTarget(null);
+            setEditApp(claimed);
+            fetchApps();
+          }}
+        />
       )}
     </div>
   );
@@ -400,24 +506,25 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
 }
 
 // ============================================
-// Add modal
+// Add modal (with PIN)
 // ============================================
 function AddModal({ open, onClose, onSubmit, loading }: {
   open: boolean; onClose: () => void;
-  onSubmit: (f: ApplicationFormData) => void; loading: boolean;
+  onSubmit: (f: ApplicationFormData & { pin: string }) => void; loading: boolean;
 }) {
-  const empty: ApplicationFormData = {
-    initials: "", sponsor_status: "PR", stream: "Outland",
+  const empty = {
+    initials: "", sponsor_status: "PR" as const, stream: "Outland" as const,
     country_origin: "", subcategory: "",
-    province: "Ontario", submitted_date: "", notes: "",
+    province: "Ontario", submitted_date: "", notes: "", pin: "",
   };
-  const [form, setForm] = useState<ApplicationFormData>(empty);
+  const [form, setForm] = useState(empty);
   useEffect(() => { if (open) setForm(empty); }, [open]);
 
-  const u = (f: keyof ApplicationFormData, v: string) => setForm((p) => ({ ...p, [f]: v }));
+  const u = (f: string, v: string) => setForm((p) => ({ ...p, [f]: v }));
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.initials || !form.submitted_date || !form.country_origin) return;
+    if (!isValidPin(form.pin)) return;
     onSubmit(form);
   };
 
@@ -437,8 +544,9 @@ function AddModal({ open, onClose, onSubmit, loading }: {
           <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
             value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} max={new Date().toISOString().split("T")[0]} required />
         </div>
+        <PinInput value={form.pin} onChange={(v) => u("pin", v)} />
         <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
-        <Button type="submit" disabled={loading} className="w-full mt-1">{loading ? "Adding..." : "Add"}</Button>
+        <Button type="submit" disabled={loading || !isValidPin(form.pin)} className="w-full mt-1">{loading ? "Adding..." : "Add"}</Button>
       </form>
     </Modal>
   );

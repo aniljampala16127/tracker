@@ -14,6 +14,7 @@ export interface Application {
   current_step: StepId;
   is_complete: boolean;
   notes: string | null;
+  pin_hash: string | null;
   created_at: string;
   updated_at: string;
   step_events?: StepEvent[];
@@ -38,10 +39,6 @@ export interface CommunityAverage {
   min_days: number;
   max_days: number;
 }
-
-// ============================================
-// Enums & Constants
-// ============================================
 
 export interface Message {
   id: string;

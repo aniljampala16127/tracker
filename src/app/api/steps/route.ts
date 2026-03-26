@@ -15,7 +15,7 @@ function getSupabase() {
 export async function POST(request: Request) {
   const supabase = getSupabase();
   const body = await request.json();
-  const { application_id, step_id, event_date, notes } = body;
+  const { application_id, step_id, event_date, notes, pin_hash } = body;
 
   if (!application_id || !step_id || !event_date) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -23,6 +23,21 @@ export async function POST(request: Request) {
 
   if (!STEP_ORDER.includes(step_id as StepId)) {
     return NextResponse.json({ error: "Invalid step_id" }, { status: 400 });
+  }
+
+  // Verify PIN
+  const { data: app } = await supabase
+    .from("applications")
+    .select("pin_hash")
+    .eq("id", application_id)
+    .single();
+
+  if (!app) {
+    return NextResponse.json({ error: "Application not found" }, { status: 404 });
+  }
+
+  if (app.pin_hash && app.pin_hash !== pin_hash) {
+    return NextResponse.json({ error: "Invalid PIN" }, { status: 403 });
   }
 
   const { data: event, error } = await supabase
