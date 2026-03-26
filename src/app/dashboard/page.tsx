@@ -58,8 +58,8 @@ export default function DashboardPage() {
   }, [apps, filters]);
 
   // Unique values for filter dropdowns (from actual data)
-  const availableCountries = useMemo(() => [...new Set(apps.map(a => a.country_origin))].sort(), [apps]);
-  const availableSubcategories = useMemo(() => [...new Set(apps.map(a => a.subcategory).filter(Boolean) as string[])].sort(), [apps]);
+  const availableCountries = useMemo(() => Array.from(new Set(apps.map(a => a.country_origin))).sort(), [apps]);
+  const availableSubcategories = useMemo(() => Array.from(new Set(apps.map(a => a.subcategory).filter(Boolean) as string[])).sort(), [apps]);
 
   const handleAdd = async (form: ApplicationFormData & { pin: string }) => {
     setSubmitting(true);
