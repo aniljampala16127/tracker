@@ -31,7 +31,7 @@ DROP POLICY IF EXISTS "Open delete messages" ON public.messages;
 
 -- Remove from realtime publication (ignore error if not there)
 DO $$ BEGIN
-  ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS public.messages;
+  ALTER PUBLICATION supabase_realtime DROP TABLE public.messages;
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
