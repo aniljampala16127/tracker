@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Application, StepId } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
-import { buildStepsMap, weeksBetween } from "@/lib/utils";
+import { buildStepsMap, daysBetween } from "@/lib/utils";
 
 interface StepChartProps {
   apps: Application[];
@@ -33,9 +33,9 @@ export function StepChart({ apps }: StepChartProps) {
       apps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) {
-          const w = weeksBetween(s[prev.id]!, s[step.id]!);
-          if (a.stream === "Outland") outlandDurations.push(w);
-          else inlandDurations.push(w);
+          const d = daysBetween(s[prev.id]!, s[step.id]!);
+          if (a.stream === "Outland") outlandDurations.push(d);
+          else inlandDurations.push(d);
         }
       });
 
@@ -60,7 +60,7 @@ export function StepChart({ apps }: StepChartProps) {
   if (!hasAnyData) {
     return (
       <div className="bg-white border border-sand-200 rounded-xl p-6 mb-5">
-        <h2 className="text-sm font-bold text-sand-900 mb-2">Average Weeks per Step</h2>
+        <h2 className="text-sm font-bold text-sand-900 mb-2">Average Days per Step</h2>
         <p className="text-xs text-sand-400">Not enough data yet — update some steps to see the chart.</p>
       </div>
     );
@@ -68,19 +68,20 @@ export function StepChart({ apps }: StepChartProps) {
 
   return (
     <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-      <h2 className="text-sm font-bold text-sand-900 mb-1">Average Weeks per Step</h2>
+      <h2 className="text-sm font-bold text-sand-900 mb-1">Average Days per Step</h2>
       <p className="text-[11px] text-sand-400 mb-3">Outland vs Inland — based on community-reported data</p>
-      <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={data} margin={{ top: 4, right: 12, left: -8, bottom: 0 }} barCategoryGap="20%">
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={data} margin={{ top: 4, right: 12, left: -4, bottom: 0 }} barCategoryGap="16%">
           <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
           <XAxis
-            dataKey="step" tick={{ fontSize: 10, fill: "#8A8880" }}
+            dataKey="step" tick={{ fontSize: 9, fill: "#8A8880" }}
             axisLine={{ stroke: "#E8E6E1" }} tickLine={false}
+            interval={0}
           />
           <YAxis
             tick={{ fontSize: 10, fill: "#8A8880" }}
             axisLine={false} tickLine={false}
-            label={{ value: "weeks", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "#B0ADA6" } }}
+            label={{ value: "days", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "#B0ADA6" } }}
           />
           <Tooltip
             cursor={{ fill: "rgba(45, 106, 79, 0.05)" }}
@@ -91,19 +92,19 @@ export function StepChart({ apps }: StepChartProps) {
             formatter={(value: any, name: string, props: any) => {
               const row = props.payload;
               const count = name === "outland" ? row.outlandCount : row.inlandCount;
-              return [value != null ? `${value} weeks (${count} reports)` : "No data", name === "outland" ? "Outland" : "Inland"];
+              return [value != null ? `${value} days (${count} reports)` : "No data", name === "outland" ? "Outland" : "Inland"];
             }}
           />
           <Legend
             wrapperStyle={{ fontSize: "11px" }}
             formatter={(val: string) => val === "outland" ? "Outland" : "Inland"}
           />
-          <Bar dataKey="outland" radius={[4, 4, 0, 0]} maxBarSize={32}>
+          <Bar dataKey="outland" radius={[4, 4, 0, 0]} maxBarSize={28}>
             {data.map((entry, idx) => (
               <Cell key={idx} fill={entry.outland != null ? "#2D6A4F" : "#E8E6E1"} />
             ))}
           </Bar>
-          <Bar dataKey="inland" radius={[4, 4, 0, 0]} maxBarSize={32}>
+          <Bar dataKey="inland" radius={[4, 4, 0, 0]} maxBarSize={28}>
             {data.map((entry, idx) => (
               <Cell key={idx} fill={entry.inland != null ? "#D4A03C" : "#E8E6E1"} />
             ))}
