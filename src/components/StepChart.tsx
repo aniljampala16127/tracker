@@ -40,7 +40,7 @@ export function StepChart({ apps }: StepChartProps) {
       });
 
       rows.push({
-        step: step.label,
+        step: step.shortLabel,
         outland: outlandDurations.length
           ? Math.round(outlandDurations.reduce((a, b) => a + b, 0) / outlandDurations.length)
           : null,

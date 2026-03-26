@@ -99,7 +99,7 @@ export default function DashboardPage() {
 
   const handleMarkStep = async (appId: string, stepId: StepId, date: string) => {
     await supabase.from("step_events").insert({ application_id: appId, step_id: stepId, event_date: date });
-    await supabase.from("applications").update({ current_step: stepId, is_complete: stepId === "landing" }).eq("id", appId);
+    await supabase.from("applications").update({ current_step: stepId, is_complete: stepId === "ecopr" }).eq("id", appId);
     fetchApps();
     const { data } = await supabase.from("applications").select("*, step_events(*)").eq("id", appId).single();
     if (data) setEditApp(data as Application);
@@ -193,7 +193,7 @@ export default function DashboardPage() {
 
       {/* Step cards */}
       {filteredApps.length > 0 && (
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mb-5">
+        <div className="flex overflow-x-auto gap-2 pb-2 mb-5">
           {STEPS.map((step, i) => {
             const pair = i > 0 ? stepPairs[i - 1] : null;
             const cumDays = cumulativeDays[step.id];
@@ -204,7 +204,7 @@ export default function DashboardPage() {
             return (
               <div
                 key={step.id}
-                className={`rounded-xl border p-3 flex flex-col items-center text-center transition-all ${
+                className={`rounded-xl border p-3 flex flex-col items-center text-center transition-all min-w-[80px] flex-shrink-0 ${
                   isFirst ? "bg-brand-500 border-brand-500 text-white"
                     : isLast ? "bg-brand-700 border-brand-700 text-white"
                     : hasData ? "bg-white border-brand-200"
@@ -212,8 +212,8 @@ export default function DashboardPage() {
                 }`}
               >
                 <StepIcon stepId={step.id} size={18} className={isFirst || isLast ? "text-white/80" : hasData ? "text-brand-500" : "text-sand-300"} />
-                <span className={`text-[10px] font-bold mt-1.5 ${isFirst || isLast ? "text-white" : "text-sand-800"}`}>
-                  {step.label}
+                <span className={`text-[10px] font-bold mt-1.5 ${isFirst || isLast ? "text-white" : "text-sand-800"}`} title={step.label}>
+                  {step.shortLabel}
                 </span>
                 {isFirst ? (
                   <span className="text-[9px] text-white/70 mt-0.5">Day 0</span>
@@ -297,7 +297,7 @@ export default function DashboardPage() {
                       <th className="text-left px-2 py-1.5">Stream</th>
                       <th className="text-left px-2 py-1.5">Submitted</th>
                       {STEPS.slice(1).map(s => (
-                        <th key={s.id} className="text-center px-1.5 py-1.5">{s.label}</th>
+                        <th key={s.id} className="text-center px-1 py-1.5" title={s.label}>{s.shortLabel}</th>
                       ))}
                       <th className="text-left px-2 py-1.5">Notes</th>
                       <th className="text-center px-2 py-1.5 w-8">

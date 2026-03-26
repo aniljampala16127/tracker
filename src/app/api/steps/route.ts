@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const isLanding = step_id === "landing";
+  const isLanding = step_id === "ecopr";
   await supabase
     .from("applications")
     .update({ current_step: step_id, is_complete: isLanding })

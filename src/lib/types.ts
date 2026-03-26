@@ -10,6 +10,7 @@ export interface Application {
   country_origin: string;
   visa_country: string | null;
   subcategory: string | null;
+  mei_type: string | null;
   province: string;
   current_step: StepId;
   is_complete: boolean;
@@ -51,12 +52,15 @@ export interface Message {
 export type StepId =
   | "submitted"
   | "aor"
-  | "eligibility"
-  | "background"
+  | "bil"
+  | "sponsor_eligibility"
   | "medical"
-  | "biometrics"
-  | "decision"
-  | "landing";
+  | "pa_eligibility"
+  | "background"
+  | "pre_arrival"
+  | "portal1"
+  | "portal2"
+  | "ecopr";
 
 export type SponsorStatus = "Citizen" | "PR";
 export type Stream = "Outland" | "Inland";
@@ -64,6 +68,7 @@ export type Stream = "Outland" | "Inland";
 export interface StepDefinition {
   id: StepId;
   label: string;
+  shortLabel: string;
   description: string;
   avgWeeksOutland: [number, number];
   avgWeeksInland: [number, number];
@@ -78,4 +83,6 @@ export interface ApplicationFormData {
   province: string;
   submitted_date: string;
   notes: string;
+  visa_country: string;
+  mei_type: string;
 }

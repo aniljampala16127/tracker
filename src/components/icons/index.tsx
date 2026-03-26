@@ -185,16 +185,73 @@ export function GoogleIcon({ className, size = 18 }: IconProps) {
   );
 }
 
+// New step icons
+export function BilIcon({ className, size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" /><circle cx="12" cy="11" r="3" /><path d="M12 14V16" />
+    </svg>
+  );
+}
+
+export function SponsorEligIcon({ className, size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="8" r="4" /><path d="M6 20C6 16.7 8.7 14 12 14C15.3 14 18 16.7 18 20" /><path d="M16 4L18 6L22 2" />
+    </svg>
+  );
+}
+
+export function PaEligIcon({ className, size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="10" cy="8" r="4" /><path d="M4 20C4 16.7 6.7 14 10 14C13.3 14 16 16.7 16 20" /><path d="M17 8L19 10L23 6" />
+    </svg>
+  );
+}
+
+export function PreArrivalIcon({ className, size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M2 12L7 2L12 12" /><path d="M7 12V22" /><path d="M22 2L17 12" /><path d="M17 12V22" /><path d="M7 17H17" />
+    </svg>
+  );
+}
+
+export function PortalIcon({ className, size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21H16" /><path d="M12 17V21" /><path d="M7 9L10 12L7 15" />
+    </svg>
+  );
+}
+
+export function EcoprIcon({ className, size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 21H21" /><path d="M5 21V7L12 3L19 7V21" /><rect x="9" y="13" width="6" height="8" /><rect x="9" y="9" width="6" height="2" />
+    </svg>
+  );
+}
+
 // Map step IDs to their icon components
 const STEP_ICONS: Record<string, React.FC<IconProps>> = {
   submitted: SubmittedIcon,
   aor: AorIcon,
-  eligibility: EligibilityIcon,
-  background: BackgroundIcon,
+  bil: BilIcon,
+  sponsor_eligibility: SponsorEligIcon,
   medical: MedicalIcon,
-  biometrics: BiometricsIcon,
+  pa_eligibility: PaEligIcon,
+  background: BackgroundIcon,
+  pre_arrival: PreArrivalIcon,
+  portal1: PortalIcon,
+  portal2: PortalIcon,
+  ecopr: EcoprIcon,
+  // Legacy mappings
+  eligibility: SponsorEligIcon,
+  biometrics: BilIcon,
   decision: DecisionIcon,
-  landing: LandingIcon,
+  landing: EcoprIcon,
 };
 
 export function StepIcon({ stepId, ...props }: IconProps & { stepId: string }) {

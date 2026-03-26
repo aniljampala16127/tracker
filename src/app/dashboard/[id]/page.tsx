@@ -77,7 +77,7 @@ export default function ApplicationDetailPage() {
     await supabase.from("step_events").insert({
       application_id: app.id, step_id: stepId, event_date: date,
     });
-    const isLanding = stepId === "landing";
+    const isLanding = stepId === "ecopr";
     await supabase.from("applications")
       .update({ current_step: stepId, is_complete: isLanding })
       .eq("id", app.id);
