@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Modal, Button } from "./ui";
-import { generatePin, hashPin, savePinForApp } from "@/lib/pin";
+import { generatePin, hashPin, savePinForApp, getSavedPinHash } from "@/lib/pin";
 import { createClient } from "@/lib/supabase/client";
 
 interface ClaimPinModalProps {
@@ -52,7 +52,7 @@ export function ClaimPinModal({
     setPin(newPin);
     setStep("reveal");
     setClaiming(false);
-    onClaimed(hash);
+    // Don't call onClaimed yet — wait for user to see the PIN
   };
 
   const handleCopy = () => {
@@ -61,7 +61,21 @@ export function ClaimPinModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSavedPin = () => {
+    const hash = getSavedPinHash(appId);
+    setStep("confirm");
+    setPin("");
+    setCopied(false);
+    setError("");
+    onClaimed(hash || "");
+  };
+
   const handleClose = () => {
+    // If PIN was revealed, still call onClaimed so the app updates
+    if (step === "reveal") {
+      handleSavedPin();
+      return;
+    }
     setStep("confirm");
     setPin("");
     setCopied(false);
@@ -130,7 +144,7 @@ export function ClaimPinModal({
               This PIN will NOT be shown again. If you lose it, you will not be able to edit this entry.
             </p>
           </div>
-          <Button onClick={handleClose} className="w-full">
+          <Button onClick={handleSavedPin} className="w-full">
             I&apos;ve saved my PIN
           </Button>
         </div>
