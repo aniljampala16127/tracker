@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, PROVINCES, VISA_COUNTRIES, MEI_TYPES, getNextStep } from "@/lib/constants";
-import { formatDate, weeksBetween, buildStepsMap } from "@/lib/utils";
+import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { hashPin, isValidPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
 import { PlusIcon, StepIcon } from "@/components/icons";
 import { Button, Modal, Input, Select, SearchableSelect } from "@/components/ui";
@@ -140,7 +140,7 @@ export default function DashboardPage() {
     const durations: number[] = [];
     filteredApps.forEach((a) => {
       const s = buildStepsMap(a.step_events || []);
-      if (s[prev.id] && s[step.id]) durations.push(weeksBetween(s[prev.id]!, s[step.id]!));
+      if (s[prev.id] && s[step.id]) durations.push(daysBetween(s[prev.id]!, s[step.id]!));
     });
     return {
       from: prev, to: step,
@@ -221,7 +221,7 @@ export default function DashboardPage() {
                   <span className="text-[9px] text-white/70 mt-0.5">Day 0</span>
                 ) : hasData ? (
                   <div className="mt-1">
-                    <div className="text-sm font-bold text-brand-600">~{pair!.avg! * 7}d</div>
+                    <div className="text-sm font-bold text-brand-600">~{pair!.avg!}d</div>
                     {cumDays != null && <div className="text-[8px] text-sand-400">day {cumDays}</div>}
                     <div className="text-[7px] text-sand-300 mt-0.5">{pair!.count} reports</div>
                   </div>
@@ -291,18 +291,25 @@ export default function DashboardPage() {
               <div className="border-t border-sand-100 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-sand-50 text-[9px] font-semibold text-sand-500 uppercase tracking-wider">
-                      <th className="text-left px-3 py-1.5">Name</th>
-                      <th className="text-left px-2 py-1.5">Status</th>
-                      <th className="text-left px-2 py-1.5">Country</th>
-                      <th className="text-left px-2 py-1.5">App Type</th>
-                      <th className="text-left px-2 py-1.5">Stream</th>
-                      <th className="text-left px-2 py-1.5">Submitted</th>
-                      {STEPS.slice(1).map(s => (
-                        <th key={s.id} className="text-center px-1 py-1.5" title={s.label}>{s.shortLabel}</th>
-                      ))}
-                      <th className="text-left px-2 py-1.5">Notes</th>
-                      <th className="text-center px-2 py-1.5 w-8">
+                    <tr className="bg-sand-50 text-[8px] font-semibold text-sand-500 uppercase tracking-wider">
+                      <th className="text-left px-3 py-1.5 sticky left-0 bg-sand-50 z-10">Name</th>
+                      <th className="text-left px-1.5 py-1.5">Status</th>
+                      <th className="text-left px-1.5 py-1.5">PA Country</th>
+                      <th className="text-left px-1.5 py-1.5">Visa Country</th>
+                      <th className="text-left px-1.5 py-1.5">Stream</th>
+                      <th className="text-left px-1.5 py-1.5">Submitted</th>
+                      <th className="text-center px-1 py-1.5">AOR</th>
+                      <th className="text-center px-1 py-1.5">BIL</th>
+                      <th className="text-center px-1 py-1.5">MEI</th>
+                      <th className="text-center px-1 py-1.5">Spon. Elig</th>
+                      <th className="text-center px-1 py-1.5">Medical</th>
+                      <th className="text-center px-1 py-1.5">PA Elig</th>
+                      <th className="text-center px-1 py-1.5">Background</th>
+                      <th className="text-center px-1 py-1.5">Pre-Arrival</th>
+                      <th className="text-center px-1 py-1.5">Portal 1</th>
+                      <th className="text-center px-1 py-1.5">Portal 2</th>
+                      <th className="text-center px-1 py-1.5">eCoPR</th>
+                      <th className="text-center px-1.5 py-1.5 w-8">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline text-sand-400">
                           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                         </svg>
@@ -319,40 +326,54 @@ export default function DashboardPage() {
                           className="border-t border-sand-100 hover:bg-brand-50/30 cursor-pointer transition-colors"
                           onClick={() => handleRowClick(app)}
                         >
-                          <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap">{app.initials}</td>
-                          <td className="px-2 py-2 whitespace-nowrap">
+                          <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 bg-white">{app.initials}</td>
+                          <td className="px-1.5 py-2 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                               app.sponsor_status === "Citizen" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
                             }`}>{app.sponsor_status}</span>
                           </td>
-                          <td className="px-2 py-2 text-sand-700 text-xs whitespace-nowrap">{app.country_origin}</td>
-                          <td className="px-2 py-2 text-sand-500 text-[10px] whitespace-nowrap max-w-[100px] truncate" title={app.subcategory || ""}>{app.subcategory ? app.subcategory.replace("Spousal — ", "").replace("Express Entry — ", "EE: ").replace("Provincial Nominee — ", "PN: ").replace("Work Permit — ", "WP: ") : "—"}</td>
-                          <td className="px-2 py-2 whitespace-nowrap">
+                          <td className="px-1.5 py-2 text-sand-700 text-xs whitespace-nowrap">{app.country_origin}</td>
+                          <td className="px-1.5 py-2 text-sand-500 text-[10px] whitespace-nowrap max-w-[90px] truncate" title={app.visa_country || ""}>{app.visa_country || "—"}</td>
+                          <td className="px-1.5 py-2 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                               app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
                             }`}>{app.stream}</span>
                           </td>
-                          <td className="px-2 py-2 text-xs text-sand-600 whitespace-nowrap">{formatDate(stepsMap.submitted)}</td>
-                          {STEPS.slice(1).map((step) => {
+                          <td className="px-1.5 py-2 text-xs text-sand-600 whitespace-nowrap">{formatDate(stepsMap.submitted)}</td>
+                          {STEPS.slice(1).map((step, stepIdx) => {
                             const date = stepsMap[step.id];
                             const prevStep = STEPS[STEPS.findIndex(s => s.id === step.id) - 1];
                             const prevDate = stepsMap[prevStep.id];
-                            const weeks = date && prevDate ? weeksBetween(prevDate, date) : null;
-                            return (
-                              <td key={step.id} className="px-1.5 py-2 text-center whitespace-nowrap">
-                                {date ? (
-                                  <div>
-                                    <div className="text-[10px] text-brand-600 font-bold">{weeks}w</div>
-                                    <div className="text-[8px] text-sand-400">{formatDate(date).replace(/, \d{4}/, "")}</div>
-                                  </div>
-                                ) : (
-                                  <span className="text-sand-200">·</span>
-                                )}
+                            const days = date && prevDate ? daysBetween(prevDate, date) : null;
+
+                            // Insert MEI column after BIL
+                            const meiCol = step.id === "sponsor_eligibility" ? (
+                              <td key="mei" className="px-1 py-2 text-center whitespace-nowrap">
+                                {app.mei_type ? (
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                                    app.mei_type === "Upfront" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
+                                  }`}>{app.mei_type}</span>
+                                ) : <span className="text-sand-200">·</span>}
                               </td>
+                            ) : null;
+
+                            return (
+                              <React.Fragment key={step.id}>
+                                {meiCol}
+                                <td className="px-1 py-2 text-center whitespace-nowrap">
+                                  {date ? (
+                                    <div>
+                                      <div className="text-[10px] text-brand-600 font-bold">{days}d</div>
+                                      <div className="text-[8px] text-sand-400">{formatDate(date).replace(/, \d{4}/, "")}</div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-sand-200">·</span>
+                                  )}
+                                </td>
+                              </React.Fragment>
                             );
                           })}
-                          <td className="px-2 py-2 text-[10px] text-sand-400 max-w-[100px] truncate">{app.notes || ""}</td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-1.5 py-2 text-center">
                             {hasPin ? (
                               <span title={isOwner ? "Your entry" : "PIN protected"}>
                                 {isOwner ? (
@@ -375,22 +396,31 @@ export default function DashboardPage() {
                   </tbody>
                   <tfoot>
                     <tr className="bg-brand-50/50 border-t border-brand-200">
-                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700" colSpan={6}>Avg</td>
+                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700 sticky left-0 bg-brand-50/50" colSpan={6}>Avg</td>
                       {STEPS.slice(1).map((step, i) => {
                         const prev = STEPS[i];
                         const durations: number[] = [];
                         group.forEach(a => {
                           const s = buildStepsMap(a.step_events || []);
-                          if (s[prev.id] && s[step.id]) durations.push(weeksBetween(s[prev.id]!, s[step.id]!));
+                          if (s[prev.id] && s[step.id]) durations.push(daysBetween(s[prev.id]!, s[step.id]!));
                         });
                         const avg = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+
+                        // Insert MEI avg placeholder before sponsor_eligibility
+                        const meiAvg = step.id === "sponsor_eligibility" ? (
+                          <td key="mei-avg" className="px-1 py-2 text-center"><span className="text-sand-300 text-[10px]">—</span></td>
+                        ) : null;
+
                         return (
-                          <td key={step.id} className="px-1.5 py-2 text-center">
-                            {avg != null ? <span className="text-[10px] font-bold text-brand-600">{avg}w</span> : <span className="text-sand-300 text-[10px]">—</span>}
-                          </td>
+                          <React.Fragment key={step.id}>
+                            {meiAvg}
+                            <td className="px-1 py-2 text-center">
+                              {avg != null ? <span className="text-[10px] font-bold text-brand-600">{avg}d</span> : <span className="text-sand-300 text-[10px]">—</span>}
+                            </td>
+                          </React.Fragment>
                         );
                       })}
-                      <td></td><td></td>
+                      <td></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -462,7 +492,7 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
         {STEPS.map((step, i) => {
           const date = stepsMap[step.id];
           const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
-          const weeks = date && prevDate ? weeksBetween(prevDate, date) : null;
+          const days = date && prevDate ? daysBetween(prevDate, date) : null;
           const isNext = step.id === nextStep;
           const isDone = !!date;
 
@@ -473,7 +503,7 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
                 <div className="text-sm font-medium text-sand-900">{step.label}</div>
                 {isDone && (
                   <div className="text-xs text-sand-500">
-                    {formatDate(date)}{weeks != null && i > 0 && <span className="text-brand-500 font-semibold ml-1">({weeks}w)</span>}
+                    {formatDate(date)}{days != null && i > 0 && <span className="text-brand-500 font-semibold ml-1">({days}d)</span>}
                   </div>
                 )}
               </div>
