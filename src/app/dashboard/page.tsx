@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [editApp, setEditApp] = useState<Application | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const [showStats, setShowStats] = useState(true);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   // PIN state
   const [pinTarget, setPinTarget] = useState<Application | null>(null);
@@ -190,11 +191,25 @@ export default function DashboardPage() {
         />
       )}
 
+      {/* Stats toggle */}
+      {apps.length > 0 && (
+        <button
+          onClick={() => setShowStats(!showStats)}
+          className="flex items-center gap-1.5 text-[11px] font-medium text-sand-500 hover:text-sand-700 transition-colors mb-3"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+            className={`transition-transform duration-200 ${showStats ? "rotate-180" : ""}`}>
+            <path d="M6 9L12 15L18 9" />
+          </svg>
+          {showStats ? "Hide" : "Show"} Charts & Stats
+        </button>
+      )}
+
       {/* Bar Chart */}
-      {apps.length > 0 && <StepChart apps={filteredApps} />}
+      {apps.length > 0 && showStats && <StepChart apps={filteredApps} />}
 
       {/* Step cards */}
-      {filteredApps.length > 0 && (
+      {filteredApps.length > 0 && showStats && (
         <div className="flex overflow-x-auto gap-2 pb-2 mb-5">
           {STEPS.map((step, i) => {
             const pair = i > 0 ? stepPairs[i - 1] : null;
@@ -293,18 +308,19 @@ export default function DashboardPage() {
                   <thead>
                     <tr className="bg-sand-50 text-[8px] font-semibold text-sand-500 uppercase tracking-wider">
                       <th className="text-left px-3 py-1.5 sticky left-0 bg-sand-50 z-10">Name</th>
-                      <th className="text-left px-1.5 py-1.5">Status</th>
+                      <th className="text-left px-1.5 py-1.5">Sponsor Status</th>
                       <th className="text-left px-1.5 py-1.5">PA Country</th>
-                      <th className="text-left px-1.5 py-1.5">Visa Country</th>
-                      <th className="text-left px-1.5 py-1.5">Stream</th>
+                      <th className="text-left px-1.5 py-1.5">PA Visa Country</th>
+                      <th className="text-center px-1.5 py-1.5">Class</th>
+                      <th className="text-left px-1.5 py-1.5">App Type</th>
                       <th className="text-left px-1.5 py-1.5">Submitted</th>
                       <th className="text-center px-1 py-1.5">AOR</th>
                       <th className="text-center px-1 py-1.5">BIL</th>
-                      <th className="text-center px-1 py-1.5">MEI</th>
-                      <th className="text-center px-1 py-1.5">Spon. Elig</th>
-                      <th className="text-center px-1 py-1.5">Medical</th>
-                      <th className="text-center px-1 py-1.5">PA Elig</th>
-                      <th className="text-center px-1 py-1.5">Background</th>
+                      <th className="text-center px-1 py-1.5">MEI Req/Upfront</th>
+                      <th className="text-center px-1 py-1.5">Sponsor Eligibility</th>
+                      <th className="text-center px-1 py-1.5">Medical Update</th>
+                      <th className="text-center px-1 py-1.5">PA Eligibility</th>
+                      <th className="text-center px-1 py-1.5">Background Verification</th>
                       <th className="text-center px-1 py-1.5">Pre-Arrival</th>
                       <th className="text-center px-1 py-1.5">Portal 1</th>
                       <th className="text-center px-1 py-1.5">Portal 2</th>
@@ -333,7 +349,8 @@ export default function DashboardPage() {
                             }`}>{app.sponsor_status}</span>
                           </td>
                           <td className="px-1.5 py-2 text-sand-700 text-xs whitespace-nowrap">{app.country_origin}</td>
-                          <td className="px-1.5 py-2 text-sand-500 text-[10px] whitespace-nowrap max-w-[90px] truncate" title={app.visa_country || ""}>{app.visa_country || "—"}</td>
+                          <td className="px-1.5 py-2 text-sand-500 text-[10px] whitespace-nowrap max-w-[90px] truncate" title={app.visa_country || ""}>{app.visa_country || ""}</td>
+                          <td className="px-1.5 py-2 text-center text-sand-500 text-[10px]">Family</td>
                           <td className="px-1.5 py-2 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                               app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
@@ -396,7 +413,7 @@ export default function DashboardPage() {
                   </tbody>
                   <tfoot>
                     <tr className="bg-brand-50/50 border-t border-brand-200">
-                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700 sticky left-0 bg-brand-50/50" colSpan={6}>Avg</td>
+                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700 sticky left-0 bg-brand-50/50" colSpan={7}>Avg</td>
                       {STEPS.slice(1).map((step, i) => {
                         const prev = STEPS[i];
                         const durations: number[] = [];
