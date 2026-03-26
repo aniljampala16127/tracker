@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
-import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, PROVINCES, getNextStep } from "@/lib/constants";
+import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, PROVINCES, VISA_COUNTRIES, MEI_TYPES, getNextStep } from "@/lib/constants";
 import { formatDate, weeksBetween, buildStepsMap } from "@/lib/utils";
 import { hashPin, isValidPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
 import { PlusIcon, StepIcon } from "@/components/icons";
@@ -70,6 +70,8 @@ export default function DashboardPage() {
         initials: form.initials.trim(), sponsor_status: form.sponsor_status,
         stream: form.stream, country_origin: form.country_origin,
         subcategory: form.subcategory || null,
+        visa_country: form.visa_country || null,
+        mei_type: form.mei_type || null,
         province: form.province, current_step: "submitted", notes: form.notes || null,
         pin_hash: pinHash,
       }).select().single();
@@ -514,7 +516,7 @@ function AddModal({ open, onClose, onSubmit, loading }: {
 }) {
   const empty = {
     initials: "", sponsor_status: "PR" as const, stream: "Outland" as const,
-    country_origin: "", subcategory: "",
+    country_origin: "", subcategory: "", visa_country: "", mei_type: "",
     province: "Ontario", submitted_date: "", notes: "", pin: "",
   };
   const [form, setForm] = useState(empty);
@@ -539,6 +541,10 @@ function AddModal({ open, onClose, onSubmit, loading }: {
         <SearchableSelect label="PA Country *" value={form.country_origin} onChange={(v) => u("country_origin", v)} options={COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))} />
         <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
         <Select label="Province" value={form.province} onChange={(e) => u("province", e.target.value)} options={PROVINCES.map((p) => ({ value: p, label: p }))} />
+        <div className="grid grid-cols-2 gap-3">
+          <Select label="PA Visa Country" value={form.visa_country} onChange={(e) => u("visa_country", e.target.value)} options={VISA_COUNTRIES.map((v) => ({ value: v, label: v || "Select..." }))} />
+          <Select label="MEI Type" value={form.mei_type} onChange={(e) => u("mei_type", e.target.value)} options={MEI_TYPES.map((m) => ({ value: m, label: m || "Select..." }))} />
+        </div>
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date *</label>
           <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
