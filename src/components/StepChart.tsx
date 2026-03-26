@@ -99,12 +99,12 @@ export function StepChart({ apps }: StepChartProps) {
             wrapperStyle={{ fontSize: "11px" }}
             formatter={(val: string) => val === "outland" ? "Outland" : "Inland"}
           />
-          <Bar dataKey="outland" radius={[4, 4, 0, 0]} maxBarSize={28}>
+          <Bar dataKey="outland" fill="#2D6A4F" radius={[4, 4, 0, 0]} maxBarSize={28}>
             {data.map((entry, idx) => (
               <Cell key={idx} fill={entry.outland != null ? "#2D6A4F" : "#E8E6E1"} />
             ))}
           </Bar>
-          <Bar dataKey="inland" radius={[4, 4, 0, 0]} maxBarSize={28}>
+          <Bar dataKey="inland" fill="#D4A03C" radius={[4, 4, 0, 0]} maxBarSize={28}>
             {data.map((entry, idx) => (
               <Cell key={idx} fill={entry.inland != null ? "#D4A03C" : "#E8E6E1"} />
             ))}
