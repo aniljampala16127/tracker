@@ -6,7 +6,7 @@ import { Application, ApplicationFormData, StepId } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, PROVINCES, VISA_COUNTRIES, MEI_TYPES, getNextStep } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { hashPin, isValidPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
-import { PlusIcon, StepIcon } from "@/components/icons";
+import { PlusIcon } from "@/components/icons";
 import { Button, Modal, Input, Select, SearchableSelect } from "@/components/ui";
 import { PinModal, PinInput } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
@@ -22,7 +22,6 @@ export default function DashboardPage() {
   const [editApp, setEditApp] = useState<Application | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
-  const [showStats, setShowStats] = useState(true);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   // PIN state
   const [pinTarget, setPinTarget] = useState<Application | null>(null);
@@ -135,36 +134,6 @@ export default function DashboardPage() {
   });
   const sortedMonths = Object.keys(monthGroups).sort();
 
-  // Step-to-step averages (from filtered data)
-  const stepPairs = STEPS.slice(1).map((step, i) => {
-    const prev = STEPS[i];
-    const durations: number[] = [];
-    filteredApps.forEach((a) => {
-      const s = buildStepsMap(a.step_events || []);
-      if (s[prev.id] && s[step.id]) durations.push(daysBetween(s[prev.id]!, s[step.id]!));
-    });
-    return {
-      from: prev, to: step,
-      avg: durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null,
-      count: durations.length,
-    };
-  });
-
-  const cumulativeDays: Record<string, number | null> = {};
-  STEPS.forEach((step, i) => {
-    if (i === 0) { cumulativeDays[step.id] = null; return; }
-    const durations: number[] = [];
-    filteredApps.forEach((a) => {
-      const s = buildStepsMap(a.step_events || []);
-      if (s.submitted && s[step.id]) {
-        const d1 = new Date(s.submitted + "T00:00:00");
-        const d2 = new Date(s[step.id]! + "T00:00:00");
-        durations.push(Math.round((d2.getTime() - d1.getTime()) / (24 * 60 * 60 * 1000)));
-      }
-    });
-    cumulativeDays[step.id] = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
-  });
-
   if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
 
   const isFiltered = Object.values(filters).some(Boolean);
@@ -191,63 +160,8 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Stats toggle */}
-      {apps.length > 0 && (
-        <button
-          onClick={() => setShowStats(!showStats)}
-          className="flex items-center gap-1.5 text-[11px] font-medium text-sand-500 hover:text-sand-700 transition-colors mb-3"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-            className={`transition-transform duration-200 ${showStats ? "rotate-180" : ""}`}>
-            <path d="M6 9L12 15L18 9" />
-          </svg>
-          {showStats ? "Hide" : "Show"} Charts & Stats
-        </button>
-      )}
-
       {/* Bar Chart */}
-      {apps.length > 0 && showStats && <StepChart apps={filteredApps} />}
-
-      {/* Step cards */}
-      {filteredApps.length > 0 && showStats && (
-        <div className="flex overflow-x-auto gap-2 pb-2 mb-5">
-          {STEPS.map((step, i) => {
-            const pair = i > 0 ? stepPairs[i - 1] : null;
-            const cumDays = cumulativeDays[step.id];
-            const hasData = pair?.avg != null;
-            const isFirst = i === 0;
-            const isLast = i === STEPS.length - 1;
-
-            return (
-              <div
-                key={step.id}
-                className={`rounded-xl border p-3 flex flex-col items-center text-center transition-all min-w-[80px] flex-shrink-0 ${
-                  isFirst ? "bg-brand-500 border-brand-500 text-white"
-                    : isLast ? "bg-brand-700 border-brand-700 text-white"
-                    : hasData ? "bg-white border-brand-200"
-                    : "bg-sand-50 border-sand-200"
-                }`}
-              >
-                <StepIcon stepId={step.id} size={18} className={isFirst || isLast ? "text-white/80" : hasData ? "text-brand-500" : "text-sand-300"} />
-                <span className={`text-[10px] font-bold mt-1.5 ${isFirst || isLast ? "text-white" : "text-sand-800"}`} title={step.label}>
-                  {step.shortLabel}
-                </span>
-                {isFirst ? (
-                  <span className="text-[9px] text-white/70 mt-0.5">Day 0</span>
-                ) : hasData ? (
-                  <div className="mt-1">
-                    <div className="text-sm font-bold text-brand-600">~{pair!.avg!}d</div>
-                    {cumDays != null && <div className="text-[8px] text-sand-400">day {cumDays}</div>}
-                    <div className="text-[7px] text-sand-300 mt-0.5">{pair!.count} reports</div>
-                  </div>
-                ) : (
-                  <span className="text-[9px] text-sand-400 mt-1">awaiting data</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {apps.length > 0 && <StepChart apps={filteredApps} />}
 
       {/* Empty state */}
       {filteredApps.length === 0 && (
