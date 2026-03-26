@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Application, StepId } from "@/lib/types";
 import { STEPS, getStepIndex, getNextStep } from "@/lib/constants";
 import {
-  formatDate, progressPercent, weeksBetween, buildStepsMap, estimateCompletion,
+  formatDate, progressPercent, daysBetween, buildStepsMap, estimateCompletion,
 } from "@/lib/utils";
 import { getSavedPinHash, removeSavedPin } from "@/lib/pin";
 import { StepTimeline } from "@/components/StepTimeline";
@@ -163,7 +163,7 @@ export default function ApplicationDetailPage() {
           {STEPS.map((step, i) => {
             const stepDate = stepsMap[step.id];
             const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
-            const duration = stepDate && prevDate ? weeksBetween(prevDate, stepDate) : null;
+            const duration = stepDate && prevDate ? daysBetween(prevDate, stepDate) : null;
             const isDone = i <= currentIdx && stepDate;
             const isNext = step.id === nextStep;
             const isFuture = i > currentIdx + 1;
@@ -182,7 +182,7 @@ export default function ApplicationDetailPage() {
                   {isDone ? (
                     <>
                       <div className="text-xs font-medium text-sand-700">{formatDate(stepDate)}</div>
-                      {duration != null && i > 0 && <div className="text-[10px] text-brand-500 font-medium">{duration} weeks</div>}
+                      {duration != null && i > 0 && <div className="text-[10px] text-brand-500 font-medium">{duration} days</div>}
                     </>
                   ) : isNext ? (
                     editingStep === step.id ? (
@@ -193,7 +193,7 @@ export default function ApplicationDetailPage() {
                       <Button size="sm" onClick={() => requirePin(step.id)}>Mark Done</Button>
                     )
                   ) : (
-                    <span className="text-[11px] text-sand-400">~{step.avgWeeksOutland[0]}–{step.avgWeeksOutland[1]} wks</span>
+                    <span className="text-[11px] text-sand-400">~{step.avgWeeksOutland[0] * 7}–{step.avgWeeksOutland[1] * 7}d</span>
                   )}
                 </div>
               </div>
