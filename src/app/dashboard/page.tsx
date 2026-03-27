@@ -217,29 +217,29 @@ export default function DashboardPage() {
             </button>
 
             {expanded && (
-              <div className="border-t border-sand-100 overflow-x-auto">
+              <div className="border-t border-sand-100 overflow-auto max-h-[70vh]">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 z-20">
                     <tr className="bg-sand-50 text-[8px] font-semibold text-sand-500 uppercase tracking-wider">
-                      <th className="text-left px-3 py-1.5 sticky left-0 bg-sand-50 z-10">Name</th>
-                      <th className="text-left px-1.5 py-1.5">Sponsor Status</th>
-                      <th className="text-left px-1.5 py-1.5">PA Country</th>
-                      <th className="text-left px-1.5 py-1.5">PA Visa Country</th>
-                      <th className="text-center px-1.5 py-1.5">Class</th>
-                      <th className="text-left px-1.5 py-1.5">App Type</th>
-                      <th className="text-left px-1.5 py-1.5">Submitted</th>
-                      <th className="text-center px-1 py-1.5">AOR</th>
-                      <th className="text-center px-1 py-1.5">BIL</th>
-                      <th className="text-center px-1 py-1.5">MEI Req/Upfront</th>
-                      <th className="text-center px-1 py-1.5">Sponsor Eligibility</th>
-                      <th className="text-center px-1 py-1.5">Medical Update</th>
-                      <th className="text-center px-1 py-1.5">PA Eligibility</th>
-                      <th className="text-center px-1 py-1.5">Background Verification</th>
-                      <th className="text-center px-1 py-1.5">Pre-Arrival</th>
-                      <th className="text-center px-1 py-1.5">Portal 1</th>
-                      <th className="text-center px-1 py-1.5">Portal 2</th>
-                      <th className="text-center px-1 py-1.5">eCoPR</th>
-                      <th className="text-center px-1.5 py-1.5 w-8">
+                      <th className="text-left px-3 py-2 sticky left-0 bg-sand-50 z-30">Name</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">Sponsor Status</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">PA Country</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">PA Visa Country</th>
+                      <th className="text-center px-1.5 py-2 bg-sand-50">Class</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">App Type</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">Submitted</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">AOR</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">BIL</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">MEI Req/Upfront</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Sponsor Eligibility</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Medical Update</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">PA Eligibility</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Background Verification</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Pre-Arrival</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Portal 1</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Portal 2</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">eCoPR</th>
+                      <th className="text-center px-1.5 py-2 w-8 bg-sand-50">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline text-sand-400">
                           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                         </svg>
