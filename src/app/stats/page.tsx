@@ -485,8 +485,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
       msg += `\n`;
     }
 
-    msg += `Track yours: tracker-lime-five.vercel.app\n`;
-    msg += `_Free - No sign-up - PIN protected_`;
+    msg += `Track yours: https://tracker-lime-five.vercel.app/dashboard`;
 
     return msg;
   }, [apps, period]);
