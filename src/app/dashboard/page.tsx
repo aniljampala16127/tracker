@@ -126,9 +126,8 @@ export default function DashboardPage() {
 
   const toggleMonth = (key: string) => {
     setExpandedMonths(prev => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
+      if (prev.has(key)) return new Set(); // Close if already open
+      return new Set([key]); // Open only this one
     });
   };
 
