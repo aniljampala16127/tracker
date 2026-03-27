@@ -151,7 +151,7 @@ export function ActivityPanel() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-sand-200 rounded-xl shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col">
+          <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#2A2A27] rounded-xl shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col">
             <div className="px-4 py-3 border-b border-sand-100 flex items-center justify-between">
               <h3 className="text-sm font-bold text-sand-900">Recent Activity</h3>
               {recentCount > 0 && (

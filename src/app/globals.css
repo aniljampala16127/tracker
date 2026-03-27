@@ -15,53 +15,86 @@ body {
   color: #1a1a18;
 }
 
-/* Dark mode */
-.dark body,
-.dark {
-  background-color: #141413;
-  color: #E8E6E1;
-}
+/* ============================================
+   DARK MODE — Premium dark theme
+   ============================================ */
 
-.dark .bg-white { background-color: #1E1E1C !important; }
-.dark .bg-sand-50 { background-color: #1A1A18 !important; }
-.dark .bg-sand-100 { background-color: #222220 !important; }
-.dark .border-sand-200 { border-color: #333330 !important; }
-.dark .border-sand-100 { border-color: #2B2A27 !important; }
-.dark .text-sand-900 { color: #E8E6E1 !important; }
+.dark body, .dark { background-color: #0A0A09; color: #D5D3CE; }
+
+/* Surfaces — layered depth */
+.dark .bg-white { background-color: #141413 !important; }
+.dark .bg-sand-50 { background-color: #0F0F0E !important; }
+.dark .bg-sand-100 { background-color: #1A1A18 !important; }
+
+/* Borders — subtle separation */
+.dark .border-sand-200 { border-color: #1E1E1C !important; }
+.dark .border-sand-100 { border-color: #1A1A18 !important; }
+
+/* Text hierarchy */
+.dark .text-sand-900 { color: #ECECEA !important; }
 .dark .text-sand-800 { color: #D5D3CE !important; }
 .dark .text-sand-700 { color: #B0ADA6 !important; }
 .dark .text-sand-600 { color: #8A8880 !important; }
-.dark .text-sand-500 { color: #8A8880 !important; }
-.dark .text-sand-400 { color: #65635D !important; }
-.dark .bg-brand-50 { background-color: #1B3324 !important; }
-.dark .bg-brand-100 { background-color: #1F3D2B !important; }
-.dark .border-brand-200 { border-color: #2D5A3F !important; }
-.dark .bg-warn-light { background-color: #2D2610 !important; }
-.dark .bg-error-light { background-color: #2D1A17 !important; }
-.dark .bg-blue-50 { background-color: #14233D !important; }
-.dark .bg-amber-50 { background-color: #2D2610 !important; }
+.dark .text-sand-500 { color: #65635D !important; }
+.dark .text-sand-400 { color: #4A4844 !important; }
 
+/* Brand colors — slightly muted for dark */
+.dark .bg-brand-50 { background-color: #0D1F14 !important; }
+.dark .bg-brand-100 { background-color: #122B1C !important; }
+.dark .border-brand-200 { border-color: #1B4331 !important; }
+.dark .bg-brand-500 { background-color: #2D6A4F !important; }
+.dark .text-brand-600 { color: #4A9468 !important; }
+.dark .text-brand-700 { color: #74B08A !important; }
+
+/* Accent colors */
+.dark .bg-warn-light { background-color: #1F1A0D !important; }
+.dark .text-warn-dark { color: #D4A03C !important; }
+.dark .bg-error-light { background-color: #1F100D !important; }
+.dark .bg-blue-50 { background-color: #0D1520 !important; }
+.dark .bg-amber-50 { background-color: #1F1A0D !important; }
+
+/* Inputs & form elements */
 .dark input, .dark select, .dark textarea {
-  background-color: #1E1E1C !important;
-  border-color: #333330 !important;
-  color: #E8E6E1 !important;
+  background-color: #141413 !important;
+  border-color: #2A2A27 !important;
+  color: #D5D3CE !important;
+}
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #4A4844 !important;
+}
+.dark input:focus, .dark select:focus, .dark textarea:focus {
+  border-color: #2D6A4F !important;
 }
 
-.dark .sticky { background-color: #1A1A18 !important; }
-.dark tr:hover { background-color: rgba(45, 106, 79, 0.08) !important; }
+/* Tables */
+.dark thead { background-color: #0F0F0E !important; }
+.dark .sticky { background-color: #0F0F0E !important; }
+.dark tbody tr { border-color: #1A1A18 !important; }
+.dark tbody tr:hover { background-color: rgba(45, 106, 79, 0.06) !important; }
 
-/* Hide scrollbar */
+/* Cards with subtle border glow */
+.dark .rounded-xl { border-color: #1E1E1C !important; }
+
+/* Modals */
+.dark .bg-black\/30 { background-color: rgba(0,0,0,0.6) !important; }
+.dark .rounded-2xl { border: 1px solid #2A2A27; }
+
+/* Charts — handled by component inline styles */
+
+/* Scrollbar for dark mode */
+.dark ::-webkit-scrollbar { width: 6px; height: 6px; }
+.dark ::-webkit-scrollbar-track { background: #0F0F0E; }
+.dark ::-webkit-scrollbar-thumb { background: #2A2A27; border-radius: 3px; }
+
+/* ============================================
+   UTILITIES
+   ============================================ */
+
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
-/* Safe area for bottom nav on iPhones */
-.safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
-/* Add space for bottom nav on mobile */
 @media (max-width: 639px) {
-  main {
-    padding-bottom: 90px !important;
-  }
+  main { padding-bottom: 80px !important; }
 }
