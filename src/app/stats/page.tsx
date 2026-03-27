@@ -452,7 +452,6 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
 
     // Build the message
     let msg = `*SponsorTrack — ${periodLabel}*\n\n`;
-    msg += `*${apps.length} entries* tracking (${outlandApps.length} Outland, ${inlandApps.length} Inland)\n\n`;
 
     // AOR Updates — Outland
     msg += `*Outland AOR Updates*\n`;
