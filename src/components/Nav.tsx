@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PlaneIcon, ChatIcon } from "@/components/icons";
+import { PlaneIcon, ChatIcon, BarChartIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Tracker", icon: PlaneIcon },
+  { href: "/stats", label: "Stats", icon: BarChartIcon },
   { href: "/discussions", label: "Chat", icon: ChatIcon },
 ];
 
@@ -15,7 +16,7 @@ export function Nav() {
 
   return (
     <header className="bg-white border-b border-sand-200 sticky top-0 z-40">
-      <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-brand-500">
           <PlaneIcon size={22} />
           <span className="font-bold text-base text-sand-900 hidden sm:inline">
@@ -44,7 +45,6 @@ export function Nav() {
           })}
         </nav>
 
-        {/* Placeholder right side — could add theme toggle later */}
         <div className="w-16" />
       </div>
     </header>
