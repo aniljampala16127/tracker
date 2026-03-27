@@ -373,10 +373,150 @@ export default function StatsPage() {
         })}
       </div>
 
+      {/* Weekly WhatsApp Digest */}
+      <WeeklyDigest apps={apps} />
+
       {/* Source note */}
       <p className="text-[9px] text-sand-400 mt-6 text-center">
         IRCC official times from IRCC Processing Times Tool (March 9, 2026). Per-step data is community-reported only — IRCC does not publish step-level breakdowns.
       </p>
+    </div>
+  );
+}
+
+// ============================================
+// Weekly WhatsApp Digest Generator
+// ============================================
+function WeeklyDigest({ apps }: { apps: Application[] }) {
+  const [copied, setCopied] = useState(false);
+  const [period, setPeriod] = useState<"7" | "14" | "30">("7");
+
+  const digest = useMemo(() => {
+    const now = Date.now();
+    const cutoff = now - parseInt(period) * 24 * 60 * 60 * 1000;
+
+    // New entries in period
+    const newEntries = apps.filter(a => new Date(a.created_at).getTime() > cutoff);
+
+    // Step milestones in period (non-submitted)
+    const milestones: Record<string, number> = {};
+    apps.forEach(a => {
+      (a.step_events || []).forEach(e => {
+        if (e.step_id === "submitted") return;
+        if (new Date(e.created_at).getTime() > cutoff) {
+          const label = STEPS.find(s => s.id === e.step_id)?.label || e.step_id;
+          milestones[label] = (milestones[label] || 0) + 1;
+        }
+      });
+    });
+
+    // Average AOR days
+    const aorDays: number[] = [];
+    apps.forEach(a => {
+      const s = buildStepsMap(a.step_events || []);
+      if (s.submitted && s.aor) aorDays.push(daysBetween(s.submitted, s.aor));
+    });
+    const avgAor = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
+    const totalWithAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
+
+    const periodLabel = period === "7" ? "This Week" : period === "14" ? "Last 2 Weeks" : "This Month";
+
+    // Build the message
+    let msg = `📊 *SponsorTrack ${periodLabel}*\n\n`;
+    msg += `👥 *${apps.length} total entries* (${newEntries.length} new)\n`;
+    if (avgAor) msg += `⏱ *Avg AOR: ${avgAor} days* (${totalWithAor} reported)\n`;
+    msg += `\n`;
+
+    if (Object.keys(milestones).length > 0) {
+      msg += `🎉 *Milestones*\n`;
+      Object.entries(milestones)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([step, count]) => {
+          msg += `  → ${count} reached ${step}\n`;
+        });
+      msg += `\n`;
+    }
+
+    if (newEntries.length > 0) {
+      msg += `🆕 *New entries:* ${newEntries.map(a => a.initials).join(", ")}\n\n`;
+    }
+
+    msg += `🔗 Track yours: tracker-lime-five.vercel.app\n`;
+    msg += `_Free • No sign-up • PIN protected_`;
+
+    return msg;
+  }, [apps, period]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(digest);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(digest)}`;
+
+  return (
+    <div className="bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl p-4 mb-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="text-sm font-bold text-sand-900">Weekly Digest</h2>
+          <p className="text-[11px] text-sand-400">Auto-generated summary to paste in your WhatsApp group</p>
+        </div>
+        <div className="flex items-center gap-1 bg-sand-50 dark:bg-[#0F0F0E] rounded-lg p-0.5 border border-sand-200 dark:border-[#2A2A27]">
+          {(["7", "14", "30"] as const).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`text-[10px] px-2 py-1 rounded-md font-medium transition-all ${
+                period === p
+                  ? "bg-brand-500 text-white"
+                  : "text-sand-500 hover:text-sand-800 dark:hover:text-sand-200"
+              }`}
+            >
+              {p === "7" ? "7d" : p === "14" ? "14d" : "30d"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Preview */}
+      <div className="bg-sand-50 dark:bg-[#0F0F0E] rounded-lg p-3 mb-3 font-mono text-[11px] text-sand-700 dark:text-sand-300 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto">
+        {digest}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366]/10 dark:bg-[#25D366]/5 text-[#25D366] text-xs font-medium hover:bg-[#25D366]/20 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          Send via WhatsApp
+        </a>
+        <button
+          onClick={handleCopy}
+          className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${
+            copied
+              ? "bg-brand-100 dark:bg-brand-500/15 text-brand-600"
+              : "bg-sand-100 dark:bg-[#1E1E1C] text-sand-600 dark:text-sand-400 hover:bg-sand-200 dark:hover:bg-[#2A2A27]"
+          }`}
+        >
+          {copied ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12" /></svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+              Copy
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
