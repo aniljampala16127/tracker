@@ -95,10 +95,10 @@ export default function DashboardPage() {
     }
   };
 
-  /** Row click — PIN check or claim */
+  /** Row click - PIN check or claim */
   const handleRowClick = (app: Application) => {
     if (!app.pin_hash) {
-      // No PIN — show claim modal
+      // No PIN - show claim modal
       setClaimTarget(app);
     } else {
       const savedHash = getSavedPinHash(app.id);
@@ -168,22 +168,22 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {/* CTA Banner — only for users who haven't added */}
+      {/* CTA Banner - only for users who haven't added */}
       {!hasMyEntry && (
         <div className="mb-4 bg-gradient-to-r from-brand-500 to-brand-600 rounded-xl p-4 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <h3 className="text-sm font-bold mb-0.5">Add yours to unlock predictions</h3>
           <p className="text-[11px] text-white/70 mb-3">See your predicted AOR date, queue position, and how your timeline compares</p>
           <button
             onClick={() => setShowAdd(true)}
             className="px-4 py-2 bg-white text-brand-600 text-xs font-semibold rounded-lg hover:bg-sand-50 transition-all active:scale-[0.98]"
           >
-            Add Your Application — 30 sec
+            Add Your Application - 30 sec
           </button>
         </div>
       )}
 
-      {/* Blurred Insights Teaser — only for users who haven't added */}
+      {/* Blurred Insights Teaser - only for users who haven't added */}
       {!hasMyEntry && avgAorAll && (
         <div className="mb-4 relative">
           <div className="bg-white border border-sand-200 rounded-xl p-4 blur-[3px] pointer-events-none select-none" aria-hidden="true">
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                 onClick={() => setShowAdd(true)}
                 className="px-4 py-2 bg-brand-500 text-white text-xs font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] w-full"
               >
-                Add — takes 30 seconds
+                Add - takes 30 seconds
               </button>
             </div>
           </div>
@@ -312,7 +312,7 @@ export default function DashboardPage() {
             <div className="px-4 py-2.5 border-b border-sand-100">
               <div className="text-[10px] text-sand-400">
                 {selectedGroup.length} {selectedGroup.length === 1 ? "entry" : "entries"}
-                <span className="mx-1">&middot;</span>
+                <span className="mx-1">·</span>
                 {selectedOutland} outland{selectedInland > 0 && <>, {selectedInland} inland</>}
               </div>
             </div>
@@ -357,8 +357,8 @@ export default function DashboardPage() {
                         <ReactionsBadge applicationId={app.id} />
                       </div>
                       <div className="text-[10px] text-sand-500 mt-0.5">
-                        {app.country_origin} &middot; {app.sponsor_status}
-                        {stepsMap.submitted && <span> &middot; {formatDate(stepsMap.submitted)}</span>}
+                        {app.country_origin} · {app.sponsor_status}
+                        {stepsMap.submitted && <span> · {formatDate(stepsMap.submitted)}</span>}
                       </div>
                       <div className={`text-[10px] font-medium mt-0.5 ${statusDone ? "text-warn-dark" : "text-brand-600"}`}>
                         {statusLabel}
@@ -478,7 +478,7 @@ export default function DashboardPage() {
                                 )}
                               </span>
                             ) : (
-                              <span title="Unclaimed — click to claim" className="text-[9px] text-warn font-medium">open</span>
+                              <span title="Unclaimed - click to claim" className="text-[9px] text-warn font-medium">open</span>
                             )}
                           </td>
                         </tr>
@@ -499,14 +499,14 @@ export default function DashboardPage() {
 
                         // Insert MEI avg placeholder before sponsor_eligibility
                         const meiAvg = step.id === "sponsor_eligibility" ? (
-                          <td key="mei-avg" className="px-1 py-2 text-center"><span className="text-sand-300 text-[10px]">—</span></td>
+                          <td key="mei-avg" className="px-1 py-2 text-center"><span className="text-sand-300 text-[10px]">-</span></td>
                         ) : null;
 
                         return (
                           <React.Fragment key={step.id}>
                             {meiAvg}
                             <td className="px-1 py-2 text-center">
-                              {avg != null ? <span className="text-[10px] font-bold text-brand-600">{avg}d</span> : <span className="text-sand-300 text-[10px]">—</span>}
+                              {avg != null ? <span className="text-[10px] font-bold text-brand-600">{avg}d</span> : <span className="text-sand-300 text-[10px]">-</span>}
                             </td>
                           </React.Fragment>
                         );
@@ -592,7 +592,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
   };
 
   return (
-    <Modal open={true} onClose={onClose} title={`${app.initials} — ${app.country_origin}`}>
+    <Modal open={true} onClose={onClose} title={`${app.initials} - ${app.country_origin}`}>
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
 
       <div className="flex flex-wrap gap-2 text-xs text-sand-500 mb-3">
