@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Application } from "@/lib/types";
+import { Application, StepId } from "@/lib/types";
 import { STEPS, getStepIndex } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { ShareButtons } from "@/components/ShareButtons";
 import { Reactions } from "@/components/Reactions";
+import { Confetti } from "@/components/Confetti";
 import { Button } from "@/components/ui";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -76,16 +77,35 @@ export default function MyAppPage() {
       <p className="text-xs text-sand-500 mb-5">Your personal timeline and predictions</p>
 
       {myApps.map((app) => (
-        <MyAppCard key={app.id} app={app} allApps={apps} />
+        <MyAppCard key={app.id} app={app} allApps={apps} onRefresh={fetchApps} />
       ))}
     </div>
   );
 }
 
-function MyAppCard({ app, allApps }: { app: Application; allApps: Application[] }) {
+function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: Application[]; onRefresh: () => void }) {
   const stepsMap = buildStepsMap(app.step_events || []);
   const submittedDate = stepsMap.submitted;
   const currentIdx = getStepIndex(app.current_step);
+  const [activeStep, setActiveStep] = useState<string | null>(null);
+  const [stepDate, setStepDate] = useState("");
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const supabase = createClient();
+
+  // What's the next step to complete?
+  const nextStepId = currentIdx < STEPS.length - 1 ? STEPS[currentIdx + 1].id : null;
+
+  const handleSaveStep = async (stepId: string, date: string) => {
+    setSaving(true);
+    await supabase.from("step_events").insert({ application_id: app.id, step_id: stepId, event_date: date });
+    await supabase.from("applications").update({ current_step: stepId, is_complete: stepId === "ecopr" }).eq("id", app.id);
+    setShowConfetti(true);
+    setActiveStep(null);
+    setStepDate("");
+    setSaving(false);
+    onRefresh();
+  };
 
   // Compute AOR prediction
   const streamApps = allApps.filter(a => a.stream === app.stream);
@@ -111,6 +131,8 @@ function MyAppCard({ app, allApps }: { app: Application; allApps: Application[] 
 
   return (
     <div className="bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-2xl p-5 mb-5">
+      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
+
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="w-12 h-12 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-lg">
@@ -155,31 +177,78 @@ function MyAppCard({ app, allApps }: { app: Application; allApps: Application[] 
             const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
             const days = date && prevDate ? daysBetween(prevDate, date) : null;
             const isDone = i <= currentIdx && date;
-            const isCurrent = i === currentIdx + 1;
+            const isNext = step.id === nextStepId;
 
             return (
-              <div key={step.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                isDone ? "bg-brand-50 dark:bg-brand-500/10" : isCurrent ? "bg-warn-light dark:bg-warn-light/30" : "opacity-30"
-              }`}>
-                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                  isDone ? "bg-brand-500" : isCurrent ? "bg-warn" : "bg-sand-300 dark:bg-sand-600"
-                }`} />
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-sand-900">{step.label}</span>
-                </div>
-                <div className="text-right">
-                  {isDone ? (
-                    <div>
+              <div key={step.id}>
+                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  isDone ? "bg-brand-50 dark:bg-brand-500/10" : isNext ? "bg-warn-light dark:bg-warn-light/30 border border-warn/20 dark:border-warn/10" : "opacity-30"
+                }`}>
+                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                    isDone ? "bg-brand-500" : isNext ? "bg-warn animate-pulse" : "bg-sand-300 dark:bg-sand-600"
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-sand-900">{step.label}</span>
+                  </div>
+
+                  {/* Done — show date */}
+                  {isDone && (
+                    <div className="text-right">
                       <div className="text-xs font-medium text-sand-700">{formatNice(date!).replace(/, \d{4}/, "")}</div>
                       {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d</div>}
                     </div>
-                  ) : isCurrent ? (
-                    <span className="text-[10px] text-warn-dark font-medium">Waiting...</span>
-                  ) : null}
+                  )}
+
+                  {/* Next step — show Update button or date picker */}
+                  {isNext && activeStep !== step.id && (
+                    <button
+                      onClick={() => setActiveStep(step.id)}
+                      className="text-xs bg-warn text-white px-3 py-1.5 rounded-lg font-medium hover:bg-warn-dark transition-all active:scale-95"
+                    >
+                      Update
+                    </button>
+                  )}
+
+                  {isDone && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Reactions applicationId={app.id} stepId={step.id} compact />
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17L4 12" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
-                {isDone && (
-                  <div className="flex-shrink-0">
-                    <Reactions applicationId={app.id} stepId={step.id} compact />
+
+                {/* Date picker row */}
+                {isNext && activeStep === step.id && (
+                  <div className="flex items-center gap-2 px-3 py-2 ml-6 animate-in">
+                    <input
+                      type="date"
+                      autoFocus
+                      className="flex-1 text-sm px-3 py-2 border border-sand-200 dark:border-[#2A2A27] rounded-lg bg-white dark:bg-[#1A1A18] text-sand-900 dark:text-sand-100 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
+                      max={new Date().toISOString().split("T")[0]}
+                      value={stepDate}
+                      onChange={(e) => setStepDate(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && stepDate) handleSaveStep(step.id, stepDate);
+                        if (e.key === "Escape") { setActiveStep(null); setStepDate(""); }
+                      }}
+                    />
+                    {stepDate && (
+                      <button
+                        onClick={() => handleSaveStep(step.id, stepDate)}
+                        disabled={saving}
+                        className="text-xs bg-brand-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-brand-600 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {saving ? "..." : "Save"}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setActiveStep(null); setStepDate(""); }}
+                      className="text-xs text-sand-400 hover:text-sand-600 px-2 py-2 transition-colors"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 )}
               </div>
