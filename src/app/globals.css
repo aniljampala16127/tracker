@@ -95,6 +95,15 @@ body {
 
 .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
+/* Native app feel */
+* { -webkit-tap-highlight-color: transparent; }
+a, button { touch-action: manipulation; }
+
+/* Hardware-accelerated transitions */
+.transition-all, .transition-transform, .transition-colors {
+  will-change: transform, opacity;
+}
+
 @media (max-width: 639px) {
   main { padding-bottom: 80px !important; }
 }

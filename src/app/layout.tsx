@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
+import { ClientLayout } from "@/components/ClientLayout";
 
 export const metadata: Metadata = {
   title: "SponsorTrack — Canada Spousal Sponsorship Tracker",
@@ -68,7 +69,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-sand-50 text-sand-900 font-sans">
         <Nav />
-        <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
+        <ClientLayout>{children}</ClientLayout>
         <footer className="border-t border-sand-200 mt-16">
           <div className="max-w-5xl mx-auto px-4 py-6 text-center text-[10px] text-sand-400">
             SponsorTrack · Not affiliated with IRCC · Community-reported data
