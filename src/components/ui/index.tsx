@@ -254,7 +254,7 @@ export function Card({ children, className, onClick, hoverable }: CardProps) {
     <div
       onClick={onClick}
       className={cn(
-        "bg-white border border-sand-200 rounded-xl p-4",
+        "bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl p-4",
         hoverable && "cursor-pointer hover:shadow-md transition-shadow duration-150",
         onClick && "cursor-pointer",
         className
@@ -343,11 +343,11 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/30 dark:bg-black/60 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-auto"
+        className="bg-white dark:bg-[#141413] dark:border dark:border-[#2A2A27] rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
