@@ -237,6 +237,11 @@ export default function DashboardPage() {
                     ? daysBetween(stepsMap.submitted, stepsMap[lastStep.id]!)
                     : null;
 
+                  const nextStepIdx = completedSteps.length < STEPS.length ? completedSteps.length : null;
+                  const nextStepLabel = nextStepIdx !== null ? STEPS[nextStepIdx].label : null;
+                  const statusLabel = app.is_complete ? "eCoPR ✓" : nextStepLabel ? `Waiting for ${nextStepLabel}` : "Submitted";
+                  const statusDone = app.is_complete;
+
                   return (
                     <div
                       key={app.id}
@@ -247,7 +252,7 @@ export default function DashboardPage() {
                       <div className="relative w-10 h-10 flex-shrink-0">
                         <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
                           <circle cx="18" cy="18" r="15" fill="none" stroke="#E8E6E1" strokeWidth="3" className="dark:stroke-[#2A2A27]" />
-                          <circle cx="18" cy="18" r="15" fill="none" stroke="#2D6A4F" strokeWidth="3"
+                          <circle cx="18" cy="18" r="15" fill="none" stroke={statusDone ? "#D4A03C" : "#2D6A4F"} strokeWidth="3"
                             strokeDasharray={`${(completedSteps.length / STEPS.length) * 94} 94`}
                             strokeLinecap="round" />
                         </svg>
@@ -268,15 +273,15 @@ export default function DashboardPage() {
                         <div className="text-[10px] text-sand-500 mt-0.5">
                           {app.country_origin} · {app.sponsor_status}
                           {stepsMap.submitted && <span> · {formatDate(stepsMap.submitted)}</span>}
-                          {lastStep && lastStep.id !== "submitted" && (
-                            <span className="text-brand-600 font-medium"> · {lastStep.label}</span>
-                          )}
+                        </div>
+                        <div className={`text-[10px] font-medium mt-0.5 ${statusDone ? "text-warn-dark" : "text-brand-600"}`}>
+                          {statusLabel}
                         </div>
                       </div>
 
                       {/* Days & arrow */}
                       <div className="text-right flex-shrink-0">
-                        {daysTotal != null && (
+                        {daysTotal != null && daysTotal > 0 && (
                           <div className="text-xs font-semibold text-sand-700 dark:text-sand-400">{daysTotal}d</div>
                         )}
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round" className="ml-auto mt-0.5"><path d="M9 18L15 12L9 6" /></svg>
