@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PlaneIcon, BarChartIcon, ClockIcon, UsersIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { ActivityPanel } from "@/components/ActivityFeed";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Tracker", icon: PlaneIcon },
@@ -46,7 +48,10 @@ export function Nav() {
           })}
         </nav>
 
-        <div className="w-8" />
+        <div className="flex items-center gap-1">
+          <ActivityPanel />
+          <DarkModeToggle />
+        </div>
       </div>
     </header>
   );

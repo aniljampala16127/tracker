@@ -22,8 +22,22 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SponsorTrack — Canada Spousal Sponsorship Tracker",
     description:
-      "Free community tracker for Canadian spousal sponsorship applications. See real processing times.",
+      "Free community tracker for Canadian spousal sponsorship applications. Real processing times, AOR predictions, and milestone celebrations.",
     type: "website",
+    images: [
+      {
+        url: "/api/og",
+        width: 1200,
+        height: 630,
+        alt: "SponsorTrack — Canada Spousal Sponsorship Tracker",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SponsorTrack — Canada Spousal Sponsorship Tracker",
+    description: "Free community tracker with real IRCC processing times, AOR predictions, and cohort comparisons.",
+    images: ["/api/og"],
   },
 };
 
