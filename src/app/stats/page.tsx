@@ -425,20 +425,22 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     });
     const avgInlandAor = inlandAorDays.length ? Math.round(inlandAorDays.reduce((a, b) => a + b, 0) / inlandAorDays.length) : null;
 
-    // Recent AOR recipients in period, split by stream
-    const recentOutlandAors: { initials: string; aorDate: string }[] = [];
-    const recentInlandAors: { initials: string; aorDate: string }[] = [];
+    // Latest AOR date per stream
+    let latestOutlandAor = "";
+    let latestInlandAor = "";
     apps.forEach(a => {
-      const aorEvent = (a.step_events || []).find(e => e.step_id === "aor");
-      if (!aorEvent || new Date(aorEvent.created_at).getTime() <= cutoff) return;
       const s = buildStepsMap(a.step_events || []);
-      const aorDate = s.aor || "";
-      if (!aorDate) return;
-      const d = new Date(aorDate + "T00:00:00");
-      const dateStr = `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
-      if (a.stream === "Outland") recentOutlandAors.push({ initials: a.initials, aorDate: dateStr });
-      else recentInlandAors.push({ initials: a.initials, aorDate: dateStr });
+      if (!s.aor) return;
+      const d = new Date(s.aor + "T00:00:00");
+      const dateStr = `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+      if (a.stream === "Outland" && (!latestOutlandAor || s.aor > latestOutlandAor)) latestOutlandAor = s.aor;
+      if (a.stream === "Inland" && (!latestInlandAor || s.aor > latestInlandAor)) latestInlandAor = s.aor;
     });
+
+    const fmtDate = (dateStr: string) => {
+      const d = new Date(dateStr + "T00:00:00");
+      return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    };
 
     const periodLabel = period === "7" ? "This Week" : period === "14" ? "Last 2 Weeks" : "This Month";
 
@@ -449,20 +451,20 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     // AOR Updates — Outland
     msg += `*Outland AOR Updates*\n`;
     if (avgOutlandAor) msg += `Avg days to AOR: ${avgOutlandAor}d (${outlandAorDays.length} reported)\n`;
-    if (recentOutlandAors.length > 0) {
-      msg += `Recent AORs: ${recentOutlandAors.map(a => `${a.initials} (${a.aorDate})`).join(", ")}\n`;
+    if (latestOutlandAor) {
+      msg += `Latest AOR: ${fmtDate(latestOutlandAor)}\n`;
     } else {
-      msg += `No new AORs this period\n`;
+      msg += `No AORs reported yet\n`;
     }
     msg += `\n`;
 
     // AOR Updates — Inland
     msg += `*Inland AOR Updates*\n`;
     if (avgInlandAor) msg += `Avg days to AOR: ${avgInlandAor}d (${inlandAorDays.length} reported)\n`;
-    if (recentInlandAors.length > 0) {
-      msg += `Recent AORs: ${recentInlandAors.map(a => `${a.initials} (${a.aorDate})`).join(", ")}\n`;
+    if (latestInlandAor) {
+      msg += `Latest AOR: ${fmtDate(latestInlandAor)}\n`;
     } else {
-      msg += `No new AORs this period\n`;
+      msg += `No AORs reported yet\n`;
     }
     msg += `\n`;
 
