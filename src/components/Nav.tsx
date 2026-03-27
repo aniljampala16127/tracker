@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PlaneIcon, BarChartIcon, ClockIcon } from "@/components/icons";
+import { PlaneIcon, BarChartIcon, ClockIcon, UsersIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Tracker", icon: PlaneIcon },
   { href: "/stats", label: "Stats", icon: BarChartIcon },
   { href: "/calculator", label: "Estimator", icon: ClockIcon },
+  { href: "/compare", label: "Compare", icon: UsersIcon },
 ];
 
 export function Nav() {
@@ -24,7 +25,7 @@ export function Nav() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 bg-sand-50 rounded-lg p-0.5 border border-sand-200">
+        <nav className="flex items-center gap-0.5 bg-sand-50 rounded-lg p-0.5 border border-sand-200">
           {NAV_ITEMS.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
@@ -32,20 +33,20 @@ export function Nav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                  "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all",
                   active
                     ? "bg-brand-500 text-white"
                     : "text-sand-500 hover:text-sand-800"
                 )}
               >
-                <item.icon size={14} />
+                <item.icon size={13} />
                 <span className="hidden sm:inline">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="w-16" />
+        <div className="w-8" />
       </div>
     </header>
   );

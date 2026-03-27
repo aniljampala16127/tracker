@@ -14,6 +14,8 @@ import { FilterBar, Filters, EMPTY_FILTERS } from "@/components/FilterBar";
 import { StepChart } from "@/components/StepChart";
 import { Reactions, ReactionsBadge } from "@/components/Reactions";
 import { ShareButtons } from "@/components/ShareButtons";
+import { InsightsPanel } from "@/components/InsightsPanel";
+import { Confetti } from "@/components/Confetti";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -368,7 +370,7 @@ export default function DashboardPage() {
       </p>
 
       <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} />
-      {editApp && <EditModal app={editApp} onClose={() => setEditApp(null)} onMarkStep={handleMarkStep} onDelete={handleDelete} />}
+      {editApp && <EditModal app={editApp} allApps={apps} onClose={() => setEditApp(null)} onMarkStep={handleMarkStep} onDelete={handleDelete} />}
 
       {/* PIN verification */}
       {pinTarget && pinTarget.pin_hash && (
@@ -404,8 +406,8 @@ export default function DashboardPage() {
 // ============================================
 // Edit modal
 // ============================================
-function EditModal({ app, onClose, onMarkStep, onDelete }: {
-  app: Application; onClose: () => void;
+function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
+  app: Application; allApps: Application[]; onClose: () => void;
   onMarkStep: (appId: string, stepId: StepId, date: string) => void;
   onDelete: (appId: string) => void;
 }) {
@@ -413,6 +415,7 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
   const [stepDate, setStepDate] = useState("");
   const [activeStep, setActiveStep] = useState<StepId | null>(null);
   const [meiType, setMeiType] = useState(app.mei_type || "");
+  const [showConfetti, setShowConfetti] = useState(false);
   const nextStep = getNextStep(app.current_step);
   const supabase = createClient();
 
@@ -421,14 +424,24 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
     await supabase.from("applications").update({ mei_type: val || null }).eq("id", app.id);
   };
 
+  const handleStepSave = (stepId: StepId, date: string) => {
+    onMarkStep(app.id, stepId, date);
+    setShowConfetti(true);
+  };
+
   return (
     <Modal open={true} onClose={onClose} title={`${app.initials} — ${app.country_origin}`}>
+      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
+
       <div className="flex flex-wrap gap-2 text-xs text-sand-500 mb-3">
         <span>{app.sponsor_status}</span><span>·</span><span>{app.stream}</span>
         {app.visa_country && <><span>·</span><span>{app.visa_country}</span></>}
         {app.subcategory && <><span>·</span><span>{app.subcategory}</span></>}
         {app.notes && <><span>·</span><span className="italic">{app.notes}</span></>}
       </div>
+
+      {/* Insights Panel */}
+      <InsightsPanel app={app} allApps={allApps} />
 
       {/* MEI / Medical Exam */}
       <div className="bg-sand-50 rounded-lg px-3 py-2.5 mb-3">
@@ -477,11 +490,11 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
                       max={new Date().toISOString().split("T")[0]} value={stepDate}
                       onChange={(e) => setStepDate(e.target.value)}
                       onBlur={() => { if (!stepDate) setActiveStep(null); }}
-                      onKeyDown={(e) => { if (e.key === "Enter" && stepDate) { onMarkStep(app.id, step.id, stepDate); setStepDate(""); setActiveStep(null); }}} />
+                      onKeyDown={(e) => { if (e.key === "Enter" && stepDate) { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}} />
                   ) : null}
                   {activeStep === step.id && stepDate ? (
                     <button className="text-xs bg-brand-500 text-white px-3 py-1 rounded-md font-medium hover:bg-brand-600"
-                      onClick={() => { onMarkStep(app.id, step.id, stepDate); setStepDate(""); setActiveStep(null); }}>Save</button>
+                      onClick={() => { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}>Save</button>
                   ) : activeStep !== step.id ? (
                     <button className="text-xs bg-warn text-white px-3 py-1 rounded-md font-medium hover:bg-warn-dark"
                       onClick={() => setActiveStep(step.id)}>Update</button>
