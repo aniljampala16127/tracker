@@ -159,9 +159,8 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
             style={{ width: `${Math.max(pct, 3)}%` }}
           />
         </div>
-        <div className="flex justify-between mt-1">
+        <div className="mt-1">
           <span className="text-[9px] text-sand-400">Submitted {submittedDate ? formatNice(submittedDate) : "—"}</span>
-          <span className="text-[9px] text-sand-400">IRCC est. ~{app.stream === "Outland" ? "15" : "21"} months</span>
         </div>
       </div>
 
