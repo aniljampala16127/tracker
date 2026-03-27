@@ -12,6 +12,8 @@ export function Confetti({ trigger, onComplete }: ConfettiProps) {
 
   useEffect(() => {
     if (!trigger) return;
+    // Haptic celebration burst: short-long-short pattern
+    if (navigator.vibrate) navigator.vibrate([15, 50, 30, 50, 15]);
     const colors = ["#2D6A4F", "#D4A03C", "#C05746", "#4A9468", "#74B08A", "#ff6b6b", "#ffd93d", "#6bcb77"];
     const newParticles = Array.from({ length: 40 }, (_, i) => ({
       id: i,

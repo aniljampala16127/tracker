@@ -63,6 +63,7 @@ export function Reactions({ applicationId, stepId, compact }: ReactionsProps) {
   const handleReact = async (emoji: string) => {
     if (loading) return;
     setLoading(true);
+    if (navigator.vibrate) navigator.vibrate(10);
 
     if (myReaction === emoji) {
       await supabase.from("reactions").delete()

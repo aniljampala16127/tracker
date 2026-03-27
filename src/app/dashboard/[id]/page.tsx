@@ -74,6 +74,7 @@ export default function ApplicationDetailPage() {
 
   const markStepDone = async (stepId: StepId, date: string) => {
     if (!app) return;
+    if (navigator.vibrate) navigator.vibrate(12);
     await supabase.from("step_events").insert({
       application_id: app.id, step_id: stepId, event_date: date,
     });

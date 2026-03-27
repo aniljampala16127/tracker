@@ -586,6 +586,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
   };
 
   const handleStepSave = (stepId: StepId, date: string) => {
+    if (navigator.vibrate) navigator.vibrate(12);
     onMarkStep(app.id, stepId, date);
     setShowConfetti(true);
   };

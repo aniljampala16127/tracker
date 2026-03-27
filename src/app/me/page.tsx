@@ -98,6 +98,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
   const handleSaveStep = async (stepId: string, date: string) => {
     setSaving(true);
+    if (navigator.vibrate) navigator.vibrate(12);
     await supabase.from("step_events").insert({ application_id: app.id, step_id: stepId, event_date: date });
     await supabase.from("applications").update({ current_step: stepId, is_complete: stepId === "ecopr" }).eq("id", app.id);
     setShowConfetti(true);

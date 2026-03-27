@@ -50,6 +50,7 @@ export function ClaimPinModal({
     // Success — save locally and show the PIN
     savePinForApp(appId, hash);
     setPin(newPin);
+    if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
     setStep("reveal");
     setClaiming(false);
     // Don't call onClaimed yet — wait for user to see the PIN

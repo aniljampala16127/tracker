@@ -68,10 +68,12 @@ export function PinModal({
       const hash = await hashPin(pin);
       if (hash === expectedHash) {
         savePinForApp(appId, hash);
+        if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
         onVerified();
         onClose();
       } else {
         setError("Wrong PIN. Try again.");
+        if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
         setDigits(["", "", "", ""]);
         setTimeout(() => inputRefs.current[0]?.focus(), 100);
       }
