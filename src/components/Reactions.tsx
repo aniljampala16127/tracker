@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const EMOJIS = ["🎉", "❤️", "🙏", "🍁"];
+const REACTIONS = [
+  { emoji: "celebrate", label: "Congrats", svg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
+  { emoji: "heart", label: "Love", svg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' },
+  { emoji: "support", label: "Support", svg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11L12 6L17 11"/><path d="M7 17L12 12L17 17"/></svg>' },
+  { emoji: "maple", label: "Canada", svg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.5 8.5L3 9L7.5 13L6 20L12 16.5L18 20L16.5 13L21 9L14.5 8.5Z"/></svg>' },
+];
+
 const BROWSER_ID_KEY = "sponsortrack-browser-id";
 
 function getBrowserId(): string {
@@ -59,30 +65,16 @@ export function Reactions({ applicationId, stepId, compact }: ReactionsProps) {
     setLoading(true);
 
     if (myReaction === emoji) {
-      // Remove reaction
-      await supabase
-        .from("reactions")
-        .delete()
-        .eq("application_id", applicationId)
-        .eq("step_id", stepId)
-        .eq("browser_id", browserId);
+      await supabase.from("reactions").delete()
+        .eq("application_id", applicationId).eq("step_id", stepId).eq("browser_id", browserId);
       setMyReaction(null);
     } else {
-      // Remove old reaction if exists
       if (myReaction) {
-        await supabase
-          .from("reactions")
-          .delete()
-          .eq("application_id", applicationId)
-          .eq("step_id", stepId)
-          .eq("browser_id", browserId);
+        await supabase.from("reactions").delete()
+          .eq("application_id", applicationId).eq("step_id", stepId).eq("browser_id", browserId);
       }
-      // Add new
       await supabase.from("reactions").insert({
-        application_id: applicationId,
-        step_id: stepId,
-        emoji,
-        browser_id: browserId,
+        application_id: applicationId, step_id: stepId, emoji, browser_id: browserId,
       });
       setMyReaction(emoji);
     }
@@ -94,34 +86,42 @@ export function Reactions({ applicationId, stepId, compact }: ReactionsProps) {
   const totalReactions = Object.values(counts).reduce((a, b) => a + b, 0);
 
   if (compact) {
-    // Just show total count as a small badge
     return totalReactions > 0 ? (
-      <span className="text-[9px] text-sand-400 flex items-center gap-0.5">
-        🎉 {totalReactions}
+      <span className="flex items-center gap-0.5 text-[9px] text-brand-500">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        {totalReactions}
       </span>
     ) : null;
   }
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
-      {EMOJIS.map((emoji) => {
-        const count = counts[emoji] || 0;
-        const isActive = myReaction === emoji;
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {REACTIONS.map((r) => {
+        const count = counts[r.emoji] || 0;
+        const isActive = myReaction === r.emoji;
         return (
           <button
-            key={emoji}
-            onClick={() => handleReact(emoji)}
+            key={r.emoji}
+            onClick={() => handleReact(r.emoji)}
             disabled={loading}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all ${
+            title={r.label}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs transition-all ${
               isActive
-                ? "bg-brand-100 border border-brand-300 scale-110"
+                ? "bg-brand-100 border border-brand-300 shadow-sm"
                 : count > 0
                 ? "bg-sand-50 border border-sand-200 hover:bg-sand-100"
-                : "bg-transparent border border-transparent hover:bg-sand-50 hover:border-sand-200 opacity-50 hover:opacity-100"
+                : "bg-transparent border border-transparent hover:bg-sand-50 hover:border-sand-200 opacity-40 hover:opacity-100"
             }`}
           >
-            <span>{emoji}</span>
-            {count > 0 && <span className={`text-[10px] font-semibold ${isActive ? "text-brand-700" : "text-sand-500"}`}>{count}</span>}
+            <span
+              className={isActive ? "text-brand-600" : "text-sand-500"}
+              dangerouslySetInnerHTML={{ __html: r.svg }}
+            />
+            {count > 0 && (
+              <span className={`text-[10px] font-semibold ${isActive ? "text-brand-700" : "text-sand-500"}`}>{count}</span>
+            )}
           </button>
         );
       })}
@@ -129,7 +129,6 @@ export function Reactions({ applicationId, stepId, compact }: ReactionsProps) {
   );
 }
 
-/** Small inline reactions for table rows — just shows counts */
 export function ReactionsBadge({ applicationId }: { applicationId: string }) {
   const [total, setTotal] = useState(0);
   const supabase = createClient();
@@ -145,6 +144,11 @@ export function ReactionsBadge({ applicationId }: { applicationId: string }) {
   if (total === 0) return null;
 
   return (
-    <span className="text-[9px] ml-1 text-sand-400">🎉{total}</span>
+    <span className="inline-flex items-center gap-0.5 ml-1 text-[9px] text-brand-500">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      {total}
+    </span>
   );
 }

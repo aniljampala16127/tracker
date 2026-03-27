@@ -127,8 +127,12 @@ export function InsightsPanel({ app, allApps }: InsightsPanelProps) {
     <div className="space-y-2 mb-3">
       {/* Where do I stand */}
       {insights.standingLabel && (
-        <div className="bg-sand-50 rounded-lg px-3 py-2.5 flex items-center gap-2">
-          <span className="text-lg">📊</span>
+        <div className="bg-sand-50 rounded-lg px-3 py-2.5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-brand-100 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20V14" />
+            </svg>
+          </div>
           <div>
             <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Where You Stand</div>
             <div className={`text-sm font-bold ${insights.standingColor}`}>{insights.standingLabel}</div>
@@ -140,8 +144,13 @@ export function InsightsPanel({ app, allApps }: InsightsPanelProps) {
       )}
 
       {/* Position in queue */}
-      <div className="bg-sand-50 rounded-lg px-3 py-2.5 flex items-center gap-2">
-        <span className="text-lg">🏷️</span>
+      <div className="bg-sand-50 rounded-lg px-3 py-2.5 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-warn-light flex items-center justify-center flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9B7420" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+            <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+          </svg>
+        </div>
         <div>
           <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">
             {insights.myHasAor ? "AOR Position" : "Queue Position"}
@@ -157,8 +166,12 @@ export function InsightsPanel({ app, allApps }: InsightsPanelProps) {
 
       {/* AOR Prediction */}
       {insights.aorPrediction && (
-        <div className="bg-brand-50 rounded-lg px-3 py-2.5 flex items-center gap-2 border border-brand-200">
-          <span className="text-lg">🔮</span>
+        <div className="bg-brand-50 rounded-lg px-3 py-2.5 flex items-center gap-3 border border-brand-200">
+          <div className="w-9 h-9 rounded-lg bg-brand-200 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B4331" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><path d="M12 6V12L16 14" />
+            </svg>
+          </div>
           <div>
             <div className="text-[10px] font-semibold text-brand-700 uppercase tracking-wider">Predicted AOR</div>
             <div className="text-sm font-bold text-brand-600">
@@ -171,8 +184,13 @@ export function InsightsPanel({ app, allApps }: InsightsPanelProps) {
 
       {/* Same week cohort */}
       {insights.sameWeekCount > 0 && (
-        <div className="bg-sand-50 rounded-lg px-3 py-2.5 flex items-center gap-2">
-          <span className="text-lg">👥</span>
+        <div className="bg-sand-50 rounded-lg px-3 py-2.5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-sand-200 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#65635D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21" /><circle cx="9" cy="7" r="4" />
+              <path d="M23 21V19C23 17.5 22 16.2 20.6 15.8" /><path d="M16.5 3.1C17.9 3.6 19 5 19 6.5C19 8 17.9 9.4 16.5 9.9" />
+            </svg>
+          </div>
           <div>
             <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your Submission Week</div>
             <div className="text-sm font-bold text-sand-900">
