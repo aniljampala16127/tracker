@@ -425,16 +425,22 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     });
     const avgInlandAor = inlandAorDays.length ? Math.round(inlandAorDays.reduce((a, b) => a + b, 0) / inlandAorDays.length) : null;
 
-    // Latest AOR date per stream
+    // Latest AOR date per stream (with their submission date)
     let latestOutlandAor = "";
+    let latestOutlandSub = "";
     let latestInlandAor = "";
+    let latestInlandSub = "";
     apps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
       if (!s.aor) return;
-      const d = new Date(s.aor + "T00:00:00");
-      const dateStr = `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-      if (a.stream === "Outland" && (!latestOutlandAor || s.aor > latestOutlandAor)) latestOutlandAor = s.aor;
-      if (a.stream === "Inland" && (!latestInlandAor || s.aor > latestInlandAor)) latestInlandAor = s.aor;
+      if (a.stream === "Outland" && (!latestOutlandAor || s.aor > latestOutlandAor)) {
+        latestOutlandAor = s.aor;
+        latestOutlandSub = s.submitted || "";
+      }
+      if (a.stream === "Inland" && (!latestInlandAor || s.aor > latestInlandAor)) {
+        latestInlandAor = s.aor;
+        latestInlandSub = s.submitted || "";
+      }
     });
 
     const fmtDate = (dateStr: string) => {
@@ -452,7 +458,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     msg += `*Outland AOR Updates*\n`;
     if (avgOutlandAor) msg += `Avg days to AOR: ${avgOutlandAor}d (${outlandAorDays.length} reported)\n`;
     if (latestOutlandAor) {
-      msg += `Latest AOR: ${fmtDate(latestOutlandAor)}\n`;
+      msg += `Latest AOR: ${fmtDate(latestOutlandAor)}${latestOutlandSub ? ` (submitted ${fmtDate(latestOutlandSub)})` : ""}\n`;
     } else {
       msg += `No AORs reported yet\n`;
     }
@@ -462,7 +468,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     msg += `*Inland AOR Updates*\n`;
     if (avgInlandAor) msg += `Avg days to AOR: ${avgInlandAor}d (${inlandAorDays.length} reported)\n`;
     if (latestInlandAor) {
-      msg += `Latest AOR: ${fmtDate(latestInlandAor)}\n`;
+      msg += `Latest AOR: ${fmtDate(latestInlandAor)}${latestInlandSub ? ` (submitted ${fmtDate(latestInlandSub)})` : ""}\n`;
     } else {
       msg += `No AORs reported yet\n`;
     }
