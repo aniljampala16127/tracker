@@ -163,7 +163,8 @@ export default function DashboardPage() {
   const selectedGroup = selectedMonth ? monthGroups[selectedMonth] || [] : [];
   const selectedOutland = selectedGroup.filter(a => a.stream === "Outland").length;
   const selectedInland = selectedGroup.filter(a => a.stream === "Inland").length;
-  const selectedMonthLabel = selectedMonth ? (() => { const [y, m] = selectedMonth.split("-"); return `${MO[parseInt(m) - 1]} ${y}`; })() : "";
+  const selectedMonthParts = selectedMonth ? selectedMonth.split("-") : [];
+  const selectedMonthLabel = selectedMonthParts.length === 2 ? `${MO[parseInt(selectedMonthParts[1]) - 1]} ${selectedMonthParts[0]}` : "";
 
   return (
     <div>
