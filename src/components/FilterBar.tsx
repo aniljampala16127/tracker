@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { STREAMS, SPONSOR_STATUSES, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES } from "@/lib/constants";
+import { STREAMS, SPONSOR_STATUSES, COMMON_COUNTRIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 export interface Filters {
@@ -21,26 +21,19 @@ export const EMPTY_FILTERS: Filters = {
 interface FilterBarProps {
   filters: Filters;
   onChange: (f: Filters) => void;
-  /** Unique countries actually present in the data */
   availableCountries?: string[];
-  /** Unique subcategories actually present in the data */
   availableSubcategories?: string[];
 }
 
 export function FilterBar({
   filters, onChange,
   availableCountries,
-  availableSubcategories,
 }: FilterBarProps) {
-  const activeCount = Object.values(filters).filter(Boolean).length;
+  const activeCount = [filters.stream, filters.country, filters.sponsor_status].filter(Boolean).length;
 
   const countries = availableCountries && availableCountries.length > 0
     ? availableCountries.sort()
     : COMMON_COUNTRIES;
-
-  const subcats = availableSubcategories && availableSubcategories.length > 0
-    ? availableSubcategories.sort()
-    : APPLICATION_SUBCATEGORIES;
 
   const update = (key: keyof Filters, val: string) =>
     onChange({ ...filters, [key]: val });
@@ -77,15 +70,6 @@ export function FilterBar({
           active={!!filters.sponsor_status}
         />
 
-        {/* Subcategory */}
-        <FilterDropdown
-          label="App Type"
-          value={filters.subcategory}
-          options={subcats}
-          onChange={(v) => update("subcategory", v)}
-          active={!!filters.subcategory}
-        />
-
         {activeCount > 0 && (
           <button
             onClick={() => onChange(EMPTY_FILTERS)}
@@ -99,9 +83,6 @@ export function FilterBar({
   );
 }
 
-// ============================================
-// Small pill selector (for short option lists)
-// ============================================
 function FilterPill({
   label, value, options, optionLabels, onChange, active,
 }: {
@@ -131,9 +112,6 @@ function FilterPill({
   );
 }
 
-// ============================================
-// Searchable dropdown (for long lists like country)
-// ============================================
 function FilterDropdown({
   label, value, options, onChange, active,
 }: {

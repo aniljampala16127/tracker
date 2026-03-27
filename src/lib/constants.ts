@@ -50,20 +50,20 @@ export const STEPS: StepDefinition[] = [
     avgWeeksInland: [8, 20],
   },
   {
-    id: "background",
-    label: "Background",
-    shortLabel: "BG",
-    description: "Background & security check",
-    avgWeeksOutland: [4, 16],
-    avgWeeksInland: [8, 24],
-  },
-  {
     id: "pre_arrival",
     label: "Pre-Arrival",
     shortLabel: "Pre",
     description: "Pre-arrival / COPR readiness",
     avgWeeksOutland: [2, 8],
     avgWeeksInland: [2, 8],
+  },
+  {
+    id: "background",
+    label: "Background",
+    shortLabel: "BG",
+    description: "Background & security check",
+    avgWeeksOutland: [4, 16],
+    avgWeeksInland: [8, 24],
   },
   {
     id: "portal1",

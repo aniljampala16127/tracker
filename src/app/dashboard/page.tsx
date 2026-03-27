@@ -65,7 +65,6 @@ export default function DashboardPage() {
 
   // Unique values for filter dropdowns (from actual data)
   const availableCountries = useMemo(() => Array.from(new Set(apps.map(a => a.country_origin))).sort(), [apps]);
-  const availableSubcategories = useMemo(() => Array.from(new Set(apps.map(a => a.subcategory).filter(Boolean) as string[])).sort(), [apps]);
 
   const handleAdd = async (form: ApplicationFormData & { pin: string }) => {
     setSubmitting(true);
@@ -252,7 +251,6 @@ export default function DashboardPage() {
           filters={filters}
           onChange={setFilters}
           availableCountries={availableCountries}
-          availableSubcategories={availableSubcategories}
         />
       )}
 
@@ -394,8 +392,8 @@ export default function DashboardPage() {
                       <th className="text-center px-1 py-2 bg-sand-50">Sponsor Eligibility</th>
                       <th className="text-center px-1 py-2 bg-sand-50">Medical Update</th>
                       <th className="text-center px-1 py-2 bg-sand-50">PA Eligibility</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Background Verification</th>
                       <th className="text-center px-1 py-2 bg-sand-50">Pre-Arrival</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Background Verification</th>
                       <th className="text-center px-1 py-2 bg-sand-50">Portal 1</th>
                       <th className="text-center px-1 py-2 bg-sand-50">Portal 2</th>
                       <th className="text-center px-1 py-2 bg-sand-50">eCoPR</th>
@@ -516,6 +514,7 @@ export default function DashboardPage() {
                   </tfoot>
                 </table>
               </div>
+            </div>
           </div>
       )}
 
