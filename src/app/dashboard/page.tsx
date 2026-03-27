@@ -159,6 +159,12 @@ export default function DashboardPage() {
   const avgAorAll = aorDaysAll.length ? Math.round(aorDaysAll.reduce((a, b) => a + b, 0) / aorDaysAll.length) : null;
   const waitingForAor = apps.filter(a => !a.step_events?.some(e => e.step_id === "aor")).length;
 
+  // Selected month group data
+  const selectedGroup = selectedMonth ? monthGroups[selectedMonth] || [] : [];
+  const selectedOutland = selectedGroup.filter(a => a.stream === "Outland").length;
+  const selectedInland = selectedGroup.filter(a => a.stream === "Inland").length;
+  const selectedMonthLabel = selectedMonth ? (() => { const [y, m] = selectedMonth.split("-"); return `${MO[parseInt(m) - 1]} ${y}`; })() : "";
+
   return (
     <div>
       {/* CTA Banner — only for users who haven't added */}
@@ -300,25 +306,19 @@ export default function DashboardPage() {
       )}
 
       {/* Selected month entries */}
-      {selectedMonth && monthGroups[selectedMonth] && (() => {
-        const group = monthGroups[selectedMonth];
-        const [y, m] = selectedMonth.split("-");
-        const outland = group.filter(a => a.stream === "Outland").length;
-        const inland = group.filter(a => a.stream === "Inland").length;
-
-        return (
+      {selectedMonth && selectedGroup.length > 0 && (
           <div className="bg-white border border-sand-200 rounded-xl overflow-hidden mb-3">
             <div className="px-4 py-2.5 border-b border-sand-100">
               <div className="text-[10px] text-sand-400">
-                {group.length} {group.length === 1 ? "entry" : "entries"}
+                {selectedGroup.length} {selectedGroup.length === 1 ? "entry" : "entries"}
                 <span className="mx-1">&middot;</span>
-                {outland} outland{inland > 0 && <>, {inland} inland</>}
+                {selectedOutland} outland{selectedInland > 0 && <>, {selectedInland} inland</>}
               </div>
             </div>
 
             {/* Mobile card view */}
             <div className="sm:hidden max-h-[65vh] overflow-y-auto">
-              {group.map((app) => {
+              {selectedGroup.map((app) => {
                 const stepsMap = buildStepsMap(app.step_events || []);
                 const completedSteps = STEPS.filter(s => stepsMap[s.id]);
                 const lastStep = completedSteps.length > 0 ? completedSteps[completedSteps.length - 1] : null;
@@ -406,7 +406,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {group.map((app) => {
+                    {selectedGroup.map((app) => {
                       const stepsMap = buildStepsMap(app.step_events || []);
                       const hasPin = !!app.pin_hash;
                       const isOwner = hasPin && getSavedPinHash(app.id) === app.pin_hash;
@@ -490,7 +490,7 @@ export default function DashboardPage() {
                       {STEPS.slice(1).map((step, i) => {
                         const prev = STEPS[i];
                         const durations: number[] = [];
-                        group.forEach(a => {
+                        selectedGroup.forEach(a => {
                           const s = buildStepsMap(a.step_events || []);
                           if (s[prev.id] && s[step.id]) durations.push(daysBetween(s[prev.id]!, s[step.id]!));
                         });
@@ -516,8 +516,7 @@ export default function DashboardPage() {
                 </table>
               </div>
           </div>
-        );
-      })()}
+      )}
 
 
       <p className="text-[9px] text-sand-400 mt-3 text-center">
