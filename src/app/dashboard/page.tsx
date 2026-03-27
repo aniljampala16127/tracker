@@ -12,6 +12,8 @@ import { PinModal, PinInput } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
 import { FilterBar, Filters, EMPTY_FILTERS } from "@/components/FilterBar";
 import { StepChart } from "@/components/StepChart";
+import { Reactions, ReactionsBadge } from "@/components/Reactions";
+import { ShareButtons } from "@/components/ShareButtons";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -256,7 +258,7 @@ export default function DashboardPage() {
                           className="border-t border-sand-100 hover:bg-brand-50/30 cursor-pointer transition-colors"
                           onClick={() => handleRowClick(app)}
                         >
-                          <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 bg-white">{app.initials}</td>
+                          <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 bg-white">{app.initials}<ReactionsBadge applicationId={app.id} /></td>
                           <td className="px-1.5 py-2 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                               app.sponsor_status === "Citizen" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
@@ -457,7 +459,8 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
           const isDone = !!date;
 
           return (
-            <div key={step.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${isDone ? "bg-brand-50/50" : isNext ? "bg-warn-light/30" : "opacity-40"}`}>
+            <React.Fragment key={step.id}>
+            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${isDone ? "bg-brand-50/50" : isNext ? "bg-warn-light/30" : "opacity-40"}`}>
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isDone ? "bg-brand-500" : isNext ? "bg-warn" : "bg-sand-200"}`} />
               <div className="flex-1">
                 <div className="text-sm font-medium text-sand-900">{step.label}</div>
@@ -485,12 +488,30 @@ function EditModal({ app, onClose, onMarkStep, onDelete }: {
                   ) : null}
                 </div>
               )}
-              {isDone && <span className="text-brand-500 text-xs">✓</span>}
+              {isDone && (
+                <div className="flex items-center gap-1">
+                  <Reactions applicationId={app.id} stepId={step.id} compact />
+                  <span className="text-brand-500 text-xs">✓</span>
+                </div>
+              )}
             </div>
+            {isDone && (
+              <div className="pl-9 -mt-1 mb-1">
+                <Reactions applicationId={app.id} stepId={step.id} />
+              </div>
+            )}
+            </React.Fragment>
           );
         })}
       </div>
-      <button onClick={() => onDelete(app.id)} className="mt-4 text-xs text-error hover:text-error-dark transition-colors">
+
+      {/* Share */}
+      <div className="mt-4 pt-3 border-t border-sand-100">
+        <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Share this timeline</div>
+        <ShareButtons app={app} />
+      </div>
+
+      <button onClick={() => onDelete(app.id)} className="mt-3 text-xs text-error hover:text-error-dark transition-colors">
         Delete this entry
       </button>
     </Modal>

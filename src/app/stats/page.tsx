@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend, Cell,
+  ResponsiveContainer, Legend, Cell, LineChart, Line,
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
@@ -268,6 +268,70 @@ export default function StatsPage() {
         ) : (
           <p className="text-xs text-sand-400 py-8 text-center">Not enough AOR data across months to compare yet.</p>
         )}
+      </div>
+
+      {/* Processing Speed Trend */}
+      <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
+        <h2 className="text-sm font-bold text-sand-900 mb-1">Processing Speed Trend</h2>
+        <p className="text-[11px] text-sand-400 mb-3">
+          Days from submission to AOR — plotted by AOR received date. Is IRCC getting faster or slower?
+        </p>
+        {(() => {
+          // Build trend data: each AOR as a data point
+          const points: { date: string; label: string; days: number; name: string; stream: string }[] = [];
+          apps.forEach((a) => {
+            const s = buildStepsMap(a.step_events || []);
+            if (s.submitted && s.aor) {
+              const days = daysBetween(s.submitted, s.aor);
+              const d = new Date(s.aor + "T00:00:00");
+              points.push({
+                date: s.aor,
+                label: `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`,
+                days,
+                name: a.initials,
+                stream: a.stream,
+              });
+            }
+          });
+          points.sort((a, b) => a.date.localeCompare(b.date));
+
+          if (points.length < 3) {
+            return <p className="text-xs text-sand-400 py-8 text-center">Need at least 3 AOR data points to show trend.</p>;
+          }
+
+          // Compute 3-point rolling average
+          const withAvg = points.map((p, i) => {
+            const window = points.slice(Math.max(0, i - 2), i + 1);
+            const avg = Math.round(window.reduce((s, w) => s + w.days, 0) / window.length);
+            return { ...p, rollingAvg: avg };
+          });
+
+          return (
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={withAvg} margin={{ top: 4, right: 12, left: -4, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#8A8880" }} axisLine={{ stroke: "#E8E6E1" }} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "#8A8880" }} axisLine={false} tickLine={false}
+                  label={{ value: "days", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "#B0ADA6" } }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: "12px", border: "1px solid #E8E6E1", fontSize: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                  formatter={(value: any, name: string) => {
+                    if (name === "days") return [`${value} days`, "Actual"];
+                    return [`${value} days`, "Rolling Avg"];
+                  }}
+                  labelFormatter={(label: string, payload: any) => {
+                    if (payload?.[0]?.payload?.name) return `${payload[0].payload.name} — AOR ${label}`;
+                    return `AOR ${label}`;
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: "11px" }}
+                  formatter={(val: string) => val === "days" ? "Individual" : "Rolling Average"} />
+                <Line type="monotone" dataKey="days" stroke="#B0ADA6" strokeWidth={1} dot={{ fill: "#8A8880", r: 3 }} name="days" />
+                <Line type="monotone" dataKey="rollingAvg" stroke="#2D6A4F" strokeWidth={2.5} dot={false} name="rollingAvg" />
+              </LineChart>
+            </ResponsiveContainer>
+          );
+        })()}
       </div>
 
       {/* Cohort summary cards */}
