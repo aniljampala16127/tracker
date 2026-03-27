@@ -151,7 +151,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       <div className="mb-5">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Progress</span>
-          <span className="text-xs font-bold text-brand-600">{pct}% · Day {daysSoFar}</span>
+          <span className="text-xs font-bold text-brand-600">Day {daysSoFar}</span>
         </div>
         <div className="bg-sand-200 dark:bg-[#1E1E1C] rounded-full h-3 overflow-hidden">
           <div
