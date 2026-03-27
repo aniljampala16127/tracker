@@ -14,6 +14,21 @@ const NAV_ITEMS = [
   { href: "/compare", label: "Compare", icon: UsersIcon },
 ];
 
+function MeIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M20 21V19C20 16.8 18.2 15 16 15H8C5.8 15 4 16.8 4 19V21" /><circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+const BOTTOM_NAV = [
+  { href: "/dashboard", label: "Tracker", icon: PlaneIcon },
+  { href: "/stats", label: "Stats", icon: BarChartIcon },
+  { href: "/calculator", label: "Estimator", icon: ClockIcon },
+  { href: "/me", label: "Me", icon: MeIcon },
+];
+
 export function Nav() {
   const pathname = usePathname();
 
@@ -30,7 +45,7 @@ export function Nav() {
 
           {/* Desktop tabs */}
           <nav className="hidden sm:flex items-center gap-0.5 bg-sand-50 dark:bg-[#1A1A18] rounded-lg p-0.5 border border-sand-200 dark:border-[#2A2A27]">
-            {NAV_ITEMS.map((item) => {
+            {[...NAV_ITEMS, { href: "/me", label: "Me", icon: MeIcon }].map((item) => {
               const active = pathname.startsWith(item.href);
               return (
                 <Link
@@ -60,7 +75,7 @@ export function Nav() {
       {/* Mobile bottom nav */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#0F0F0E]/90 backdrop-blur-xl border-t border-sand-200 dark:border-[#2A2A27] safe-area-bottom">
         <div className="flex items-center justify-around px-2 py-1.5">
-          {NAV_ITEMS.map((item) => {
+          {BOTTOM_NAV.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
               <Link
