@@ -699,13 +699,6 @@ function CelebrationModal({ app, allApps, onClose }: {
     <Modal open={true} onClose={onClose} title="">
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
       <div className="text-center py-2">
-        {/* Big green check */}
-        <div className="w-16 h-16 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/30">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 6L9 17L4 12" />
-          </svg>
-        </div>
-
         <h2 className="text-xl font-bold text-sand-900 mb-1">You&apos;re in! 🎉</h2>
         <p className="text-sm text-sand-500 mb-5">
           Application #{position} in the community
