@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { ClientLayout } from "@/components/ClientLayout";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 
 export const metadata: Metadata = {
   title: "SponsorTrack — Canada Spousal Sponsorship Tracker",
@@ -61,11 +62,17 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `
           document.documentElement.classList.remove('dark');
           try { localStorage.removeItem('sponsortrack-theme'); } catch(e) {}
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js');
+            });
+          }
         `}} />
       </head>
       <body className="min-h-screen bg-sand-50 text-sand-900 font-sans">
         <Nav />
         <ClientLayout>{children}</ClientLayout>
+        <PWAInstallBanner />
         <footer className="border-t border-sand-200 mt-16">
           <div className="max-w-5xl mx-auto px-4 py-6 text-center text-[10px] text-sand-400">
             SponsorTrack · Not affiliated with IRCC · Community-reported data

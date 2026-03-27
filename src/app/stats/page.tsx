@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
+import { AORHeatmap } from "@/components/AORHeatmap";
 
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -135,6 +136,9 @@ export default function StatsPage() {
           <div className="text-2xl font-bold text-warn">{totalInland}</div>
         </div>
       </div>
+
+      {/* AOR Heatmap */}
+      <AORHeatmap apps={apps} />
 
       {/* Community per-step averages */}
       <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
