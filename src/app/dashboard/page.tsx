@@ -25,9 +25,10 @@ export default function DashboardPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editApp, setEditApp] = useState<Application | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [celebrateApp, setCelebrateApp] = useState<Application | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
   // PIN state
   const [pinTarget, setPinTarget] = useState<Application | null>(null);
   const [claimTarget, setClaimTarget] = useState<Application | null>(null);
@@ -124,12 +125,6 @@ export default function DashboardPage() {
     setEditApp(null); fetchApps();
   };
 
-  const toggleMonth = (key: string) => {
-    setExpandedMonths(prev => {
-      if (prev.has(key)) return new Set(); // Close if already open
-      return new Set([key]); // Open only this one
-    });
-  };
 
   // Group filtered apps by month
   const monthGroups: Record<string, Application[]> = {};
@@ -142,6 +137,13 @@ export default function DashboardPage() {
     monthGroups[key].push(app);
   });
   const sortedMonths = Object.keys(monthGroups).sort();
+
+  // Auto-select latest month on first load
+  useEffect(() => {
+    if (sortedMonths.length > 0 && !selectedMonth) {
+      setSelectedMonth(sortedMonths[sortedMonths.length - 1]);
+    }
+  }, [sortedMonths, selectedMonth]);
 
   if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
 
@@ -268,108 +270,112 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Monthly groups */}
-      {sortedMonths.map((monthKey) => {
-        const group = monthGroups[monthKey];
-        const expanded = expandedMonths.has(monthKey);
-        const [y, m] = monthKey.split("-");
-        const label = `${MO[parseInt(m) - 1]} ${y}`;
+      {/* Month pills */}
+      {sortedMonths.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
+            {sortedMonths.map((monthKey) => {
+              const [y, m] = monthKey.split("-");
+              const grp = monthGroups[monthKey];
+              const active = selectedMonth === monthKey;
+              return (
+                <button
+                  key={monthKey}
+                  onClick={() => setSelectedMonth(monthKey)}
+                  className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-[0.97] ${
+                    active
+                      ? "bg-brand-500 text-white shadow-sm"
+                      : "bg-white border border-sand-200 text-sand-600 hover:bg-sand-50"
+                  }`}
+                >
+                  <span className="font-bold">{MO[parseInt(m) - 1]} {y}</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                    active ? "bg-white/20 text-white" : "bg-sand-100 text-sand-500"
+                  }`}>{grp.length}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Selected month entries */}
+      {selectedMonth && monthGroups[selectedMonth] && (() => {
+        const group = monthGroups[selectedMonth];
+        const [y, m] = selectedMonth.split("-");
         const outland = group.filter(a => a.stream === "Outland").length;
         const inland = group.filter(a => a.stream === "Inland").length;
 
         return (
-          <div key={monthKey} className="mb-3 bg-white border border-sand-200 rounded-xl overflow-hidden">
-            <button
-              onClick={() => toggleMonth(monthKey)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-sand-50 transition-colors text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-brand-100 flex flex-col items-center justify-center flex-shrink-0">
-                  <span className="text-[10px] font-bold text-brand-700 leading-none">{MO[parseInt(m) - 1]}</span>
-                  <span className="text-[8px] text-brand-500 leading-none">{y}</span>
-                </div>
-                <div>
-                  <span className="text-sm font-bold text-sand-900">{label}</span>
-                  <div className="text-[10px] text-sand-400">
-                    {group.length} {group.length === 1 ? "entry" : "entries"}
-                    <span className="mx-1">·</span>
-                    {outland} outland{inland > 0 && <>, {inland} inland</>}
-                  </div>
-                </div>
+          <div className="bg-white border border-sand-200 rounded-xl overflow-hidden mb-3">
+            <div className="px-4 py-2.5 border-b border-sand-100">
+              <div className="text-[10px] text-sand-400">
+                {group.length} {group.length === 1 ? "entry" : "entries"}
+                <span className="mx-1">&middot;</span>
+                {outland} outland{inland > 0 && <>, {inland} inland</>}
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                className={`text-sand-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}>
-                <path d="M6 9L12 15L18 9" />
-              </svg>
-            </button>
+            </div>
 
-            {expanded && (
-              <>
-              {/* Mobile card view */}
-              <div className="sm:hidden border-t border-sand-100 max-h-[70vh] overflow-y-auto">
-                {group.map((app) => {
-                  const stepsMap = buildStepsMap(app.step_events || []);
-                  const completedSteps = STEPS.filter(s => stepsMap[s.id]);
-                  const lastStep = completedSteps.length > 0 ? completedSteps[completedSteps.length - 1] : null;
-                  const daysTotal = stepsMap.submitted && lastStep && stepsMap[lastStep.id]
-                    ? daysBetween(stepsMap.submitted, stepsMap[lastStep.id]!)
-                    : null;
+            {/* Mobile card view */}
+            <div className="sm:hidden max-h-[65vh] overflow-y-auto">
+              {group.map((app) => {
+                const stepsMap = buildStepsMap(app.step_events || []);
+                const completedSteps = STEPS.filter(s => stepsMap[s.id]);
+                const lastStep = completedSteps.length > 0 ? completedSteps[completedSteps.length - 1] : null;
+                const daysTotal = stepsMap.submitted && lastStep && stepsMap[lastStep.id]
+                  ? daysBetween(stepsMap.submitted, stepsMap[lastStep.id]!)
+                  : null;
+                const nextStepIdx = completedSteps.length < STEPS.length ? completedSteps.length : null;
+                const nextStepLabel = nextStepIdx !== null ? STEPS[nextStepIdx].label : null;
+                const statusLabel = app.is_complete ? "eCoPR \u2713" : nextStepLabel ? `Waiting for ${nextStepLabel}` : "Submitted";
+                const statusDone = app.is_complete;
 
-                  const nextStepIdx = completedSteps.length < STEPS.length ? completedSteps.length : null;
-                  const nextStepLabel = nextStepIdx !== null ? STEPS[nextStepIdx].label : null;
-                  const statusLabel = app.is_complete ? "eCoPR ✓" : nextStepLabel ? `Waiting for ${nextStepLabel}` : "Submitted";
-                  const statusDone = app.is_complete;
-
-                  return (
-                    <div
-                      key={app.id}
-                      onClick={() => handleRowClick(app)}
-                      className="flex items-center gap-3 px-4 py-3 border-b border-sand-100 active:bg-brand-50/30 cursor-pointer transition-colors"
-                    >
-                      {/* Progress ring */}
-                      <div className="relative w-10 h-10 flex-shrink-0">
-                        <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
-                          <circle cx="18" cy="18" r="15" fill="none" stroke="#E8E6E1" strokeWidth="3" />
-                          <circle cx="18" cy="18" r="15" fill="none" stroke={statusDone ? "#D4A03C" : "#2D6A4F"} strokeWidth="3"
-                            strokeDasharray={`${(completedSteps.length / STEPS.length) * 94} 94`}
-                            strokeLinecap="round" />
-                        </svg>
-                        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-sand-700">
-                          {completedSteps.length}/{STEPS.length}
-                        </span>
+                return (
+                  <div
+                    key={app.id}
+                    onClick={() => handleRowClick(app)}
+                    className="flex items-center gap-3 px-4 py-3 border-b border-sand-100 active:bg-brand-50/30 cursor-pointer transition-colors"
+                  >
+                    <div className="relative w-10 h-10 flex-shrink-0">
+                      <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="15" fill="none" stroke="#E8E6E1" strokeWidth="3" />
+                        <circle cx="18" cy="18" r="15" fill="none" stroke={statusDone ? "#D4A03C" : "#2D6A4F"} strokeWidth="3"
+                          strokeDasharray={`${(completedSteps.length / STEPS.length) * 94} 94`}
+                          strokeLinecap="round" />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-sand-700">
+                        {completedSteps.length}/{STEPS.length}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-sand-900">{app.initials}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold ${
+                          app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
+                        }`}>{app.stream}</span>
+                        <ReactionsBadge applicationId={app.id} />
                       </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-sand-900">{app.initials}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold ${
-                            app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
-                          }`}>{app.stream}</span>
-                          <ReactionsBadge applicationId={app.id} />
-                        </div>
-                        <div className="text-[10px] text-sand-500 mt-0.5">
-                          {app.country_origin} · {app.sponsor_status}
-                          {stepsMap.submitted && <span> · {formatDate(stepsMap.submitted)}</span>}
-                        </div>
-                        <div className={`text-[10px] font-medium mt-0.5 ${statusDone ? "text-warn-dark" : "text-brand-600"}`}>
-                          {statusLabel}
-                        </div>
+                      <div className="text-[10px] text-sand-500 mt-0.5">
+                        {app.country_origin} &middot; {app.sponsor_status}
+                        {stepsMap.submitted && <span> &middot; {formatDate(stepsMap.submitted)}</span>}
                       </div>
-
-                      {/* Days & arrow */}
-                      <div className="text-right flex-shrink-0">
-                        {daysTotal != null && daysTotal > 0 && (
-                          <div className="text-xs font-semibold text-sand-700">{daysTotal}d</div>
-                        )}
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round" className="ml-auto mt-0.5"><path d="M9 18L15 12L9 6" /></svg>
+                      <div className={`text-[10px] font-medium mt-0.5 ${statusDone ? "text-warn-dark" : "text-brand-600"}`}>
+                        {statusLabel}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="text-right flex-shrink-0">
+                      {daysTotal != null && daysTotal > 0 && (
+                        <div className="text-xs font-semibold text-sand-700">{daysTotal}d</div>
+                      )}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round" className="ml-auto mt-0.5"><path d="M9 18L15 12L9 6" /></svg>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-              {/* Desktop table */}
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-auto max-h-[70vh]">
               <div className="hidden sm:block border-t border-sand-100 overflow-auto max-h-[70vh]">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-20 bg-sand-50">
@@ -509,11 +515,10 @@ export default function DashboardPage() {
                   </tfoot>
                 </table>
               </div>
-              </>
-            )}
           </div>
         );
-      })}
+      })()}
+
 
       <p className="text-[9px] text-sand-400 mt-3 text-center">
         Click any row to update steps · PIN required to edit · Unclaimed entries can be claimed
