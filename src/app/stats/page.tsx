@@ -426,15 +426,18 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     const avgInlandAor = inlandAorDays.length ? Math.round(inlandAorDays.reduce((a, b) => a + b, 0) / inlandAorDays.length) : null;
 
     // Recent AOR recipients in period, split by stream
-    const recentOutlandAors: { initials: string; days: number }[] = [];
-    const recentInlandAors: { initials: string; days: number }[] = [];
+    const recentOutlandAors: { initials: string; aorDate: string }[] = [];
+    const recentInlandAors: { initials: string; aorDate: string }[] = [];
     apps.forEach(a => {
       const aorEvent = (a.step_events || []).find(e => e.step_id === "aor");
       if (!aorEvent || new Date(aorEvent.created_at).getTime() <= cutoff) return;
       const s = buildStepsMap(a.step_events || []);
-      const days = s.submitted && s.aor ? daysBetween(s.submitted, s.aor) : 0;
-      if (a.stream === "Outland") recentOutlandAors.push({ initials: a.initials, days });
-      else recentInlandAors.push({ initials: a.initials, days });
+      const aorDate = s.aor || "";
+      if (!aorDate) return;
+      const d = new Date(aorDate + "T00:00:00");
+      const dateStr = `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
+      if (a.stream === "Outland") recentOutlandAors.push({ initials: a.initials, aorDate: dateStr });
+      else recentInlandAors.push({ initials: a.initials, aorDate: dateStr });
     });
 
     const periodLabel = period === "7" ? "This Week" : period === "14" ? "Last 2 Weeks" : "This Month";
@@ -447,7 +450,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     msg += `*Outland AOR Updates*\n`;
     if (avgOutlandAor) msg += `Avg days to AOR: ${avgOutlandAor}d (${outlandAorDays.length} reported)\n`;
     if (recentOutlandAors.length > 0) {
-      msg += `Recent AORs: ${recentOutlandAors.map(a => `${a.initials} (${a.days}d)`).join(", ")}\n`;
+      msg += `Recent AORs: ${recentOutlandAors.map(a => `${a.initials} (${a.aorDate})`).join(", ")}\n`;
     } else {
       msg += `No new AORs this period\n`;
     }
@@ -457,7 +460,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     msg += `*Inland AOR Updates*\n`;
     if (avgInlandAor) msg += `Avg days to AOR: ${avgInlandAor}d (${inlandAorDays.length} reported)\n`;
     if (recentInlandAors.length > 0) {
-      msg += `Recent AORs: ${recentInlandAors.map(a => `${a.initials} (${a.days}d)`).join(", ")}\n`;
+      msg += `Recent AORs: ${recentInlandAors.map(a => `${a.initials} (${a.aorDate})`).join(", ")}\n`;
     } else {
       msg += `No new AORs this period\n`;
     }
