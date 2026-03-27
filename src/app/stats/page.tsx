@@ -395,9 +395,6 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     const now = Date.now();
     const cutoff = now - parseInt(period) * 24 * 60 * 60 * 1000;
 
-    // New entries in period
-    const newEntries = apps.filter(a => new Date(a.created_at).getTime() > cutoff);
-
     // Step milestones in period (non-submitted)
     const milestones: Record<string, number> = {};
     apps.forEach(a => {
@@ -410,39 +407,76 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
       });
     });
 
-    // Average AOR days
-    const aorDays: number[] = [];
-    apps.forEach(a => {
+    // AOR stats split by stream
+    const outlandApps = apps.filter(a => a.stream === "Outland");
+    const inlandApps = apps.filter(a => a.stream === "Inland");
+
+    const outlandAorDays: number[] = [];
+    outlandApps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
-      if (s.submitted && s.aor) aorDays.push(daysBetween(s.submitted, s.aor));
+      if (s.submitted && s.aor) outlandAorDays.push(daysBetween(s.submitted, s.aor));
     });
-    const avgAor = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
-    const totalWithAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
+    const avgOutlandAor = outlandAorDays.length ? Math.round(outlandAorDays.reduce((a, b) => a + b, 0) / outlandAorDays.length) : null;
+
+    const inlandAorDays: number[] = [];
+    inlandApps.forEach(a => {
+      const s = buildStepsMap(a.step_events || []);
+      if (s.submitted && s.aor) inlandAorDays.push(daysBetween(s.submitted, s.aor));
+    });
+    const avgInlandAor = inlandAorDays.length ? Math.round(inlandAorDays.reduce((a, b) => a + b, 0) / inlandAorDays.length) : null;
+
+    // Recent AOR recipients in period, split by stream
+    const recentOutlandAors: { initials: string; days: number }[] = [];
+    const recentInlandAors: { initials: string; days: number }[] = [];
+    apps.forEach(a => {
+      const aorEvent = (a.step_events || []).find(e => e.step_id === "aor");
+      if (!aorEvent || new Date(aorEvent.created_at).getTime() <= cutoff) return;
+      const s = buildStepsMap(a.step_events || []);
+      const days = s.submitted && s.aor ? daysBetween(s.submitted, s.aor) : 0;
+      if (a.stream === "Outland") recentOutlandAors.push({ initials: a.initials, days });
+      else recentInlandAors.push({ initials: a.initials, days });
+    });
 
     const periodLabel = period === "7" ? "This Week" : period === "14" ? "Last 2 Weeks" : "This Month";
 
     // Build the message
-    let msg = `📊 *SponsorTrack ${periodLabel}*\n\n`;
-    msg += `👥 *${apps.length} total entries* (${newEntries.length} new)\n`;
-    if (avgAor) msg += `⏱ *Avg AOR: ${avgAor} days* (${totalWithAor} reported)\n`;
+    let msg = `*SponsorTrack — ${periodLabel}*\n\n`;
+    msg += `*${apps.length} entries* tracking (${outlandApps.length} Outland, ${inlandApps.length} Inland)\n\n`;
+
+    // AOR Updates — Outland
+    msg += `*Outland AOR Updates*\n`;
+    if (avgOutlandAor) msg += `Avg days to AOR: ${avgOutlandAor}d (${outlandAorDays.length} reported)\n`;
+    if (recentOutlandAors.length > 0) {
+      msg += `Recent AORs: ${recentOutlandAors.map(a => `${a.initials} (${a.days}d)`).join(", ")}\n`;
+    } else {
+      msg += `No new AORs this period\n`;
+    }
     msg += `\n`;
 
-    if (Object.keys(milestones).length > 0) {
-      msg += `🎉 *Milestones*\n`;
-      Object.entries(milestones)
+    // AOR Updates — Inland
+    msg += `*Inland AOR Updates*\n`;
+    if (avgInlandAor) msg += `Avg days to AOR: ${avgInlandAor}d (${inlandAorDays.length} reported)\n`;
+    if (recentInlandAors.length > 0) {
+      msg += `Recent AORs: ${recentInlandAors.map(a => `${a.initials} (${a.days}d)`).join(", ")}\n`;
+    } else {
+      msg += `No new AORs this period\n`;
+    }
+    msg += `\n`;
+
+    // Other milestones (non-AOR)
+    const nonAorMilestones = Object.entries(milestones).filter(([step]) => step !== "AOR");
+    if (nonAorMilestones.length > 0) {
+      msg += `*Other Milestones*\n`;
+      nonAorMilestones
         .sort((a, b) => b[1] - a[1])
         .forEach(([step, count]) => {
-          msg += `  → ${count} reached ${step}\n`;
+          msg += `${count} reached ${step}\n`;
         });
       msg += `\n`;
     }
 
-    if (newEntries.length > 0) {
-      msg += `🆕 *New entries:* ${newEntries.map(a => a.initials).join(", ")}\n\n`;
-    }
-
-    msg += `🔗 Track yours: tracker-lime-five.vercel.app\n`;
-    msg += `_Free • No sign-up • PIN protected_`;
+    msg += `Track yours: tracker-lime-five.vercel.app\n`;
+    msg += `_Free - No sign-up - PIN protected_`;
 
     return msg;
   }, [apps, period]);
