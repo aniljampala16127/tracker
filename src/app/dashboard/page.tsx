@@ -267,6 +267,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="text-[10px] text-sand-500 mt-0.5">
                           {app.country_origin} · {app.sponsor_status}
+                          {stepsMap.submitted && <span> · {formatDate(stepsMap.submitted)}</span>}
                           {lastStep && lastStep.id !== "submitted" && (
                             <span className="text-brand-600 font-medium"> · {lastStep.label}</span>
                           )}
