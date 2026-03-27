@@ -10,15 +10,6 @@ import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
-// IRCC official total processing times (March 2026)
-// Source: IRCC Processing Times Tool, updated March 9, 2026
-// These are TOTAL end-to-end times (submission to decision), not per-step
-const IRCC_TOTAL = {
-  outland: { months: 15, days: 456, label: "Outland (non-Quebec)" },
-  inland: { months: 21, days: 639, label: "Inland (non-Quebec)" },
-  serviceStandard: { months: 12, days: 365, label: "IRCC Service Standard (Outland)" },
-};
-
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function StatsPage() {
@@ -121,7 +112,7 @@ export default function StatsPage() {
       <div className="mb-6">
         <h1 className="text-xl font-bold text-sand-900">Processing Analytics</h1>
         <p className="text-xs text-sand-500 mt-0.5">
-          Community-reported timelines vs IRCC official processing times
+          Community-reported timelines from {apps.length} applications
         </p>
       </div>
 
@@ -142,31 +133,6 @@ export default function StatsPage() {
         <div className="bg-white border border-sand-200 rounded-xl p-4">
           <div className="text-[10px] text-sand-500 uppercase tracking-wider">Inland</div>
           <div className="text-2xl font-bold text-warn">{totalInland}</div>
-        </div>
-      </div>
-
-      {/* IRCC Official Times */}
-      <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-        <h2 className="text-sm font-bold text-sand-900 mb-1">IRCC Official Processing Times</h2>
-        <p className="text-[11px] text-sand-400 mb-3">
-          Source: IRCC Processing Times Tool, updated March 9, 2026. Total end-to-end time (80% of applications).
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-brand-50 rounded-xl p-4 text-center">
-            <div className="text-[10px] font-semibold text-brand-700 uppercase tracking-wider">Outland (non-Quebec)</div>
-            <div className="text-3xl font-bold text-brand-600 mt-1">15 <span className="text-sm font-medium">months</span></div>
-            <div className="text-[10px] text-brand-500 mt-0.5">~456 days · 48,200 in queue</div>
-          </div>
-          <div className="bg-warn-light/50 rounded-xl p-4 text-center">
-            <div className="text-[10px] font-semibold text-warn-dark uppercase tracking-wider">Inland (non-Quebec)</div>
-            <div className="text-3xl font-bold text-warn-dark mt-1">21 <span className="text-sm font-medium">months</span></div>
-            <div className="text-[10px] text-warn-dark/70 mt-0.5">~639 days · 52,400 in queue</div>
-          </div>
-          <div className="bg-sand-100 rounded-xl p-4 text-center">
-            <div className="text-[10px] font-semibold text-sand-600 uppercase tracking-wider">IRCC Service Standard</div>
-            <div className="text-3xl font-bold text-sand-700 mt-1">12 <span className="text-sm font-medium">months</span></div>
-            <div className="text-[10px] text-sand-500 mt-0.5">Target for Outland spousal</div>
-          </div>
         </div>
       </div>
 
@@ -378,7 +344,7 @@ export default function StatsPage() {
 
       {/* Source note */}
       <p className="text-[9px] text-sand-400 mt-6 text-center">
-        IRCC official times from IRCC Processing Times Tool (March 9, 2026). Per-step data is community-reported only — IRCC does not publish step-level breakdowns.
+        All data is community-reported. Processing times vary by case.
       </p>
     </div>
   );
