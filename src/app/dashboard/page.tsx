@@ -146,9 +146,87 @@ export default function DashboardPage() {
   if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
 
   const isFiltered = Object.values(filters).some(Boolean);
+  const hasMyEntry = apps.some(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
+
+  // Compute teaser stats
+  const aorDaysAll: number[] = [];
+  apps.forEach(a => {
+    const s = buildStepsMap(a.step_events || []);
+    if (s.submitted && s.aor) aorDaysAll.push(daysBetween(s.submitted, s.aor));
+  });
+  const avgAorAll = aorDaysAll.length ? Math.round(aorDaysAll.reduce((a, b) => a + b, 0) / aorDaysAll.length) : null;
+  const waitingForAor = apps.filter(a => !a.step_events?.some(e => e.step_id === "aor")).length;
 
   return (
     <div>
+      {/* CTA Banner — only for users who haven't added */}
+      {!hasMyEntry && (
+        <div className="mb-4 bg-gradient-to-r from-brand-500 to-brand-600 rounded-xl p-4 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <h3 className="text-sm font-bold mb-0.5">Add yours to unlock predictions</h3>
+          <p className="text-[11px] text-white/70 mb-3">See your predicted AOR date, queue position, and how your timeline compares</p>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="px-4 py-2 bg-white text-brand-600 text-xs font-semibold rounded-lg hover:bg-sand-50 transition-all active:scale-[0.98]"
+          >
+            Add Your Application — 30 sec
+          </button>
+        </div>
+      )}
+
+      {/* Blurred Insights Teaser — only for users who haven't added */}
+      {!hasMyEntry && avgAorAll && (
+        <div className="mb-4 relative">
+          <div className="bg-white border border-sand-200 rounded-xl p-4 blur-[3px] pointer-events-none select-none" aria-hidden="true">
+            <div className="space-y-2">
+              <div className="bg-sand-50 rounded-lg px-3 py-2.5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-brand-100 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20V14" /></svg>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-sand-500 uppercase">Where You Stand</div>
+                  <div className="text-sm font-bold text-brand-600">AOR could come any day now</div>
+                  <div className="text-[10px] text-sand-400">Community avg: {avgAorAll} days to AOR</div>
+                </div>
+              </div>
+              <div className="bg-sand-50 rounded-lg px-3 py-2.5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-warn-light flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9B7420" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /></svg>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-sand-500 uppercase">Queue Position</div>
+                  <div className="text-sm font-bold text-sand-900">#?? of {waitingForAor} waiting for AOR</div>
+                </div>
+              </div>
+              <div className="bg-brand-50 rounded-lg px-3 py-2.5 flex items-center gap-3 border border-brand-200">
+                <div className="w-9 h-9 rounded-lg bg-brand-200 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B4331" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6V12L16 14" /></svg>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-brand-700 uppercase">Predicted AOR</div>
+                  <div className="text-sm font-bold text-brand-600">~??? ??, 2026</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Overlay CTA */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="bg-white/90 border border-sand-200 rounded-xl px-5 py-4 text-center shadow-lg max-w-[260px]">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2">
+                <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <p className="text-xs font-bold text-sand-900 mb-1">Add your entry to unlock</p>
+              <p className="text-[10px] text-sand-500 mb-3">Your predicted AOR date, queue position & cohort insights</p>
+              <button
+                onClick={() => setShowAdd(true)}
+                className="px-4 py-2 bg-brand-500 text-white text-xs font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] w-full"
+              >
+                Add — takes 30 seconds
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-sand-400">
