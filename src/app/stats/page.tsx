@@ -6,22 +6,17 @@ import {
   ResponsiveContainer, Legend, Cell,
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
-import { Application, StepId } from "@/lib/types";
+import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
-// IRCC official processing times (as of early 2026, approximate)
-const IRCC_TIMES: Record<string, { outland: number | null; inland: number | null; label: string }> = {
-  aor: { outland: 30, inland: 30, label: "AOR" },
-  bil: { outland: 7, inland: 7, label: "BIL" },
-  sponsor_eligibility: { outland: 75, inland: 120, label: "Spon. Elig" },
-  medical: { outland: 60, inland: 90, label: "Medical" },
-  pa_eligibility: { outland: 60, inland: 120, label: "PA Elig" },
-  background: { outland: 90, inland: 150, label: "Background" },
-  pre_arrival: { outland: 30, inland: 30, label: "Pre-Arrival" },
-  portal1: { outland: 14, inland: 14, label: "Portal 1" },
-  portal2: { outland: 14, inland: 14, label: "Portal 2" },
-  ecopr: { outland: 30, inland: 30, label: "eCoPR" },
+// IRCC official total processing times (March 2026)
+// Source: IRCC Processing Times Tool, updated March 9, 2026
+// These are TOTAL end-to-end times (submission to decision), not per-step
+const IRCC_TOTAL = {
+  outland: { months: 15, days: 456, label: "Outland (non-Quebec)" },
+  inland: { months: 21, days: 639, label: "Inland (non-Quebec)" },
+  serviceStandard: { months: 12, days: 365, label: "IRCC Service Standard (Outland)" },
 };
 
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -56,7 +51,34 @@ export default function StatsPage() {
     return cohorts;
   }, [apps]);
 
-  // Compute average days to AOR per month cohort
+  // Compute per-step community averages
+  const stepAverages = useMemo(() => {
+    return STEPS.slice(1).map((step) => {
+      const prev = STEPS[STEPS.indexOf(step) - 1];
+      const outlandDays: number[] = [];
+      const inlandDays: number[] = [];
+
+      apps.forEach((a) => {
+        const s = buildStepsMap(a.step_events || []);
+        if (s[prev.id] && s[step.id]) {
+          const d = daysBetween(s[prev.id]!, s[step.id]!);
+          if (a.stream === "Outland") outlandDays.push(d);
+          else inlandDays.push(d);
+        }
+      });
+
+      return {
+        step: step.shortLabel,
+        fullLabel: step.label,
+        outland: outlandDays.length ? Math.round(outlandDays.reduce((a, b) => a + b, 0) / outlandDays.length) : null,
+        inland: inlandDays.length ? Math.round(inlandDays.reduce((a, b) => a + b, 0) / inlandDays.length) : null,
+        outlandReports: outlandDays.length,
+        inlandReports: inlandDays.length,
+      };
+    });
+  }, [apps]);
+
+  // Monthly cohort AOR data
   const cohortChartData = useMemo(() => {
     const sorted = Object.keys(monthCohorts).sort();
     return sorted.map((key) => {
@@ -64,69 +86,98 @@ export default function StatsPage() {
       const [y, m] = key.split("-");
       const label = `${MONTHS_SHORT[parseInt(m) - 1]} ${y.slice(2)}`;
 
-      const aorDays: number[] = [];
+      const outlandAor: number[] = [];
+      const inlandAor: number[] = [];
       group.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
-        if (s.submitted && s.aor) aorDays.push(daysBetween(s.submitted, s.aor));
+        if (s.submitted && s.aor) {
+          const d = daysBetween(s.submitted, s.aor);
+          if (a.stream === "Outland") outlandAor.push(d);
+          else inlandAor.push(d);
+        }
       });
 
-      const avgAor = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
       return {
         month: label,
-        avgDaysToAOR: avgAor,
+        outlandAvg: outlandAor.length ? Math.round(outlandAor.reduce((a, b) => a + b, 0) / outlandAor.length) : null,
+        inlandAvg: inlandAor.length ? Math.round(inlandAor.reduce((a, b) => a + b, 0) / inlandAor.length) : null,
         totalEntries: group.length,
-        withAOR: aorDays.length,
+        outlandAorCount: outlandAor.length,
+        inlandAorCount: inlandAor.length,
+        outlandTotal: group.filter(a => a.stream === "Outland").length,
+        inlandTotal: group.filter(a => a.stream === "Inland").length,
       };
     });
   }, [monthCohorts]);
 
-  // IRCC vs community comparison data
-  const comparisonData = useMemo(() => {
-    return STEPS.slice(1).map((step) => {
-      const prev = STEPS[STEPS.indexOf(step) - 1];
-      const communityDays: number[] = [];
-
-      apps.forEach((a) => {
-        const s = buildStepsMap(a.step_events || []);
-        if (s[prev.id] && s[step.id]) {
-          communityDays.push(daysBetween(s[prev.id]!, s[step.id]!));
-        }
-      });
-
-      const ircc = IRCC_TIMES[step.id];
-      const communityAvg = communityDays.length
-        ? Math.round(communityDays.reduce((a, b) => a + b, 0) / communityDays.length)
-        : null;
-
-      return {
-        step: step.shortLabel,
-        fullLabel: step.label,
-        ircc: ircc?.outland || null,
-        community: communityAvg,
-        reports: communityDays.length,
-      };
-    });
-  }, [apps]);
-
   if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading stats...</div>;
+
+  const totalOutland = apps.filter(a => a.stream === "Outland").length;
+  const totalInland = apps.filter(a => a.stream === "Inland").length;
+  const totalWithAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-sand-900">Processing Analytics</h1>
         <p className="text-xs text-sand-500 mt-0.5">
-          Community-reported timelines vs IRCC reference times
+          Community-reported timelines vs IRCC official processing times
         </p>
       </div>
 
-      {/* IRCC vs Community */}
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div className="bg-white border border-sand-200 rounded-xl p-4">
+          <div className="text-[10px] text-sand-500 uppercase tracking-wider">Total Entries</div>
+          <div className="text-2xl font-bold text-sand-900">{apps.length}</div>
+        </div>
+        <div className="bg-white border border-sand-200 rounded-xl p-4">
+          <div className="text-[10px] text-sand-500 uppercase tracking-wider">With AOR</div>
+          <div className="text-2xl font-bold text-brand-600">{totalWithAor}</div>
+        </div>
+        <div className="bg-white border border-sand-200 rounded-xl p-4">
+          <div className="text-[10px] text-sand-500 uppercase tracking-wider">Outland</div>
+          <div className="text-2xl font-bold text-brand-600">{totalOutland}</div>
+        </div>
+        <div className="bg-white border border-sand-200 rounded-xl p-4">
+          <div className="text-[10px] text-sand-500 uppercase tracking-wider">Inland</div>
+          <div className="text-2xl font-bold text-warn">{totalInland}</div>
+        </div>
+      </div>
+
+      {/* IRCC Official Times */}
       <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-        <h2 className="text-sm font-bold text-sand-900 mb-1">IRCC Reference vs Community Average</h2>
+        <h2 className="text-sm font-bold text-sand-900 mb-1">IRCC Official Processing Times</h2>
         <p className="text-[11px] text-sand-400 mb-3">
-          Official IRCC estimates (Outland) compared to what the community is actually seeing
+          Source: IRCC Processing Times Tool, updated March 9, 2026. Total end-to-end time (80% of applications).
         </p>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={comparisonData} margin={{ top: 4, right: 12, left: -4, bottom: 0 }} barCategoryGap="20%">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-brand-50 rounded-xl p-4 text-center">
+            <div className="text-[10px] font-semibold text-brand-700 uppercase tracking-wider">Outland (non-Quebec)</div>
+            <div className="text-3xl font-bold text-brand-600 mt-1">15 <span className="text-sm font-medium">months</span></div>
+            <div className="text-[10px] text-brand-500 mt-0.5">~456 days · 48,200 in queue</div>
+          </div>
+          <div className="bg-warn-light/50 rounded-xl p-4 text-center">
+            <div className="text-[10px] font-semibold text-warn-dark uppercase tracking-wider">Inland (non-Quebec)</div>
+            <div className="text-3xl font-bold text-warn-dark mt-1">21 <span className="text-sm font-medium">months</span></div>
+            <div className="text-[10px] text-warn-dark/70 mt-0.5">~639 days · 52,400 in queue</div>
+          </div>
+          <div className="bg-sand-100 rounded-xl p-4 text-center">
+            <div className="text-[10px] font-semibold text-sand-600 uppercase tracking-wider">IRCC Service Standard</div>
+            <div className="text-3xl font-bold text-sand-700 mt-1">12 <span className="text-sm font-medium">months</span></div>
+            <div className="text-[10px] text-sand-500 mt-0.5">Target for Outland spousal</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Community per-step averages */}
+      <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
+        <h2 className="text-sm font-bold text-sand-900 mb-1">Community Average: Days per Step</h2>
+        <p className="text-[11px] text-sand-400 mb-3">
+          Based on community-reported data — IRCC does not publish per-step breakdowns
+        </p>
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={stepAverages} margin={{ top: 4, right: 12, left: -4, bottom: 0 }} barCategoryGap="16%">
             <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
             <XAxis dataKey="step" tick={{ fontSize: 9, fill: "#8A8880" }} axisLine={{ stroke: "#E8E6E1" }} tickLine={false} interval={0} />
             <YAxis tick={{ fontSize: 10, fill: "#8A8880" }} axisLine={false} tickLine={false}
@@ -136,61 +187,50 @@ export default function StatsPage() {
               contentStyle={{ borderRadius: "12px", border: "1px solid #E8E6E1", fontSize: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
               formatter={(value: any, name: string, props: any) => {
                 const row = props.payload;
-                if (name === "ircc") return [value != null ? `${value} days (IRCC estimate)` : "N/A", "IRCC Reference"];
-                return [value != null ? `${value} days (${row.reports} reports)` : "No data yet", "Community"];
+                const count = name === "outland" ? row.outlandReports : row.inlandReports;
+                return [value != null ? `${value} days (${count} reports)` : "No data", name === "outland" ? "Outland" : "Inland"];
               }}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }}
-              formatter={(val: string) => val === "ircc" ? "IRCC Reference" : "Community Actual"} />
-            <Bar dataKey="ircc" fill="#B0ADA6" radius={[4, 4, 0, 0]} maxBarSize={24} />
-            <Bar dataKey="community" fill="#2D6A4F" radius={[4, 4, 0, 0]} maxBarSize={24}>
-              {comparisonData.map((entry, idx) => (
-                <Cell key={idx} fill={entry.community != null ? "#2D6A4F" : "#E8E6E1"} />
-              ))}
+              formatter={(val: string) => val === "outland" ? "Outland" : "Inland"} />
+            <Bar dataKey="outland" fill="#2D6A4F" radius={[4, 4, 0, 0]} maxBarSize={28}>
+              {stepAverages.map((e, i) => <Cell key={i} fill={e.outland != null ? "#2D6A4F" : "#E8E6E1"} />)}
+            </Bar>
+            <Bar dataKey="inland" fill="#D4A03C" radius={[4, 4, 0, 0]} maxBarSize={28}>
+              {stepAverages.map((e, i) => <Cell key={i} fill={e.inland != null ? "#D4A03C" : "#E8E6E1"} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </div>
 
-      {/* IRCC vs Community table */}
-      <div className="bg-white border border-sand-200 rounded-xl overflow-hidden mb-5">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-sand-50 text-[9px] font-semibold text-sand-500 uppercase tracking-wider">
-              <th className="text-left px-3 py-2">Step</th>
-              <th className="text-center px-2 py-2">IRCC (Outland)</th>
-              <th className="text-center px-2 py-2">Community Avg</th>
-              <th className="text-center px-2 py-2">Difference</th>
-              <th className="text-center px-2 py-2">Reports</th>
-            </tr>
-          </thead>
-          <tbody>
-            {comparisonData.map((row) => {
-              const diff = row.ircc != null && row.community != null ? row.community - row.ircc : null;
-              return (
+        {/* Per-step table */}
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-sand-50 text-[9px] font-semibold text-sand-500 uppercase tracking-wider">
+                <th className="text-left px-3 py-2">Step</th>
+                <th className="text-center px-2 py-2">Outland Avg</th>
+                <th className="text-center px-2 py-2">Inland Avg</th>
+                <th className="text-center px-2 py-2">Reports</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stepAverages.map((row) => (
                 <tr key={row.step} className="border-t border-sand-100">
-                  <td className="px-3 py-2.5 font-medium text-sand-900">{row.fullLabel}</td>
-                  <td className="px-2 py-2.5 text-center text-sand-500">
-                    {row.ircc != null ? `${row.ircc}d` : "—"}
+                  <td className="px-3 py-2 font-medium text-sand-900">{row.fullLabel}</td>
+                  <td className="px-2 py-2 text-center font-semibold text-brand-600">
+                    {row.outland != null ? `${row.outland}d` : "—"}
                   </td>
-                  <td className="px-2 py-2.5 text-center font-semibold text-brand-600">
-                    {row.community != null ? `${row.community}d` : "—"}
+                  <td className="px-2 py-2 text-center font-semibold text-warn-dark">
+                    {row.inland != null ? `${row.inland}d` : "—"}
                   </td>
-                  <td className="px-2 py-2.5 text-center">
-                    {diff != null ? (
-                      <span className={`text-xs font-semibold ${diff < 0 ? "text-brand-600" : diff > 0 ? "text-error" : "text-sand-500"}`}>
-                        {diff > 0 ? "+" : ""}{diff}d {diff < 0 ? "faster" : diff > 0 ? "slower" : "same"}
-                      </span>
-                    ) : (
-                      <span className="text-sand-300">—</span>
-                    )}
+                  <td className="px-2 py-2 text-center text-[10px] text-sand-400">
+                    {row.outlandReports + row.inlandReports}
                   </td>
-                  <td className="px-2 py-2.5 text-center text-[10px] text-sand-400">{row.reports}</td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Monthly Cohort Comparison */}
@@ -199,9 +239,9 @@ export default function StatsPage() {
         <p className="text-[11px] text-sand-400 mb-3">
           Average days to AOR by submission month — is your batch faster or slower?
         </p>
-        {cohortChartData.some(d => d.avgDaysToAOR != null) ? (
+        {cohortChartData.some(d => d.outlandAvg != null || d.inlandAvg != null) ? (
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={cohortChartData} margin={{ top: 4, right: 12, left: -4, bottom: 0 }}>
+            <BarChart data={cohortChartData} margin={{ top: 4, right: 12, left: -4, bottom: 0 }} barCategoryGap="20%">
               <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#8A8880" }} axisLine={{ stroke: "#E8E6E1" }} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#8A8880" }} axisLine={false} tickLine={false}
@@ -211,13 +251,17 @@ export default function StatsPage() {
                 contentStyle={{ borderRadius: "12px", border: "1px solid #E8E6E1", fontSize: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
                 formatter={(value: any, name: string, props: any) => {
                   const row = props.payload;
-                  return [value != null ? `${value} days avg (${row.withAOR} of ${row.totalEntries} reported)` : "No AOR data", "Avg Days to AOR"];
+                  if (name === "outlandAvg") return [value != null ? `${value} days (${row.outlandAorCount} of ${row.outlandTotal})` : "No data", "Outland"];
+                  return [value != null ? `${value} days (${row.inlandAorCount} of ${row.inlandTotal})` : "No data", "Inland"];
                 }}
               />
-              <Bar dataKey="avgDaysToAOR" radius={[6, 6, 0, 0]} maxBarSize={48}>
-                {cohortChartData.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.avgDaysToAOR != null ? "#2D6A4F" : "#E8E6E1"} />
-                ))}
+              <Legend wrapperStyle={{ fontSize: "11px" }}
+                formatter={(val: string) => val === "outlandAvg" ? "Outland" : "Inland"} />
+              <Bar dataKey="outlandAvg" fill="#2D6A4F" radius={[6, 6, 0, 0]} maxBarSize={36}>
+                {cohortChartData.map((e, i) => <Cell key={i} fill={e.outlandAvg != null ? "#2D6A4F" : "#E8E6E1"} />)}
+              </Bar>
+              <Bar dataKey="inlandAvg" fill="#D4A03C" radius={[6, 6, 0, 0]} maxBarSize={36}>
+                {cohortChartData.map((e, i) => <Cell key={i} fill={e.inlandAvg != null ? "#D4A03C" : "#E8E6E1"} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -264,6 +308,11 @@ export default function StatsPage() {
           );
         })}
       </div>
+
+      {/* Source note */}
+      <p className="text-[9px] text-sand-400 mt-6 text-center">
+        IRCC official times from IRCC Processing Times Tool (March 9, 2026). Per-step data is community-reported only — IRCC does not publish step-level breakdowns.
+      </p>
     </div>
   );
 }

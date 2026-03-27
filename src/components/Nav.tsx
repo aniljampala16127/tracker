@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PlaneIcon, ChatIcon, BarChartIcon } from "@/components/icons";
+import { PlaneIcon, BarChartIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Tracker", icon: PlaneIcon },
   { href: "/stats", label: "Stats", icon: BarChartIcon },
-  { href: "/discussions", label: "Chat", icon: ChatIcon },
 ];
 
 export function Nav() {
