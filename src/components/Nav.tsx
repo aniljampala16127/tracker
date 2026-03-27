@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useRef, useEffect, useState } from "react";
 import { PlaneIcon, BarChartIcon, ClockIcon, UsersIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import { DarkModeToggle } from "@/components/DarkModeToggle";
+
 import { ActivityPanel } from "@/components/ActivityFeed";
 
 function MeIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
@@ -160,7 +160,7 @@ export function Nav() {
           <DesktopTabs pathname={pathname} />
           <div className="flex items-center gap-1">
             <ActivityPanel />
-            <DarkModeToggle />
+            
           </div>
         </div>
       </header>
