@@ -174,7 +174,7 @@ export default function DashboardPage() {
 
       {/* Empty state */}
       {filteredApps.length === 0 && (
-        <div className="text-center py-20 bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl">
+        <div className="text-center py-20 bg-white border border-sand-200 rounded-xl">
           <p className="text-sand-500 text-sm mb-4">
             {isFiltered ? "No entries match your filters" : "No entries yet"}
           </p>
@@ -200,15 +200,15 @@ export default function DashboardPage() {
         const inland = group.filter(a => a.stream === "Inland").length;
 
         return (
-          <div key={monthKey} className="mb-3 bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl overflow-hidden">
+          <div key={monthKey} className="mb-3 bg-white border border-sand-200 rounded-xl overflow-hidden">
             <button
               onClick={() => toggleMonth(monthKey)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-sand-50 dark:hover:bg-[#1A1A18] transition-colors text-left"
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-sand-50 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-brand-100 dark:bg-brand-500/20 flex flex-col items-center justify-center flex-shrink-0">
-                  <span className="text-[10px] font-bold text-brand-700 dark:text-brand-400 leading-none">{MO[parseInt(m) - 1]}</span>
-                  <span className="text-[8px] text-brand-500 dark:text-brand-400/70 leading-none">{y}</span>
+                <div className="w-9 h-9 rounded-lg bg-brand-100 flex flex-col items-center justify-center flex-shrink-0">
+                  <span className="text-[10px] font-bold text-brand-700 leading-none">{MO[parseInt(m) - 1]}</span>
+                  <span className="text-[8px] text-brand-500 leading-none">{y}</span>
                 </div>
                 <div>
                   <span className="text-sm font-bold text-sand-900">{label}</span>
@@ -228,7 +228,7 @@ export default function DashboardPage() {
             {expanded && (
               <>
               {/* Mobile card view */}
-              <div className="sm:hidden border-t border-sand-100 dark:border-[#1E1E1C] max-h-[70vh] overflow-y-auto">
+              <div className="sm:hidden border-t border-sand-100 max-h-[70vh] overflow-y-auto">
                 {group.map((app) => {
                   const stepsMap = buildStepsMap(app.step_events || []);
                   const completedSteps = STEPS.filter(s => stepsMap[s.id]);
@@ -246,17 +246,17 @@ export default function DashboardPage() {
                     <div
                       key={app.id}
                       onClick={() => handleRowClick(app)}
-                      className="flex items-center gap-3 px-4 py-3 border-b border-sand-100 dark:border-[#1A1A18] active:bg-brand-50/30 dark:active:bg-brand-500/5 cursor-pointer transition-colors"
+                      className="flex items-center gap-3 px-4 py-3 border-b border-sand-100 active:bg-brand-50/30 cursor-pointer transition-colors"
                     >
                       {/* Progress ring */}
                       <div className="relative w-10 h-10 flex-shrink-0">
                         <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
-                          <circle cx="18" cy="18" r="15" fill="none" stroke="#E8E6E1" strokeWidth="3" className="dark:stroke-[#2A2A27]" />
+                          <circle cx="18" cy="18" r="15" fill="none" stroke="#E8E6E1" strokeWidth="3" />
                           <circle cx="18" cy="18" r="15" fill="none" stroke={statusDone ? "#D4A03C" : "#2D6A4F"} strokeWidth="3"
                             strokeDasharray={`${(completedSteps.length / STEPS.length) * 94} 94`}
                             strokeLinecap="round" />
                         </svg>
-                        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-sand-700 dark:text-sand-300">
+                        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-sand-700">
                           {completedSteps.length}/{STEPS.length}
                         </span>
                       </div>
@@ -266,7 +266,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-sand-900">{app.initials}</span>
                           <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold ${
-                            app.stream === "Outland" ? "bg-brand-100 dark:bg-brand-500/15 text-brand-600" : "bg-warn-light text-warn-dark"
+                            app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
                           }`}>{app.stream}</span>
                           <ReactionsBadge applicationId={app.id} />
                         </div>
@@ -282,7 +282,7 @@ export default function DashboardPage() {
                       {/* Days & arrow */}
                       <div className="text-right flex-shrink-0">
                         {daysTotal != null && daysTotal > 0 && (
-                          <div className="text-xs font-semibold text-sand-700 dark:text-sand-400">{daysTotal}d</div>
+                          <div className="text-xs font-semibold text-sand-700">{daysTotal}d</div>
                         )}
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round" className="ml-auto mt-0.5"><path d="M9 18L15 12L9 6" /></svg>
                       </div>
@@ -292,28 +292,28 @@ export default function DashboardPage() {
               </div>
 
               {/* Desktop table */}
-              <div className="hidden sm:block border-t border-sand-100 dark:border-[#1E1E1C] overflow-auto max-h-[70vh]">
+              <div className="hidden sm:block border-t border-sand-100 overflow-auto max-h-[70vh]">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 z-20 bg-sand-50 dark:bg-[#0F0F0E]">
+                  <thead className="sticky top-0 z-20 bg-sand-50">
                     <tr className="bg-sand-50 text-[8px] font-semibold text-sand-500 uppercase tracking-wider">
-                      <th className="text-left px-3 py-2 sticky left-0 bg-sand-50 dark:bg-[#0F0F0E] z-30">Name</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50 dark:bg-[#0F0F0E]">Sponsor Status</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50 dark:bg-[#0F0F0E]">PA Country</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50 dark:bg-[#0F0F0E]">PA Visa Country</th>
-                      <th className="text-center px-1.5 py-2 bg-sand-50 dark:bg-[#0F0F0E]">Class</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50 dark:bg-[#0F0F0E]">App Type</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50 dark:bg-[#0F0F0E]">Submitted</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">AOR</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">BIL</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">MEI Req/Upfront</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">Sponsor Eligibility</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">Medical Update</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">PA Eligibility</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">Background Verification</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">Pre-Arrival</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">Portal 1</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">Portal 2</th>
-                      <th className="text-center px-1 py-2 bg-sand-50 dark:bg-[#0F0F0E]">eCoPR</th>
+                      <th className="text-left px-3 py-2 sticky left-0 bg-sand-50 z-30">Name</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">Sponsor Status</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">PA Country</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">PA Visa Country</th>
+                      <th className="text-center px-1.5 py-2 bg-sand-50">Class</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">App Type</th>
+                      <th className="text-left px-1.5 py-2 bg-sand-50">Submitted</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">AOR</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">BIL</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">MEI Req/Upfront</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Sponsor Eligibility</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Medical Update</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">PA Eligibility</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Background Verification</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Pre-Arrival</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Portal 1</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Portal 2</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">eCoPR</th>
                       <th className="text-center px-1.5 py-2 w-8 bg-sand-50">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline text-sand-400">
                           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -328,10 +328,10 @@ export default function DashboardPage() {
                       const isOwner = hasPin && getSavedPinHash(app.id) === app.pin_hash;
                       return (
                         <tr key={app.id}
-                          className="border-t border-sand-100 hover:bg-brand-50/30 dark:hover:bg-brand-500/5 cursor-pointer transition-colors"
+                          className="border-t border-sand-100 hover:bg-brand-50/30 cursor-pointer transition-colors"
                           onClick={() => handleRowClick(app)}
                         >
-                          <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 bg-white dark:bg-[#141413]">{app.initials}<ReactionsBadge applicationId={app.id} /></td>
+                          <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 bg-white">{app.initials}<ReactionsBadge applicationId={app.id} /></td>
                           <td className="px-1.5 py-2 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                               app.sponsor_status === "Citizen" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
@@ -401,8 +401,8 @@ export default function DashboardPage() {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-brand-50/50 dark:bg-brand-500/10 border-t border-brand-200 dark:border-brand-500/20">
-                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700 sticky left-0 bg-brand-50/50 dark:bg-brand-500/10" colSpan={7}>Avg</td>
+                    <tr className="bg-brand-50/50 border-t border-brand-200">
+                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700 sticky left-0 bg-brand-50/50" colSpan={7}>Avg</td>
                       {STEPS.slice(1).map((step, i) => {
                         const prev = STEPS[i];
                         const durations: number[] = [];
@@ -523,7 +523,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
       <InsightsPanel app={app} allApps={allApps} />
 
       {/* MEI / Medical Exam */}
-      <div className="bg-sand-50 dark:bg-[#0F0F0E] rounded-lg px-3 py-2.5 mb-3">
+      <div className="bg-sand-50 rounded-lg px-3 py-2.5 mb-3">
         <div className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider mb-1.5">Medical Exam (MEI)</div>
         <div className="flex gap-2">
           {["Upfront", "Request", ""].map((opt) => (
@@ -533,7 +533,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
               className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all ${
                 meiType === opt
                   ? opt === "Upfront" ? "bg-brand-500 text-white" : opt === "Request" ? "bg-warn text-white" : "bg-sand-300 text-sand-700"
-                  : "bg-white dark:bg-[#1A1A18] border border-sand-200 dark:border-[#2A2A27] text-sand-500 hover:bg-sand-100 dark:hover:bg-[#222220]"
+                  : "bg-white border border-sand-200 text-sand-500 hover:bg-sand-100"
               }`}
             >
               {opt || "Not set"}
@@ -712,18 +712,18 @@ function CelebrationModal({ app, allApps, onClose }: {
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           {avgAor && aorPrediction && (
-            <div className="bg-brand-50 dark:bg-brand-500/10 rounded-xl p-3 text-center col-span-2">
-              <div className="text-[10px] font-semibold text-brand-700 dark:text-brand-400 uppercase tracking-wider">Predicted AOR</div>
+            <div className="bg-brand-50 rounded-xl p-3 text-center col-span-2">
+              <div className="text-[10px] font-semibold text-brand-700 uppercase tracking-wider">Predicted AOR</div>
               <div className="text-lg font-bold text-brand-600">~{aorPrediction}</div>
               <div className="text-[10px] text-brand-500">Based on {app.stream} avg of {avgAor} days</div>
             </div>
           )}
-          <div className="bg-sand-50 dark:bg-[#0F0F0E] rounded-xl p-3 text-center">
+          <div className="bg-sand-50 rounded-xl p-3 text-center">
             <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Queue Position</div>
             <div className="text-lg font-bold text-sand-900">#{streamApps.filter(a => !a.step_events?.some(e => e.step_id === "aor")).length}</div>
             <div className="text-[10px] text-sand-400">waiting for AOR</div>
           </div>
-          <div className="bg-sand-50 dark:bg-[#0F0F0E] rounded-xl p-3 text-center">
+          <div className="bg-sand-50 rounded-xl p-3 text-center">
             <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Same Week</div>
             <div className="text-lg font-bold text-sand-900">{sameWeek.length}</div>
             <div className="text-[10px] text-sand-400">submitted same week</div>

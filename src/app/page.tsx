@@ -92,10 +92,10 @@ export default function LandingPage() {
     <div className="-mx-4 -mt-6">
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 via-transparent to-warn/5 dark:from-brand-500/10 dark:to-warn/5" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 via-transparent to-warn/5" />
         <div className="max-w-5xl mx-auto px-4 pt-12 pb-10 relative">
           <div className="text-center max-w-lg mx-auto">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-100 dark:bg-brand-500/15 text-brand-700 dark:text-brand-400 text-[11px] font-semibold mb-4">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-100 text-brand-700 text-[11px] font-semibold mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
               {loading ? "..." : totalEntries} applications tracking live
             </div>
@@ -110,7 +110,7 @@ export default function LandingPage() {
               <Link href="/dashboard" className="w-full sm:w-auto px-6 py-3 bg-brand-500 text-white font-semibold text-sm rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-lg shadow-brand-500/20">
                 Add Your Application
               </Link>
-              <Link href="/stats" className="w-full sm:w-auto px-6 py-3 bg-white dark:bg-[#1A1A18] text-sand-700 dark:text-sand-300 font-medium text-sm rounded-xl border border-sand-200 dark:border-[#2A2A27] hover:bg-sand-50 dark:hover:bg-[#222220] transition-all active:scale-[0.98]">
+              <Link href="/stats" className="w-full sm:w-auto px-6 py-3 bg-white text-sand-700 font-medium text-sm rounded-xl border border-sand-200 hover:bg-sand-50 transition-all active:scale-[0.98]">
                 View Analytics
               </Link>
             </div>
@@ -127,8 +127,8 @@ export default function LandingPage() {
             { label: "Avg AOR", value: avgAor, suffix: "d", icon: "M12 6V12L16 14M12 22C17.5 22 22 17.5 22 12S17.5 2 12 2S2 6.5 2 12S6.5 22 12 22Z" },
             { label: "Got AOR", value: totalWithAor, suffix: "", icon: "M20 6L9 17L4 12" },
           ].map((stat) => (
-            <div key={stat.label} className="bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl p-4 text-center">
-              <div className="w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-500/15 flex items-center justify-center mx-auto mb-2">
+            <div key={stat.label} className="bg-white border border-sand-200 rounded-xl p-4 text-center">
+              <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center mx-auto mb-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={stat.icon} /></svg>
               </div>
               <div className="text-2xl font-bold text-sand-900">
@@ -149,7 +149,7 @@ export default function LandingPage() {
             { step: "2", title: "Track progress", desc: "Update each step as IRCC processes your application. See how long each stage takes.", color: "bg-warn" },
             { step: "3", title: "Get predictions", desc: "See where you stand vs the community, your queue position, and estimated completion dates.", color: "bg-brand-600" },
           ].map((item) => (
-            <div key={item.step} className="bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl p-5">
+            <div key={item.step} className="bg-white border border-sand-200 rounded-xl p-5">
               <div className={`w-8 h-8 ${item.color} rounded-lg flex items-center justify-center text-white font-bold text-sm mb-3`}>{item.step}</div>
               <h3 className="text-sm font-bold text-sand-900 mb-1">{item.title}</h3>
               <p className="text-xs text-sand-500 leading-relaxed">{item.desc}</p>
@@ -162,10 +162,10 @@ export default function LandingPage() {
       {recentMilestones.length > 0 && (
         <section className="max-w-5xl mx-auto px-4 mb-8">
           <h2 className="text-lg font-bold text-sand-900 text-center mb-4">Recent milestones</h2>
-          <div className="bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl p-4 space-y-2">
+          <div className="bg-white border border-sand-200 rounded-xl p-4 space-y-2">
             {recentMilestones.slice(0, 6).map((m, i) => (
               <div key={i} className="flex items-center gap-3 text-xs">
-                <div className="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-500/15 flex items-center justify-center flex-shrink-0">
+                <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12" /></svg>
                 </div>
                 <span className="text-sand-900">
@@ -189,8 +189,8 @@ export default function LandingPage() {
             { title: "Processing Trends", desc: "Is IRCC getting faster?", icon: "M18 20V10M12 20V4M6 20V14" },
             { title: "PIN Protected", desc: "Only you can edit your entry", icon: "M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" },
           ].map((f) => (
-            <div key={f.title} className="bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl p-4">
-              <div className="w-7 h-7 rounded-lg bg-sand-100 dark:bg-[#1E1E1C] flex items-center justify-center mb-2">
+            <div key={f.title} className="bg-white border border-sand-200 rounded-xl p-4">
+              <div className="w-7 h-7 rounded-lg bg-sand-100 flex items-center justify-center mb-2">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#65635D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={f.icon} /></svg>
               </div>
               <h3 className="text-xs font-bold text-sand-900 mb-0.5">{f.title}</h3>

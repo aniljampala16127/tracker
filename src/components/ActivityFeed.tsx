@@ -58,7 +58,7 @@ function stepIcon(stepId: string): string {
 
 export function NotificationBell({ count }: { count: number }) {
   return (
-    <div className="relative w-8 h-8 rounded-lg flex items-center justify-center text-sand-500 dark:text-sand-400 hover:text-sand-800 dark:hover:text-sand-200 hover:bg-sand-100 dark:hover:bg-[#1E1E1C] transition-all cursor-pointer">
+    <div className="relative w-8 h-8 rounded-lg flex items-center justify-center text-sand-500 hover:text-sand-800 hover:bg-sand-100 transition-all cursor-pointer">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
         <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -148,9 +148,9 @@ export function ActivityPanel() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={handleClose} />
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#2A2A27] rounded-xl shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col">
+          <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-sand-200 rounded-xl shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="px-4 py-3 border-b border-sand-100 dark:border-[#1E1E1C] flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-sand-100 flex items-center justify-between">
               <h3 className="text-sm font-bold text-sand-900">
                 {showAll ? "All Activity" : "New Activity"}
               </h3>
@@ -158,14 +158,14 @@ export function ActivityPanel() {
                 {unreadCount > 0 && !showAll && (
                   <button
                     onClick={handleMarkRead}
-                    className="text-[10px] px-2 py-0.5 rounded-full text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 font-medium transition-colors"
+                    className="text-[10px] px-2 py-0.5 rounded-full text-brand-600 hover:bg-brand-50 font-medium transition-colors"
                   >
                     Mark all read
                   </button>
                 )}
                 <button
                   onClick={() => setShowAll(!showAll)}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-sand-100 dark:bg-[#1E1E1C] text-sand-600 dark:text-sand-400 font-medium hover:bg-sand-200 dark:hover:bg-[#2A2A27] transition-colors"
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-sand-100 text-sand-600 font-medium hover:bg-sand-200 transition-colors"
                 >
                   {showAll ? "New only" : "Show all"}
                 </button>
@@ -176,7 +176,7 @@ export function ActivityPanel() {
               {/* No new notifications */}
               {!hasContent && !showAll && (
                 <div className="px-4 py-10 text-center">
-                  <div className="w-10 h-10 rounded-full bg-sand-100 dark:bg-[#1E1E1C] flex items-center justify-center mx-auto mb-2">
+                  <div className="w-10 h-10 rounded-full bg-sand-100 flex items-center justify-center mx-auto mb-2">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20 6L9 17L4 12" />
                     </svg>
@@ -184,7 +184,7 @@ export function ActivityPanel() {
                   <p className="text-xs text-sand-500">You&apos;re all caught up!</p>
                   <button
                     onClick={() => setShowAll(true)}
-                    className="text-[10px] text-brand-600 dark:text-brand-400 font-medium mt-1 hover:underline"
+                    className="text-[10px] text-brand-600 font-medium mt-1 hover:underline"
                   >
                     View past activity
                   </button>
@@ -202,8 +202,8 @@ export function ActivityPanel() {
                   {updates.map((a) => {
                     const isUnread = new Date(a.created_at).getTime() > lastRead;
                     return (
-                      <div key={a.id} className={`flex items-start gap-2.5 py-2 transition-colors ${isUnread ? "bg-brand-50/40 dark:bg-brand-500/5 -mx-4 px-4 rounded" : ""}`}>
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isUnread ? "bg-brand-500" : "bg-brand-100 dark:bg-brand-500/20"}`}>
+                      <div key={a.id} className={`flex items-start gap-2.5 py-2 transition-colors ${isUnread ? "bg-brand-50/40 -mx-4 px-4 rounded" : ""}`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isUnread ? "bg-brand-500" : "bg-brand-100"}`}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isUnread ? "white" : "#2D6A4F"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d={stepIcon(a.step_id)} />
                           </svg>
@@ -229,13 +229,13 @@ export function ActivityPanel() {
 
               {/* New entries */}
               {newEntries.length > 0 && (
-                <div className={`px-4 pt-3 pb-2 ${updates.length > 0 ? "border-t border-sand-100 dark:border-[#1E1E1C]" : ""}`}>
+                <div className={`px-4 pt-3 pb-2 ${updates.length > 0 ? "border-t border-sand-100" : ""}`}>
                   <div className="text-[9px] font-semibold text-sand-400 uppercase tracking-wider mb-2">New Entries</div>
                   {newEntries.slice(0, 15).map((a) => {
                     const isUnread = new Date(a.created_at).getTime() > lastRead;
                     return (
                       <div key={a.id} className="flex items-center gap-2.5 py-1.5">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isUnread ? "bg-brand-500" : "bg-sand-100 dark:bg-[#1E1E1C]"}`}>
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isUnread ? "bg-brand-500" : "bg-sand-100"}`}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={isUnread ? "white" : "#8A8880"} strokeWidth="2.5" strokeLinecap="round">
                             <path d="M12 5V19M5 12H19" />
                           </svg>

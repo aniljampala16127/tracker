@@ -58,6 +58,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <script dangerouslySetInnerHTML={{ __html: `
+          document.documentElement.classList.remove('dark');
+          try { localStorage.removeItem('sponsortrack-theme'); } catch(e) {}
+        `}} />
       </head>
       <body className="min-h-screen bg-sand-50 text-sand-900 font-sans">
         <Nav />

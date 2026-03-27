@@ -59,7 +59,7 @@ export function StepChart({ apps }: StepChartProps) {
 
   if (!hasAnyData) {
     return (
-      <div className="bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl p-6 mb-5">
+      <div className="bg-white border border-sand-200 rounded-xl p-6 mb-5">
         <h2 className="text-sm font-bold text-sand-900 mb-2">Average Days per Step</h2>
         <p className="text-xs text-sand-400">Not enough data yet — update some steps to see the chart.</p>
       </div>
@@ -67,7 +67,7 @@ export function StepChart({ apps }: StepChartProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#1E1E1C] rounded-xl p-4 mb-5">
+    <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
       <h2 className="text-sm font-bold text-sand-900 mb-1">Average Days per Step</h2>
       <p className="text-[11px] text-sand-400 mb-3">Outland vs Inland — based on community-reported data</p>
       <ResponsiveContainer width="100%" height={280}>

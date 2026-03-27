@@ -114,7 +114,7 @@ function FilterPill({
       onChange={(e) => onChange(e.target.value)}
       className={cn(
         "text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer appearance-none",
-        "bg-white dark:bg-[#141413] focus:outline-none focus:ring-2 focus:ring-brand-500/20",
+        "bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20",
         "pr-7 bg-[length:12px] bg-[right_8px_center] bg-no-repeat",
         "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%238A8880%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')]",
         active
@@ -175,7 +175,7 @@ function FilterDropdown({
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 bg-white dark:bg-[#141413] border border-sand-200 dark:border-[#2A2A27] rounded-lg shadow-lg w-56 max-h-60 overflow-hidden flex flex-col">
+        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-sand-200 rounded-lg shadow-lg w-56 max-h-60 overflow-hidden flex flex-col">
           <div className="p-2 border-b border-sand-100">
             <input
               type="text" autoFocus placeholder={`Search ${label.toLowerCase()}...`}
