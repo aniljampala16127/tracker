@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
+import { getSavedPinHash } from "@/lib/pin";
 import Link from "next/link";
 
 function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -28,6 +30,8 @@ function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
 export default function LandingPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checked, setChecked] = useState(false);
+  const router = useRouter();
   const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
@@ -35,9 +39,18 @@ export default function LandingPage() {
       .from("applications")
       .select("*, step_events(*)")
       .order("created_at", { ascending: true });
-    if (data) setApps(data as Application[]);
+    if (data) {
+      const all = data as Application[];
+      setApps(all);
+      // Smart return: if user has a claimed entry, redirect to /me
+      if (!checked) {
+        const hasEntry = all.some(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
+        if (hasEntry) { router.replace("/me"); return; }
+        setChecked(true);
+      }
+    }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, checked, router]);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 

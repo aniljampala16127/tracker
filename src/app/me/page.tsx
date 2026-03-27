@@ -165,6 +165,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         </div>
       </div>
 
+      {/* Daily Pulse */}
+      <DailyPulse app={app} allApps={allApps} />
+
       {/* Insights */}
       <InsightsPanel app={app} allApps={allApps} />
 
@@ -280,6 +283,105 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Share Timeline</div>
           <ShareButtons app={app} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// Daily Pulse — changes every day to create return habit
+// ============================================
+function DailyPulse({ app, allApps }: { app: Application; allApps: Application[] }) {
+  const stepsMap = buildStepsMap(app.step_events || []);
+  const submittedDate = stepsMap.submitted;
+  if (!submittedDate) return null;
+
+  const now = Date.now();
+  const today = new Date().toISOString().split("T")[0];
+
+  // Same stream apps
+  const streamApps = allApps.filter(a => a.stream === app.stream);
+
+  // AORs received in last 7 days (same stream)
+  const recentAors = streamApps.filter(a => {
+    const ev = (a.step_events || []).find(e => e.step_id === "aor");
+    if (!ev) return false;
+    return now - new Date(ev.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
+  });
+
+  // AORs today
+  const todayAors = streamApps.filter(a => {
+    const ev = (a.step_events || []).find(e => e.step_id === "aor");
+    if (!ev) return false;
+    return ev.event_date === today || ev.created_at.startsWith(today);
+  });
+
+  // New entries this week
+  const newThisWeek = allApps.filter(a => now - new Date(a.created_at).getTime() < 7 * 24 * 60 * 60 * 1000);
+
+  // Same week cohort progress
+  const subDate = new Date(submittedDate + "T00:00:00");
+  const cohort = allApps.filter(a => {
+    if (a.id === app.id) return false;
+    const s = buildStepsMap(a.step_events || []);
+    if (!s.submitted) return false;
+    return Math.abs(new Date(s.submitted + "T00:00:00").getTime() - subDate.getTime()) < 7 * 24 * 60 * 60 * 1000;
+  });
+  const cohortWithAor = cohort.filter(a => a.step_events?.some(e => e.step_id === "aor"));
+
+  // Days until predicted AOR
+  const aorDays: number[] = [];
+  streamApps.forEach(a => {
+    const s = buildStepsMap(a.step_events || []);
+    if (s.submitted && s.aor) aorDays.push(daysBetween(s.submitted, s.aor));
+  });
+  const avgAor = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
+  const daysSoFar = daysBetween(submittedDate, today);
+  const daysUntilAor = avgAor ? avgAor - daysSoFar : null;
+  const hasAor = !!stepsMap.aor;
+
+  // Build pulse items
+  const items: { icon: string; text: string; color: string }[] = [];
+
+  if (todayAors.length > 0) {
+    items.push({ icon: "M13 2L3 14H12L11 22L21 10H12L13 2Z", text: `${todayAors.length} ${app.stream} AOR${todayAors.length > 1 ? "s" : ""} received today!`, color: "text-brand-600" });
+  } else if (recentAors.length > 0) {
+    items.push({ icon: "M13 2L3 14H12L11 22L21 10H12L13 2Z", text: `${recentAors.length} ${app.stream} AOR${recentAors.length > 1 ? "s" : ""} this week`, color: "text-brand-600" });
+  }
+
+  if (!hasAor && daysUntilAor != null && daysUntilAor > 0) {
+    items.push({ icon: "M12 6V12L16 14", text: `~${daysUntilAor} days until your predicted AOR`, color: "text-warn-dark" });
+  } else if (!hasAor && daysUntilAor != null && daysUntilAor <= 0) {
+    items.push({ icon: "M12 6V12L16 14", text: `Your AOR could arrive any day now!`, color: "text-brand-600" });
+  }
+
+  if (cohortWithAor.length > 0) {
+    items.push({ icon: "M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21", text: `${cohortWithAor.length} of ${cohort.length} in your cohort have AOR`, color: "text-sand-700" });
+  }
+
+  if (newThisWeek.length > 0) {
+    items.push({ icon: "M12 5V19M5 12H19", text: `${newThisWeek.length} new entries joined this week`, color: "text-sand-600" });
+  }
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="bg-gradient-to-r from-brand-50 to-warn-light dark:from-brand-500/5 dark:to-warn/5 rounded-xl p-3.5 mb-4 border border-brand-200/30 dark:border-brand-500/10">
+      <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+        Today&apos;s Pulse
+      </div>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-lg bg-white/60 dark:bg-white/5 flex items-center justify-center flex-shrink-0">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={item.color}>
+                <path d={item.icon} />
+              </svg>
+            </div>
+            <span className={`text-xs font-medium ${item.color}`}>{item.text}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

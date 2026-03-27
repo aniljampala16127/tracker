@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [celebrateApp, setCelebrateApp] = useState<Application | null>(null);
   // PIN state
   const [pinTarget, setPinTarget] = useState<Application | null>(null);
   const [claimTarget, setClaimTarget] = useState<Application | null>(null);
@@ -84,8 +85,13 @@ export default function DashboardPage() {
         application_id: app.id, step_id: "submitted", event_date: form.submitted_date,
       });
       savePinForApp(app.id, pinHash);
+      // Fetch updated app with step_events for celebration
+      const { data: fullApp } = await supabase.from("applications").select("*, step_events(*)").eq("id", app.id).single();
+      setSubmitting(false); setShowAdd(false); fetchApps();
+      if (fullApp) setCelebrateApp(fullApp as Application);
+    } else {
+      setSubmitting(false); setShowAdd(false); fetchApps();
     }
-    setSubmitting(false); setShowAdd(false); fetchApps();
   };
 
   /** Row click — PIN check or claim */
@@ -221,7 +227,67 @@ export default function DashboardPage() {
             </button>
 
             {expanded && (
-              <div className="border-t border-sand-100 dark:border-[#1E1E1C] overflow-auto max-h-[70vh]">
+              <>
+              {/* Mobile card view */}
+              <div className="sm:hidden border-t border-sand-100 dark:border-[#1E1E1C] max-h-[70vh] overflow-y-auto">
+                {group.map((app) => {
+                  const stepsMap = buildStepsMap(app.step_events || []);
+                  const completedSteps = STEPS.filter(s => stepsMap[s.id]);
+                  const lastStep = completedSteps.length > 0 ? completedSteps[completedSteps.length - 1] : null;
+                  const daysTotal = stepsMap.submitted && lastStep && stepsMap[lastStep.id]
+                    ? daysBetween(stepsMap.submitted, stepsMap[lastStep.id]!)
+                    : null;
+
+                  return (
+                    <div
+                      key={app.id}
+                      onClick={() => handleRowClick(app)}
+                      className="flex items-center gap-3 px-4 py-3 border-b border-sand-100 dark:border-[#1A1A18] active:bg-brand-50/30 dark:active:bg-brand-500/5 cursor-pointer transition-colors"
+                    >
+                      {/* Progress ring */}
+                      <div className="relative w-10 h-10 flex-shrink-0">
+                        <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+                          <circle cx="18" cy="18" r="15" fill="none" stroke="#E8E6E1" strokeWidth="3" className="dark:stroke-[#2A2A27]" />
+                          <circle cx="18" cy="18" r="15" fill="none" stroke="#2D6A4F" strokeWidth="3"
+                            strokeDasharray={`${(completedSteps.length / STEPS.length) * 94} 94`}
+                            strokeLinecap="round" />
+                        </svg>
+                        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-sand-700 dark:text-sand-300">
+                          {completedSteps.length}/{STEPS.length}
+                        </span>
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-sand-900">{app.initials}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold ${
+                            app.stream === "Outland" ? "bg-brand-100 dark:bg-brand-500/15 text-brand-600" : "bg-warn-light text-warn-dark"
+                          }`}>{app.stream}</span>
+                          <ReactionsBadge applicationId={app.id} />
+                        </div>
+                        <div className="text-[10px] text-sand-500 mt-0.5">
+                          {app.country_origin} · {app.sponsor_status}
+                          {lastStep && lastStep.id !== "submitted" && (
+                            <span className="text-brand-600 font-medium"> · {lastStep.label}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Days & arrow */}
+                      <div className="text-right flex-shrink-0">
+                        {daysTotal != null && (
+                          <div className="text-xs font-semibold text-sand-700 dark:text-sand-400">{daysTotal}d</div>
+                        )}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round" className="ml-auto mt-0.5"><path d="M9 18L15 12L9 6" /></svg>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block border-t border-sand-100 dark:border-[#1E1E1C] overflow-auto max-h-[70vh]">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-20 bg-sand-50 dark:bg-[#0F0F0E]">
                     <tr className="bg-sand-50 text-[8px] font-semibold text-sand-500 uppercase tracking-wider">
@@ -360,6 +426,7 @@ export default function DashboardPage() {
                   </tfoot>
                 </table>
               </div>
+              </>
             )}
           </div>
         );
@@ -397,6 +464,13 @@ export default function DashboardPage() {
             setEditApp(claimed);
             fetchApps();
           }}
+        />
+      )}
+      {celebrateApp && (
+        <CelebrationModal
+          app={celebrateApp}
+          allApps={apps}
+          onClose={() => setCelebrateApp(null)}
         />
       )}
     </div>
@@ -578,6 +652,95 @@ function AddModal({ open, onClose, onSubmit, loading }: {
         <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
         <Button type="submit" disabled={loading || !isValidPin(form.pin)} className="w-full mt-1">{loading ? "Adding..." : "Add"}</Button>
       </form>
+    </Modal>
+  );
+}
+
+// ============================================
+// Post-add celebration modal
+// ============================================
+function CelebrationModal({ app, allApps, onClose }: {
+  app: Application; allApps: Application[]; onClose: () => void;
+}) {
+  const [showConfetti, setShowConfetti] = useState(true);
+  const stepsMap = buildStepsMap(app.step_events || []);
+  const submittedDate = stepsMap.submitted;
+
+  // Position
+  const position = allApps.length;
+
+  // AOR prediction
+  const streamApps = allApps.filter(a => a.stream === app.stream);
+  const aorDays: number[] = [];
+  streamApps.forEach(a => {
+    const s = buildStepsMap(a.step_events || []);
+    if (s.submitted && s.aor) aorDays.push(daysBetween(s.submitted, s.aor));
+  });
+  const avgAor = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
+
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let aorPrediction = "";
+  if (avgAor && submittedDate) {
+    const d = new Date(submittedDate + "T00:00:00");
+    d.setDate(d.getDate() + avgAor);
+    aorPrediction = `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  // Same week cohort
+  const sameWeek = allApps.filter(a => {
+    if (a.id === app.id) return false;
+    const s = buildStepsMap(a.step_events || []);
+    if (!s.submitted || !submittedDate) return false;
+    const diff = Math.abs(new Date(s.submitted + "T00:00:00").getTime() - new Date(submittedDate + "T00:00:00").getTime());
+    return diff < 7 * 24 * 60 * 60 * 1000;
+  });
+
+  return (
+    <Modal open={true} onClose={onClose} title="">
+      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
+      <div className="text-center py-2">
+        {/* Big green check */}
+        <div className="w-16 h-16 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/30">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6L9 17L4 12" />
+          </svg>
+        </div>
+
+        <h2 className="text-xl font-bold text-sand-900 mb-1">You&apos;re in! 🎉</h2>
+        <p className="text-sm text-sand-500 mb-5">
+          Application #{position} in the community
+        </p>
+
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          {avgAor && aorPrediction && (
+            <div className="bg-brand-50 dark:bg-brand-500/10 rounded-xl p-3 text-center col-span-2">
+              <div className="text-[10px] font-semibold text-brand-700 dark:text-brand-400 uppercase tracking-wider">Predicted AOR</div>
+              <div className="text-lg font-bold text-brand-600">~{aorPrediction}</div>
+              <div className="text-[10px] text-brand-500">Based on {app.stream} avg of {avgAor} days</div>
+            </div>
+          )}
+          <div className="bg-sand-50 dark:bg-[#0F0F0E] rounded-xl p-3 text-center">
+            <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Queue Position</div>
+            <div className="text-lg font-bold text-sand-900">#{streamApps.filter(a => !a.step_events?.some(e => e.step_id === "aor")).length}</div>
+            <div className="text-[10px] text-sand-400">waiting for AOR</div>
+          </div>
+          <div className="bg-sand-50 dark:bg-[#0F0F0E] rounded-xl p-3 text-center">
+            <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Same Week</div>
+            <div className="text-lg font-bold text-sand-900">{sameWeek.length}</div>
+            <div className="text-[10px] text-sand-400">submitted same week</div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <a href="/me" className="block w-full px-4 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98]">
+            View My Dashboard
+          </a>
+          <button onClick={onClose} className="w-full px-4 py-2.5 text-sand-500 text-sm font-medium hover:text-sand-700 transition-colors">
+            Stay on Tracker
+          </button>
+        </div>
+      </div>
     </Modal>
   );
 }
