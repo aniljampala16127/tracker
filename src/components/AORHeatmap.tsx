@@ -11,7 +11,7 @@ interface AORHeatmapProps {
   apps: Application[];
 }
 
-type CellStatus = "aor" | "waiting" | "empty";
+type CellStatus = "aor" | "waiting" | "stale" | "empty";
 
 interface DayCell {
   date: string;
@@ -55,6 +55,15 @@ export function AORHeatmap({ apps }: AORHeatmapProps) {
     if (endDayOfWeek !== 0) endDate.setDate(endDate.getDate() + (7 - endDayOfWeek));
 
     // Build weeks grid
+    // First compute latest AOR sub date so we can detect stale entries
+    let latestAorSubDate = "";
+    apps.forEach((a) => {
+      const s = buildStepsMap(a.step_events || []);
+      if (s.submitted && s.aor && s.submitted > latestAorSubDate) {
+        latestAorSubDate = s.submitted;
+      }
+    });
+
     const weeks: DayCell[][] = [];
     const current = new Date(startDate);
 
@@ -68,7 +77,14 @@ export function AORHeatmap({ apps }: AORHeatmapProps) {
 
         let status: CellStatus = "empty";
         if (data) {
-          status = data.withAor > 0 ? "aor" : "waiting";
+          if (data.withAor > 0) {
+            status = "aor";
+          } else if (latestAorSubDate && dateStr < latestAorSubDate) {
+            // Submitted before the latest AOR date but no AOR marked — likely didn't update
+            status = "stale";
+          } else {
+            status = "waiting";
+          }
         }
 
         week.push({
@@ -88,20 +104,11 @@ export function AORHeatmap({ apps }: AORHeatmapProps) {
     const totalWithSub = Object.values(dateMap).reduce((a, b) => a + b.total, 0);
     const totalWithAor = Object.values(dateMap).reduce((a, b) => a + b.withAor, 0);
 
-    // Latest submission date that got AOR
-    let latestAorSubDate = "";
-    apps.forEach((a) => {
-      const s = buildStepsMap(a.step_events || []);
-      if (s.submitted && s.aor && s.submitted > latestAorSubDate) {
-        latestAorSubDate = s.submitted;
-      }
-    });
-
-    // Next wave estimate: earliest submission date WITHOUT AOR
+    // Next wave: earliest submission date AFTER the latest AOR sub date that has people waiting
     let nextWaveDate = "";
     const sortedDates = dates.sort();
     for (const dt of sortedDates) {
-      if (dateMap[dt].total > dateMap[dt].withAor) {
+      if (dt > latestAorSubDate && dateMap[dt].total > dateMap[dt].withAor) {
         nextWaveDate = dt;
         break;
       }
@@ -206,6 +213,9 @@ export function AORHeatmap({ apps }: AORHeatmapProps) {
                       else if (pct >= 0.5) bg = "bg-brand-400";
                       else bg = "bg-brand-300";
                       title = `${cell.label}: ${cell.withAor}/${cell.submissions} got AOR`;
+                    } else if (cell.status === "stale") {
+                      bg = "bg-sand-300";
+                      title = `${cell.label}: ${cell.submissions} likely got AOR (not updated)`;
                     } else if (cell.status === "waiting") {
                       bg = "bg-warn";
                       border = "ring-1 ring-warn-dark/20";
@@ -228,10 +238,14 @@ export function AORHeatmap({ apps }: AORHeatmapProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-3 text-[9px] text-sand-500">
+      <div className="flex flex-wrap items-center gap-3 mt-3 text-[9px] text-sand-500">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-[3px] bg-sand-100" />
           No submissions
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-[3px] bg-sand-300" />
+          Likely got AOR
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-[3px] bg-warn" />
