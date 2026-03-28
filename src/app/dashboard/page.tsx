@@ -158,6 +158,45 @@ export default function DashboardPage() {
   }, [myEntry]);
 
   const hasScrolled = useRef(false);
+  const aorTrackerRef = useRef<HTMLDivElement>(null);
+  const [showStickyAor, setShowStickyAor] = useState(false);
+
+  // Compute compact AOR mini data
+  const aorMini = useMemo(() => {
+    if (apps.length === 0) return null;
+    const now = Date.now();
+    let latestAorTime = 0;
+    let todayCount = 0;
+    let weekCount = 0;
+    const today = new Date().toISOString().split("T")[0];
+    const weekCutoff = now - 7 * 24 * 60 * 60 * 1000;
+    const waiting = apps.filter(a => !a.step_events?.some(e => e.step_id === "aor")).length;
+
+    apps.forEach(a => {
+      const ev = (a.step_events || []).find(e => e.step_id === "aor");
+      if (!ev) return;
+      const t = new Date(ev.created_at).getTime();
+      if (t > latestAorTime) latestAorTime = t;
+      if (ev.created_at.startsWith(today)) todayCount++;
+      if (t > weekCutoff) weekCount++;
+    });
+
+    if (latestAorTime === 0) return null;
+    const daysSince = Math.floor((now - latestAorTime) / 86400000);
+    return { isToday: todayCount > 0, todayCount, weekCount, waiting, daysSince };
+  }, [apps]);
+
+  // IntersectionObserver for sticky mini-bar
+  useEffect(() => {
+    const el = aorTrackerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyAor(!entry.isIntersecting),
+      { threshold: 0, rootMargin: "-10px 0px 0px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [apps]);
 
   // Auto-select user's month on first load, fall back to latest month
   useEffect(() => {
@@ -285,7 +324,39 @@ export default function DashboardPage() {
       {apps.length > 0 && <NewSinceLastVisit apps={apps} />}
 
       {/* AOR Wave Tracker */}
-      {apps.length > 0 && <AORWaveTracker apps={apps} />}
+      {apps.length > 0 && (
+        <div ref={aorTrackerRef}>
+          <AORWaveTracker apps={apps} />
+        </div>
+      )}
+
+      {/* Sticky AOR mini-bar — appears when tracker scrolls out of view */}
+      {showStickyAor && aorMini && (
+        <div className="fixed top-0 left-0 right-0 z-50 animate-in" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div
+            className={`mx-auto max-w-lg px-4 py-2 flex items-center justify-between backdrop-blur-lg border-b ${
+              aorMini.isToday
+                ? "bg-brand-50/90 border-brand-200"
+                : "bg-white/90 border-sand-200"
+            }`}
+            onClick={() => {
+              aorTrackerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${aorMini.isToday ? "bg-brand-500 animate-pulse" : "bg-warn"}`} />
+              <span className="text-xs font-bold text-sand-900">
+                {aorMini.isToday ? `${aorMini.todayCount} AOR${aorMini.todayCount > 1 ? "s" : ""} today` : `${aorMini.daysSince}d since AOR`}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-[10px]">
+              <span className="font-bold text-brand-600">{aorMini.weekCount} <span className="font-normal text-sand-400">wk</span></span>
+              <span className="font-bold text-warn-dark">{aorMini.waiting} <span className="font-normal text-sand-400">wait</span></span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#A8A69E" strokeWidth="2" strokeLinecap="round"><path d="M18 15L12 9L6 15"/></svg>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
