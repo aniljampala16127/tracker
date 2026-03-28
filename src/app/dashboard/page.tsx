@@ -25,6 +25,25 @@ import { playMilestoneSound } from "@/lib/sounds";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+// Buttery smooth scroll for any element or window — works on iOS Safari
+function smoothScroll(target: HTMLElement | Window, to: number, duration = 600) {
+  const isWindow = target === window;
+  const startPos = isWindow ? window.scrollY : (target as HTMLElement).scrollTop;
+  const diff = to - startPos;
+  if (Math.abs(diff) < 2) return;
+  let startTime: number | null = null;
+  const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const step = (ts: number) => {
+    if (!startTime) startTime = ts;
+    const progress = Math.min((ts - startTime) / duration, 1);
+    const val = startPos + diff * ease(progress);
+    if (isWindow) window.scrollTo(0, val);
+    else (target as HTMLElement).scrollTop = val;
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 export default function DashboardPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,45 +177,6 @@ export default function DashboardPage() {
   }, [myEntry]);
 
   const hasScrolled = useRef(false);
-  const aorTrackerRef = useRef<HTMLDivElement>(null);
-  const [showStickyAor, setShowStickyAor] = useState(false);
-
-  // Compute compact AOR mini data
-  const aorMini = useMemo(() => {
-    if (apps.length === 0) return null;
-    const now = Date.now();
-    let latestAorTime = 0;
-    let todayCount = 0;
-    let weekCount = 0;
-    const today = new Date().toISOString().split("T")[0];
-    const weekCutoff = now - 7 * 24 * 60 * 60 * 1000;
-    const waiting = apps.filter(a => !a.step_events?.some(e => e.step_id === "aor")).length;
-
-    apps.forEach(a => {
-      const ev = (a.step_events || []).find(e => e.step_id === "aor");
-      if (!ev) return;
-      const t = new Date(ev.created_at).getTime();
-      if (t > latestAorTime) latestAorTime = t;
-      if (ev.created_at.startsWith(today)) todayCount++;
-      if (t > weekCutoff) weekCount++;
-    });
-
-    if (latestAorTime === 0) return null;
-    const daysSince = Math.floor((now - latestAorTime) / 86400000);
-    return { isToday: todayCount > 0, todayCount, weekCount, waiting, daysSince };
-  }, [apps]);
-
-  // IntersectionObserver for sticky mini-bar
-  useEffect(() => {
-    const el = aorTrackerRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowStickyAor(!entry.isIntersecting),
-      { threshold: 0, rootMargin: "-10px 0px 0px 0px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [apps]);
 
   // Auto-select user's month on first load, fall back to latest month
   useEffect(() => {
@@ -217,57 +197,11 @@ export default function DashboardPage() {
       if (!el) return;
       hasScrolled.current = true;
 
-      // Find if entry is inside a scrollable container
-      const scrollParent = el.closest('.overflow-y-auto') as HTMLElement | null;
-
-      if (scrollParent) {
-        // First scroll the page so the container is visible
-        const containerRect = scrollParent.getBoundingClientRect();
-        const pageTargetY = containerRect.top + window.scrollY - 80;
-        const startPageY = window.scrollY;
-        const pageDiff = pageTargetY - startPageY;
-        const duration = 600;
-        let start1: number | null = null;
-        const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-        const scrollPage = (ts: number) => {
-          if (!start1) start1 = ts;
-          const p = Math.min((ts - start1) / duration, 1);
-          window.scrollTo(0, startPageY + pageDiff * ease(p));
-          if (p < 1) requestAnimationFrame(scrollPage);
-          else {
-            // Then scroll inside the container to the entry
-            const entryTop = el.offsetTop - scrollParent.offsetTop;
-            const containerTarget = entryTop - scrollParent.clientHeight / 2 + el.offsetHeight / 2;
-            const startScroll = scrollParent.scrollTop;
-            const scrollDiff = containerTarget - startScroll;
-            let start2: number | null = null;
-
-            const scrollContainer = (ts2: number) => {
-              if (!start2) start2 = ts2;
-              const p2 = Math.min((ts2 - start2) / 500, 1);
-              scrollParent.scrollTop = startScroll + scrollDiff * ease(p2);
-              if (p2 < 1) requestAnimationFrame(scrollContainer);
-            };
-            requestAnimationFrame(scrollContainer);
-          }
-        };
-        requestAnimationFrame(scrollPage);
-      } else {
-        // No scroll container — just scroll the page
-        const targetY = el.getBoundingClientRect().top + window.scrollY - window.innerHeight / 2 + el.offsetHeight / 2;
-        const startY = window.scrollY;
-        const diff = targetY - startY;
-        const duration = 800;
-        let start: number | null = null;
-        const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        const step = (ts: number) => {
-          if (!start) start = ts;
-          const progress = Math.min((ts - start) / duration, 1);
-          window.scrollTo(0, startY + diff * ease(progress));
-          if (progress < 1) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
+      // Scroll the inner container (overflow-y-auto) smoothly
+      const container = el.closest('.overflow-y-auto') as HTMLElement | null;
+      if (container) {
+        const targetScroll = el.offsetTop - container.offsetTop - container.clientHeight / 3;
+        smoothScroll(container, targetScroll, 700);
       }
     };
     const t1 = setTimeout(tryScroll, 600);
@@ -373,53 +307,10 @@ export default function DashboardPage() {
       {/* New since last visit */}
       {apps.length > 0 && <NewSinceLastVisit apps={apps} />}
 
-      {/* AOR Wave Tracker */}
+      {/* AOR Wave Tracker — sticky below header */}
       {apps.length > 0 && (
-        <div ref={aorTrackerRef}>
+        <div className="sticky top-12 z-30">
           <AORWaveTracker apps={apps} />
-        </div>
-      )}
-
-      {/* Sticky AOR mini-bar — appears when tracker scrolls out of view */}
-      {showStickyAor && aorMini && (
-        <div className="fixed top-12 left-0 right-0 z-40 animate-in">
-          <div
-            className={`mx-auto max-w-5xl px-4 py-2.5 flex items-center justify-between backdrop-blur-xl border-b shadow-sm ${
-              aorMini.isToday
-                ? "bg-brand-50/95 border-brand-200"
-                : "bg-white/95 border-sand-200"
-            }`}
-            onClick={() => {
-              const el = aorTrackerRef.current;
-              if (el) {
-                const targetY = el.getBoundingClientRect().top + window.scrollY - 20;
-                const startY = window.scrollY;
-                const diff = targetY - startY;
-                const duration = 600;
-                let start: number | null = null;
-                const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-                const step = (ts: number) => {
-                  if (!start) start = ts;
-                  const progress = Math.min((ts - start) / duration, 1);
-                  window.scrollTo(0, startY + diff * ease(progress));
-                  if (progress < 1) requestAnimationFrame(step);
-                };
-                requestAnimationFrame(step);
-              }
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${aorMini.isToday ? "bg-brand-500 animate-pulse" : "bg-warn"}`} />
-              <span className="text-xs font-bold text-sand-900">
-                {aorMini.isToday ? `${aorMini.todayCount} AOR${aorMini.todayCount > 1 ? "s" : ""} today` : `${aorMini.daysSince}d since AOR`}
-              </span>
-            </div>
-            <div className="flex items-center gap-3 text-[10px]">
-              <span className="font-bold text-brand-600">{aorMini.weekCount} <span className="font-normal text-sand-400">wk</span></span>
-              <span className="font-bold text-warn-dark">{aorMini.waiting} <span className="font-normal text-sand-400">wait</span></span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#A8A69E" strokeWidth="2" strokeLinecap="round"><path d="M18 15L12 9L6 15"/></svg>
-            </div>
-          </div>
         </div>
       )}
 
