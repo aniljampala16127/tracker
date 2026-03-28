@@ -536,7 +536,7 @@ export default function DashboardPage() {
         Click any row to update steps · PIN required to edit · Unclaimed entries can be claimed
       </p>
 
-      <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} />
+      <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} existingApps={apps} />
       {editApp && <EditModal app={editApp} allApps={apps} onClose={() => setEditApp(null)} onMarkStep={handleMarkStep} onDelete={handleDelete} />}
 
       {/* PIN verification */}
@@ -707,9 +707,10 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
 // ============================================
 // Add modal (with PIN)
 // ============================================
-function AddModal({ open, onClose, onSubmit, loading }: {
+function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
   open: boolean; onClose: () => void;
   onSubmit: (f: ApplicationFormData & { pin: string }) => void; loading: boolean;
+  existingApps: Application[];
 }) {
   const empty = {
     initials: "", sponsor_status: "PR" as const, stream: "Outland" as const,
@@ -720,6 +721,27 @@ function AddModal({ open, onClose, onSubmit, loading }: {
   useEffect(() => { if (open) setForm(empty); }, [open]);
 
   const u = (f: string, v: string) => setForm((p) => ({ ...p, [f]: v }));
+
+  // Duplicate detection
+  const duplicate = useMemo(() => {
+    if (!form.initials.trim() || !form.country_origin) return null;
+    const initials = form.initials.trim().toLowerCase();
+    return existingApps.find(a => {
+      const match = a.initials.toLowerCase() === initials && a.country_origin === form.country_origin;
+      if (!match) return false;
+      if (form.submitted_date) {
+        const s = buildStepsMap(a.step_events || []);
+        if (s.submitted === form.submitted_date) return true;
+        // Close date (within 3 days)
+        if (s.submitted) {
+          const diff = Math.abs(new Date(s.submitted + "T00:00:00").getTime() - new Date(form.submitted_date + "T00:00:00").getTime());
+          if (diff <= 3 * 24 * 60 * 60 * 1000) return true;
+        }
+      }
+      return true;
+    }) || null;
+  }, [form.initials, form.country_origin, form.submitted_date, existingApps]);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.initials || !form.submitted_date || !form.country_origin) return;
@@ -749,6 +771,21 @@ function AddModal({ open, onClose, onSubmit, loading }: {
         </div>
         <PinInput value={form.pin} onChange={(v) => u("pin", v)} />
         <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
+        {duplicate && (
+          <div className="bg-warn-light border border-warn/30 rounded-lg px-3 py-2.5">
+            <div className="flex items-start gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B7420" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <div>
+                <div className="text-xs font-semibold text-warn-dark">Possible duplicate</div>
+                <div className="text-[11px] text-warn-dark/70 mt-0.5">
+                  &quot;{duplicate.initials}&quot; from {duplicate.country_origin} ({duplicate.stream}) already exists. If this is you, claim it from the tracker instead.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <Button type="submit" disabled={loading || !isValidPin(form.pin)} className="w-full mt-1">{loading ? "Adding..." : "Add"}</Button>
       </form>
     </Modal>

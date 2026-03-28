@@ -13,6 +13,7 @@ import { PositionRunway } from "@/components/PositionRunway";
 import { AORCountdown } from "@/components/AORCountdown";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { playMilestoneSound } from "@/lib/sounds";
+import { TimelineExport } from "@/components/TimelineExport";
 import { Button } from "@/components/ui";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -316,7 +317,10 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
         <div>
           <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Share Timeline</div>
-          <ShareButtons app={app} />
+          <div className="space-y-2">
+            <TimelineExport app={app} />
+            <ShareButtons app={app} />
+          </div>
         </div>
       </div>
     </div>
