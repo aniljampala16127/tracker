@@ -215,14 +215,26 @@ export default function DashboardPage() {
     const tryScroll = () => {
       const el = document.querySelector('[data-my-entry="true"]') as HTMLElement | null;
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
         hasScrolled.current = true;
+        // Custom smooth scroll — Safari doesn't support behavior:"smooth" reliably
+        const targetY = el.getBoundingClientRect().top + window.scrollY - window.innerHeight / 2 + el.offsetHeight / 2;
+        const startY = window.scrollY;
+        const diff = targetY - startY;
+        const duration = 800;
+        let start: number | null = null;
+        const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        const step = (ts: number) => {
+          if (!start) start = ts;
+          const progress = Math.min((ts - start) / duration, 1);
+          window.scrollTo(0, startY + diff * ease(progress));
+          if (progress < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
       }
     };
-    const t1 = setTimeout(tryScroll, 400);
-    const t2 = setTimeout(tryScroll, 900);
-    const t3 = setTimeout(tryScroll, 1600);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t1 = setTimeout(tryScroll, 500);
+    const t2 = setTimeout(tryScroll, 1200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [selectedMonth, myEntry, myEntryMonth]);
 
   if (loading) return <DashboardSkeleton />;
@@ -340,7 +352,22 @@ export default function DashboardPage() {
                 : "bg-white/90 border-sand-200"
             }`}
             onClick={() => {
-              aorTrackerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              const el = aorTrackerRef.current;
+              if (el) {
+                const targetY = el.getBoundingClientRect().top + window.scrollY - 20;
+                const startY = window.scrollY;
+                const diff = targetY - startY;
+                const duration = 600;
+                let start: number | null = null;
+                const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                const step = (ts: number) => {
+                  if (!start) start = ts;
+                  const progress = Math.min((ts - start) / duration, 1);
+                  window.scrollTo(0, startY + diff * ease(progress));
+                  if (progress < 1) requestAnimationFrame(step);
+                };
+                requestAnimationFrame(step);
+              }
             }}
           >
             <div className="flex items-center gap-2">
