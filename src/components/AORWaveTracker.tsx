@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo } from "react";
 import { Application } from "@/lib/types";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
@@ -9,11 +9,6 @@ const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","D
 function fmtDate(d: string) {
   const dt = new Date(d + "T00:00:00");
   return `${MO[dt.getMonth()]} ${dt.getDate()}`;
-}
-
-function fmtDateFull(d: string) {
-  const dt = new Date(d + "T00:00:00");
-  return `${MO[dt.getMonth()]} ${dt.getDate()}, ${dt.getFullYear()}`;
 }
 
 interface AorEntry {
@@ -25,12 +20,7 @@ interface AorEntry {
   country: string;
 }
 
-type Tab = "today" | "yesterday" | "week";
-
 export function AORWaveTracker({ apps }: { apps: Application[] }) {
-  const [activeTab, setActiveTab] = useState<Tab>("week");
-  const touchStartX = useRef(0);
-
   const data = useMemo(() => {
     const now = new Date();
     const todayStr = now.toISOString().split("T")[0];
@@ -61,28 +51,15 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     return { todayAors, yesterdayAors, weekAors, waiting, totalAor: allAors.length, daysSinceLast, latestAorDate };
   }, [apps]);
 
-  // Swipe handling
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    const tabs: Tab[] = ["today", "yesterday", "week"];
-    const idx = tabs.indexOf(activeTab);
-    if (diff > 50 && idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
-    if (diff < -50 && idx > 0) setActiveTab(tabs[idx - 1]);
-  };
-
   if (data.totalAor === 0) return null;
 
-  const tabData: Record<Tab, { entries: AorEntry[]; label: string; emptyMsg: string }> = {
-    today: { entries: data.todayAors, label: "Today", emptyMsg: "No AORs received today" },
-    yesterday: { entries: data.yesterdayAors, label: "Yesterday", emptyMsg: "No AORs received yesterday" },
-    week: { entries: data.weekAors, label: "This Week", emptyMsg: "No AORs this week" },
-  };
-
-  const current = tabData[activeTab];
   const hasWeekActivity = data.weekAors.length > 0;
+
+  const cards = [
+    { label: "Today", entries: data.todayAors, color: "brand" as const },
+    { label: "Yesterday", entries: data.yesterdayAors, color: "brand" as const },
+    { label: "This Week", entries: data.weekAors, color: "brand" as const },
+  ];
 
   return (
     <div className={`rounded-xl p-4 mb-4 border transition-all ${
@@ -129,80 +106,60 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex bg-white/60 rounded-lg p-0.5 mb-3 border border-sand-100">
-        {(["today", "yesterday", "week"] as Tab[]).map(tab => {
-          const count = tabData[tab].entries.length;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium transition-all ${
-                activeTab === tab
-                  ? "bg-brand-500 text-white shadow-sm"
-                  : "text-sand-500 hover:text-sand-700"
-              }`}
-            >
-              {tabData[tab].label}
-              {count > 0 && (
-                <span className={`text-[9px] px-1.5 py-px rounded-full font-bold ${
-                  activeTab === tab ? "bg-white/25" : "bg-sand-200 text-sand-600"
-                }`}>{count}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Three swipeable cards */}
+      <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
+        {cards.map((card) => (
+          <div
+            key={card.label}
+            className="flex-shrink-0 w-[78vw] max-w-[300px] snap-center bg-white/80 rounded-xl border border-sand-100 overflow-hidden"
+          >
+            {/* Card header */}
+            <div className="px-3 py-2 border-b border-sand-100 flex items-center justify-between">
+              <span className="text-[11px] font-bold text-sand-900">{card.label}</span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                card.entries.length > 0 ? "bg-brand-100 text-brand-700" : "bg-sand-100 text-sand-400"
+              }`}>{card.entries.length}</span>
+            </div>
 
-      {/* Swipeable card area */}
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        className="min-h-[60px]"
-      >
-        {current.entries.length === 0 ? (
-          <div className="text-center py-4">
-            <div className="text-xs text-sand-400">{current.emptyMsg}</div>
-            {data.latestAorDate && activeTab === "today" && (
-              <div className="text-[10px] text-sand-400 mt-1">Last AOR: {fmtDateFull(data.latestAorDate)}</div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-[200px] overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-            {current.entries.map((a, i) => (
-              <div key={`${a.initials}-${i}`} className="flex items-center gap-3 bg-white/80 rounded-xl px-3 py-2.5 border border-sand-100">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 ${
-                  a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
-                }`}>
-                  {a.initials.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-sand-900">{a.initials}</span>
-                    <span className={`px-1.5 py-px rounded-full text-[8px] font-semibold ${
-                      a.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
-                    }`}>{a.stream}</span>
-                  </div>
-                  <div className="text-[10px] text-sand-500">
-                    {a.country} · Sub {fmtDate(a.subDate)}
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-xs font-bold text-brand-600">{a.days}d</div>
-                  <div className="text-[9px] text-sand-400">AOR {fmtDate(a.aorDate)}</div>
+            {/* Card body — scrolling names */}
+            {card.entries.length === 0 ? (
+              <div className="px-3 py-5 text-center">
+                <div className="text-[11px] text-sand-400">No AORs {card.label.toLowerCase()}</div>
+              </div>
+            ) : (
+              <div className="overflow-hidden h-[120px] relative">
+                {/* Fade edges */}
+                <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-white/80 to-transparent z-10 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white/80 to-transparent z-10 pointer-events-none" />
+
+                {/* Vertically scrolling entries */}
+                <div className="aor-vertical-scroll">
+                  {[...card.entries, ...card.entries].map((a, i) => (
+                    <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
+                      <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
+                        a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
+                      }`}>
+                        {a.initials.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] font-semibold text-sand-900 truncate">{a.initials}</span>
+                          <span className={`px-1 py-px rounded text-[7px] font-semibold flex-shrink-0 ${
+                            a.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
+                          }`}>{a.stream}</span>
+                        </div>
+                        <div className="text-[9px] text-sand-400">{a.country} · Sub {fmtDate(a.subDate)}</div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-[11px] font-bold text-brand-600">{a.days}d</div>
+                        <div className="text-[8px] text-sand-400">{fmtDate(a.aorDate)}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Swipe dots */}
-      <div className="flex justify-center gap-1.5 mt-2.5">
-        {(["today", "yesterday", "week"] as Tab[]).map(tab => (
-          <div key={tab} className={`h-1.5 rounded-full transition-all duration-300 ${
-            activeTab === tab ? "bg-brand-500 w-4" : "bg-sand-300 w-1.5"
-          }`} />
         ))}
       </div>
     </div>

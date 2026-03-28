@@ -107,12 +107,21 @@ a, button { touch-action: manipulation; }
 .ticker-marquee:active {
   animation-play-state: paused;
 }
-@media (pointer: coarse) {
-  .ticker-marquee:active {
-    animation-play-state: paused;
-  }
-}
 @keyframes ticker-scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* AOR vertical scroll — smooth upward scroll */
+.aor-vertical-scroll {
+  animation: aor-scroll-up 20s linear infinite;
+  will-change: transform;
+}
+.aor-vertical-scroll:hover,
+.aor-vertical-scroll:active {
+  animation-play-state: paused;
+}
+@keyframes aor-scroll-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
 }
