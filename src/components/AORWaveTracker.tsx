@@ -73,43 +73,45 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     };
   }, [apps]);
 
-  // Auto-scroll ticker
+  // Auto-scroll ticker with CSS transform (GPU accelerated, buttery on iOS)
   useEffect(() => {
     const el = tickerRef.current;
-    if (!el || !wave || wave.tickerAors.length < 1) return;
+    if (!el || !wave || wave.tickerAors.length < 2) return;
 
-    // Only scroll if content overflows
-    const checkOverflow = () => el.scrollWidth > el.clientWidth;
-    if (!checkOverflow()) return;
+    // Create an inner wrapper for transform
+    const inner = el.querySelector('[data-ticker-inner]') as HTMLElement | null;
+    if (!inner) return;
 
-    let scrollPos = 0;
-    const speed = 0.4;
+    const totalWidth = inner.scrollWidth / 2; // half because we duplicate cards
+    if (totalWidth <= el.clientWidth) return;
+
+    let pos = 0;
+    const speed = 0.3;
     let animId: number;
     let paused = false;
 
-    const scroll = () => {
+    inner.style.willChange = "transform";
+
+    const animate = () => {
       if (!paused) {
-        scrollPos += speed;
-        // Loop back seamlessly at halfway (since we duplicate cards)
-        const halfScroll = (el.scrollWidth - el.clientWidth) / 2;
-        if (halfScroll > 0 && scrollPos >= halfScroll) {
-          scrollPos = 0;
-        }
-        el.scrollLeft = scrollPos;
+        pos += speed;
+        if (pos >= totalWidth) pos = 0;
+        inner.style.transform = `translateX(-${pos}px)`;
       }
-      animId = requestAnimationFrame(scroll);
+      animId = requestAnimationFrame(animate);
     };
 
-    const timeout = setTimeout(() => { animId = requestAnimationFrame(scroll); }, 1500);
+    const timeout = setTimeout(() => { animId = requestAnimationFrame(animate); }, 1500);
 
     const pause = () => { paused = true; };
     const resume = () => { paused = false; };
-    el.addEventListener("touchstart", pause);
-    el.addEventListener("touchend", resume);
+    el.addEventListener("touchstart", pause, { passive: true });
+    el.addEventListener("touchend", resume, { passive: true });
 
     return () => {
       clearTimeout(timeout);
       cancelAnimationFrame(animId);
+      inner.style.willChange = "";
       el.removeEventListener("touchstart", pause);
       el.removeEventListener("touchend", resume);
     };
@@ -177,8 +179,9 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
           <div className="text-[9px] text-sand-400 mb-1.5">
             {wave.isToday ? "Received today" : `Last wave — ${fmtDate(wave.waveDate)}`}
           </div>
-          <div ref={tickerRef} className="flex gap-3 overflow-x-auto hide-scrollbar">
-            {[...wave.tickerAors, ...wave.tickerAors].map((a, i) => (
+          <div ref={tickerRef} className="overflow-hidden">
+            <div data-ticker-inner="" className="flex gap-3 w-max">
+              {[...wave.tickerAors, ...wave.tickerAors].map((a, i) => (
               <div key={i} className="flex-shrink-0 w-[55vw] max-w-[220px] flex items-center gap-3 bg-white/80 rounded-xl px-3 py-2.5 border border-sand-100">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${
                   a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
@@ -197,6 +200,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                 <span className="text-xs font-bold text-brand-600">{a.days}d</span>
               </div>
             ))}
+            </div>
           </div>
         </div>
       )}

@@ -197,15 +197,19 @@ export default function DashboardPage() {
       if (!el) return;
       hasScrolled.current = true;
 
-      // Scroll the inner container (overflow-y-auto) smoothly
-      const container = el.closest('.overflow-y-auto') as HTMLElement | null;
+      // Find the scrollable container (#mobile-entries on mobile, table wrapper on desktop)
+      const container = document.getElementById("mobile-entries") || el.closest('.overflow-auto') as HTMLElement | null;
       if (container) {
-        const targetScroll = el.offsetTop - container.offsetTop - container.clientHeight / 3;
-        smoothScroll(container, targetScroll, 700);
+        // Calculate position relative to the container
+        const elRect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const relativeTop = elRect.top - containerRect.top + container.scrollTop;
+        const targetScroll = relativeTop - container.clientHeight / 3;
+        smoothScroll(container, Math.max(0, targetScroll), 800);
       }
     };
-    const t1 = setTimeout(tryScroll, 600);
-    const t2 = setTimeout(tryScroll, 1400);
+    const t1 = setTimeout(tryScroll, 700);
+    const t2 = setTimeout(tryScroll, 1500);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [selectedMonth, myEntry, myEntryMonth]);
 
@@ -395,7 +399,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Mobile card view */}
-            <div className="sm:hidden max-h-[65vh] overflow-y-auto" id="mobile-entries">
+            <div className="sm:hidden max-h-[65vh] overflow-y-auto" id="mobile-entries" style={{ WebkitOverflowScrolling: "touch" }}>
               {selectedGroup.map((app) => {
                 const stepsMap = buildStepsMap(app.step_events || []);
                 const completedSteps = STEPS.filter(s => stepsMap[s.id]);
