@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { Application } from "@/lib/types";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
@@ -11,15 +11,12 @@ function fmtDate(d: string) {
   return `${MONTHS[dt.getMonth()]} ${dt.getDate()}`;
 }
 
-interface WaveTrackerProps {
-  apps: Application[];
-}
+export function AORWaveTracker({ apps }: { apps: Application[] }) {
+  const tickerRef = useRef<HTMLDivElement>(null);
 
-export function AORWaveTracker({ apps }: WaveTrackerProps) {
   const wave = useMemo(() => {
     const now = Date.now();
 
-    // Find all AOR events with details
     const aorEntries: { initials: string; aorDate: string; subDate: string; createdAt: string; stream: string; days: number }[] = [];
     apps.forEach((a) => {
       const ev = (a.step_events || []).find(e => e.step_id === "aor");
@@ -27,18 +24,13 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
       const s = buildStepsMap(a.step_events || []);
       const days = s.submitted && s.aor ? daysBetween(s.submitted, s.aor) : 0;
       aorEntries.push({
-        initials: a.initials,
-        aorDate: ev.event_date,
-        subDate: s.submitted || "",
-        createdAt: ev.created_at,
-        stream: a.stream,
-        days,
+        initials: a.initials, aorDate: ev.event_date, subDate: s.submitted || "",
+        createdAt: ev.created_at, stream: a.stream, days,
       });
     });
 
     if (aorEntries.length === 0) return null;
 
-    // Sort by AOR date (most recent first)
     aorEntries.sort((a, b) => b.aorDate.localeCompare(a.aorDate) || b.createdAt.localeCompare(a.createdAt));
 
     const latest = aorEntries[0];
@@ -46,8 +38,13 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
     const hoursSinceLast = Math.floor((now - latestDate.getTime()) / 3600000);
     const daysSinceLast = Math.floor(hoursSinceLast / 24);
 
-    const latestDay = latest.aorDate;
-    const waveAors = aorEntries.filter(e => e.aorDate === latestDay);
+    // Today's AORs only
+    const today = new Date().toISOString().split("T")[0];
+    const todayAors = aorEntries.filter(e => e.createdAt.startsWith(today));
+
+    // If no AORs today, show the latest wave day's AORs
+    const latestWaveDay = aorEntries[0].createdAt.split("T")[0];
+    const latestWaveAors = aorEntries.filter(e => e.createdAt.startsWith(latestWaveDay));
 
     const weekAors = aorEntries.filter(e => now - new Date(e.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000);
 
@@ -57,33 +54,63 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
     const checkDate = new Date();
     for (let i = 0; i < 30; i++) {
       const ds = checkDate.toISOString().split("T")[0];
-      if (aorDays.has(ds)) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else if (i === 0) {
-        checkDate.setDate(checkDate.getDate() - 1);
-        continue;
-      } else {
-        break;
-      }
+      if (aorDays.has(ds)) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
+      else if (i === 0) { checkDate.setDate(checkDate.getDate() - 1); continue; }
+      else break;
     }
 
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
-
-    // Recent AORs for the ticker (last 10)
-    const recentAors = aorEntries.slice(0, 10);
+    const isToday = todayAors.length > 0;
+    const tickerAors = isToday ? todayAors : latestWaveAors;
 
     return {
       hoursSinceLast, daysSinceLast,
-      waveCount: waveAors.length, waveDate: latestDay,
+      todayCount: todayAors.length,
+      waveCount: latestWaveAors.length,
+      waveDate: latestWaveDay,
       weekCount: weekAors.length, streak, waiting,
-      recentAors,
+      tickerAors, isToday,
     };
   }, [apps]);
 
+  // Auto-scroll ticker
+  useEffect(() => {
+    const el = tickerRef.current;
+    if (!el || !wave || wave.tickerAors.length <= 2) return;
+
+    let scrollPos = 0;
+    const speed = 0.5; // px per frame
+    let animId: number;
+
+    const scroll = () => {
+      scrollPos += speed;
+      if (scrollPos >= el.scrollWidth - el.clientWidth) {
+        scrollPos = 0;
+      }
+      el.scrollLeft = scrollPos;
+      animId = requestAnimationFrame(scroll);
+    };
+
+    // Start after a short delay
+    const timeout = setTimeout(() => { animId = requestAnimationFrame(scroll); }, 1500);
+
+    // Pause on touch
+    const pause = () => cancelAnimationFrame(animId);
+    const resume = () => { animId = requestAnimationFrame(scroll); };
+    el.addEventListener("touchstart", pause);
+    el.addEventListener("touchend", resume);
+
+    return () => {
+      clearTimeout(timeout);
+      cancelAnimationFrame(animId);
+      el.removeEventListener("touchstart", pause);
+      el.removeEventListener("touchend", resume);
+    };
+  }, [wave]);
+
   if (!wave) return null;
 
-  const isHot = wave.hoursSinceLast < 24;
+  const isHot = wave.isToday;
   const isWarm = wave.hoursSinceLast < 72;
 
   return (
@@ -109,10 +136,8 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
       <div className="flex items-end gap-4 mb-3">
         <div className="flex-1">
           {isHot ? (
-            <div>
-              <div className="text-2xl font-bold text-brand-600">
-                {wave.waveCount} AOR{wave.waveCount > 1 ? "s" : ""} today
-              </div>
+            <div className="text-2xl font-bold text-brand-600">
+              {wave.todayCount} AOR{wave.todayCount > 1 ? "s" : ""} today
             </div>
           ) : (
             <div>
@@ -139,25 +164,30 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
         </div>
       </div>
 
-      {/* Scrolling AOR ticker */}
-      <div className="overflow-hidden relative">
-        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
-          {wave.recentAors.map((a, i) => (
-            <div key={i} className="flex-shrink-0 flex items-center gap-2 bg-white/70 rounded-lg px-2.5 py-1.5 border border-sand-100">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${
-                a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
-              }`}>
-                {a.initials.slice(0, 2)}
+      {/* Auto-scrolling AOR ticker */}
+      {wave.tickerAors.length > 0 && (
+        <div>
+          <div className="text-[9px] text-sand-400 mb-1.5">
+            {wave.isToday ? "Received today" : `Last wave — ${fmtDate(wave.waveDate)}`}
+          </div>
+          <div ref={tickerRef} className="flex gap-2 overflow-x-auto hide-scrollbar">
+            {wave.tickerAors.map((a, i) => (
+              <div key={i} className="flex-shrink-0 flex items-center gap-2 bg-white/80 rounded-lg px-2.5 py-1.5 border border-sand-100">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${
+                  a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
+                }`}>
+                  {a.initials.slice(0, 2)}
+                </div>
+                <div className="text-[10px] leading-tight">
+                  <span className="font-semibold text-sand-900">{a.initials}</span>
+                  <span className="text-sand-400"> Sub {fmtDate(a.subDate)}</span>
+                </div>
+                <span className="text-[10px] font-bold text-brand-600">{a.days}d</span>
               </div>
-              <div className="text-[10px] leading-tight">
-                <div className="font-semibold text-sand-900">{a.initials}</div>
-                <div className="text-sand-400">Sub {fmtDate(a.subDate)} &rarr; AOR {fmtDate(a.aorDate)}</div>
-              </div>
-              <div className="text-[10px] font-bold text-brand-600 ml-1">{a.days}d</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
