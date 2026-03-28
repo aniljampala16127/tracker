@@ -214,9 +214,47 @@ export default function DashboardPage() {
     if (!myEntry || selectedMonth !== myEntryMonth || hasScrolled.current) return;
     const tryScroll = () => {
       const el = document.querySelector('[data-my-entry="true"]') as HTMLElement | null;
-      if (el) {
-        hasScrolled.current = true;
-        // Custom smooth scroll — Safari doesn't support behavior:"smooth" reliably
+      if (!el) return;
+      hasScrolled.current = true;
+
+      // Find if entry is inside a scrollable container
+      const scrollParent = el.closest('.overflow-y-auto') as HTMLElement | null;
+
+      if (scrollParent) {
+        // First scroll the page so the container is visible
+        const containerRect = scrollParent.getBoundingClientRect();
+        const pageTargetY = containerRect.top + window.scrollY - 80;
+        const startPageY = window.scrollY;
+        const pageDiff = pageTargetY - startPageY;
+        const duration = 600;
+        let start1: number | null = null;
+        const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        const scrollPage = (ts: number) => {
+          if (!start1) start1 = ts;
+          const p = Math.min((ts - start1) / duration, 1);
+          window.scrollTo(0, startPageY + pageDiff * ease(p));
+          if (p < 1) requestAnimationFrame(scrollPage);
+          else {
+            // Then scroll inside the container to the entry
+            const entryTop = el.offsetTop - scrollParent.offsetTop;
+            const containerTarget = entryTop - scrollParent.clientHeight / 2 + el.offsetHeight / 2;
+            const startScroll = scrollParent.scrollTop;
+            const scrollDiff = containerTarget - startScroll;
+            let start2: number | null = null;
+
+            const scrollContainer = (ts2: number) => {
+              if (!start2) start2 = ts2;
+              const p2 = Math.min((ts2 - start2) / 500, 1);
+              scrollParent.scrollTop = startScroll + scrollDiff * ease(p2);
+              if (p2 < 1) requestAnimationFrame(scrollContainer);
+            };
+            requestAnimationFrame(scrollContainer);
+          }
+        };
+        requestAnimationFrame(scrollPage);
+      } else {
+        // No scroll container — just scroll the page
         const targetY = el.getBoundingClientRect().top + window.scrollY - window.innerHeight / 2 + el.offsetHeight / 2;
         const startY = window.scrollY;
         const diff = targetY - startY;
@@ -232,8 +270,8 @@ export default function DashboardPage() {
         requestAnimationFrame(step);
       }
     };
-    const t1 = setTimeout(tryScroll, 500);
-    const t2 = setTimeout(tryScroll, 1200);
+    const t1 = setTimeout(tryScroll, 600);
+    const t2 = setTimeout(tryScroll, 1400);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [selectedMonth, myEntry, myEntryMonth]);
 
