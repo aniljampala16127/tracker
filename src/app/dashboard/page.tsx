@@ -399,19 +399,18 @@ export default function DashboardPage() {
             </div>
 
             {/* Mobile card view */}
-            <div className="sm:hidden max-h-[65vh] overflow-y-auto" id="mobile-entries" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="sm:hidden max-h-[65vh] overflow-y-auto p-2 space-y-2" id="mobile-entries" style={{ WebkitOverflowScrolling: "touch" }}>
               {selectedGroup.map((app) => {
                 const stepsMap = buildStepsMap(app.step_events || []);
                 const completedSteps = STEPS.filter(s => stepsMap[s.id]);
-                const lastStep = completedSteps.length > 0 ? completedSteps[completedSteps.length - 1] : null;
-                const daysTotal = stepsMap.submitted && lastStep && stepsMap[lastStep.id]
-                  ? daysBetween(stepsMap.submitted, stepsMap[lastStep.id]!)
-                  : null;
                 const nextStepIdx = completedSteps.length < STEPS.length ? completedSteps.length : null;
                 const nextStepLabel = nextStepIdx !== null ? STEPS[nextStepIdx].label : null;
-                const statusLabel = app.is_complete ? "eCoPR \u2713" : nextStepLabel ? `Waiting for ${nextStepLabel}` : "Submitted";
+                const statusLabel = app.is_complete ? "eCoPR ✓" : nextStepLabel ? `Waiting for ${nextStepLabel}` : "Submitted";
                 const statusDone = app.is_complete;
-                const isOwner = !!app.pin_hash && getSavedPinHash(app.id) === app.pin_hash;
+                const hasAor = !!stepsMap.aor;
+                const daysWaiting = stepsMap.submitted
+                  ? daysBetween(stepsMap.submitted, hasAor && stepsMap.aor ? stepsMap.aor : new Date().toISOString().split("T")[0])
+                  : null;
                 const isMe = myEntry?.id === app.id;
 
                 return (
@@ -419,47 +418,53 @@ export default function DashboardPage() {
                     key={app.id}
                     data-my-entry={isMe ? "true" : undefined}
                     onClick={() => handleRowClick(app)}
-                    className={`flex items-center gap-3 px-4 py-3 border-b cursor-pointer transition-colors ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
                       isMe
-                        ? "border-brand-400 bg-brand-50 border-l-4 border-l-brand-500 my-entry-highlight my-entry-slide"
-                        : "border-sand-100 active:bg-brand-50/30"
+                        ? "bg-brand-50 border-2 border-brand-300 my-entry-highlight my-entry-slide"
+                        : "bg-white border border-sand-200 active:bg-sand-50"
                     }`}
                   >
-                    <div className="relative w-10 h-10 flex-shrink-0">
-                      <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
-                        <circle cx="18" cy="18" r="15" fill="none" stroke="#E8E6E1" strokeWidth="3" />
-                        <circle cx="18" cy="18" r="15" fill="none" stroke={statusDone ? "#D4A03C" : "#2D6A4F"} strokeWidth="3"
-                          strokeDasharray={`${(completedSteps.length / STEPS.length) * 94} 94`}
-                          strokeLinecap="round" />
-                      </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-sand-700">
-                        {completedSteps.length}/{STEPS.length}
-                      </span>
+                    {/* Avatar */}
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                      isMe ? "bg-brand-500 text-white" : "bg-sand-100 text-sand-600"
+                    }`}>
+                      {app.initials.slice(0, 2).toUpperCase()}
                     </div>
+
+                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-sand-900">{app.initials}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-sand-900">{app.initials}</span>
                         {isMe && (
-                          <span className="text-[8px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none">YOU</span>
+                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-brand-500 text-white font-bold">YOU</span>
                         )}
-                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold ${
-                          app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
+                        <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${
+                          app.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
                         }`}>{app.stream}</span>
                         <ReactionsBadge applicationId={app.id} />
                       </div>
-                      <div className="text-[10px] text-sand-500 mt-0.5">
+                      <div className="text-[11px] text-sand-500">
                         {app.country_origin} · {app.sponsor_status}
-                        {stepsMap.submitted && <span> · {formatDate(stepsMap.submitted)}</span>}
-                      </div>
-                      <div className={`text-[10px] font-medium mt-0.5 ${statusDone ? "text-warn-dark" : "text-brand-600"}`}>
-                        {statusLabel}
+                        {stepsMap.submitted && <span> · Sub {formatDate(stepsMap.submitted)}</span>}
                       </div>
                     </div>
+
+                    {/* Status */}
                     <div className="text-right flex-shrink-0">
-                      {daysTotal != null && daysTotal > 0 && (
-                        <div className="text-xs font-semibold text-sand-700">{daysTotal}d</div>
+                      {hasAor ? (
+                        <>
+                          <div className="flex items-center gap-1 justify-end">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
+                            <span className="text-xs font-semibold text-brand-600">AOR</span>
+                          </div>
+                          {daysWaiting != null && <div className="text-[10px] text-sand-400">Day {daysWaiting}</div>}
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[10px] font-semibold text-warn-dark">Waiting</div>
+                          {daysWaiting != null && <div className="text-[10px] text-sand-400">Day {daysWaiting}</div>}
+                        </>
                       )}
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round" className="ml-auto mt-0.5"><path d="M9 18L15 12L9 6" /></svg>
                     </div>
                   </div>
                 );
