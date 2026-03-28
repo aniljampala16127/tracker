@@ -158,6 +158,7 @@ export default function DashboardPage() {
   }, [myEntry]);
 
   const myEntryRef = useRef<HTMLTableRowElement>(null);
+  const hasScrolled = useRef(false);
 
   // Auto-select user's month on first load, fall back to latest month
   useEffect(() => {
@@ -170,13 +171,20 @@ export default function DashboardPage() {
     }
   }, [sortedMonths, selectedMonth, myEntryMonth]);
 
-  // Auto-scroll to user's entry after month is selected
+  // Auto-scroll to user's entry after render
   useEffect(() => {
-    if (myEntry && selectedMonth === myEntryMonth && myEntryRef.current) {
-      setTimeout(() => {
-        myEntryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 300);
-    }
+    if (!myEntry || selectedMonth !== myEntryMonth || hasScrolled.current) return;
+    const tryScroll = () => {
+      if (myEntryRef.current) {
+        myEntryRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        hasScrolled.current = true;
+      }
+    };
+    // Try multiple times as table may not be rendered yet
+    const t1 = setTimeout(tryScroll, 200);
+    const t2 = setTimeout(tryScroll, 600);
+    const t3 = setTimeout(tryScroll, 1200);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [selectedMonth, myEntry, myEntryMonth]);
 
   if (loading) return <DashboardSkeleton />;
@@ -459,16 +467,17 @@ export default function DashboardPage() {
                           ref={isOwner ? myEntryRef : undefined}
                           className={`border-t cursor-pointer transition-colors ${
                             isOwner
-                              ? "border-brand-500 bg-brand-50/40 ring-2 ring-brand-500/30 ring-inset"
+                              ? "border-brand-400 bg-brand-50"
                               : "border-sand-100 hover:bg-brand-50/30"
                           }`}
+                          style={isOwner ? { boxShadow: "inset 3px 0 0 #2D6A4F" } : undefined}
                           onClick={() => handleRowClick(app)}
                         >
-                          <td className={`px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 ${isOwner ? "bg-brand-50/40" : "bg-white"}`}>
+                          <td className={`px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 ${isOwner ? "bg-brand-50" : "bg-white"}`}>
                             <span className="flex items-center gap-1.5">
                               {app.initials}
                               {isOwner && (
-                                <span className="text-[8px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider">YOU</span>
+                                <span className="text-[8px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none">YOU</span>
                               )}
                               <ReactionsBadge applicationId={app.id} />
                             </span>
