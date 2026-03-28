@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
-
+import { AORProgress } from "@/components/AORProgress";
 
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -137,7 +137,8 @@ export default function StatsPage() {
         </div>
       </div>
 
-
+      {/* AOR Progress */}
+      <AORProgress apps={apps} />
 
       {/* Community per-step averages */}
       <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
