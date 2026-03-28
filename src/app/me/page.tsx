@@ -12,6 +12,8 @@ import { Reactions } from "@/components/Reactions";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
 import { WeeklyRankChange } from "@/components/WeeklyRankChange";
+import { AORCountdown } from "@/components/AORCountdown";
+import { AchievementBadges } from "@/components/AchievementBadges";
 import { playMilestoneSound } from "@/lib/sounds";
 import { Button } from "@/components/ui";
 
@@ -152,6 +154,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         </div>
       </div>
 
+      {/* AOR Countdown */}
+      <AORCountdown app={app} allApps={allApps} />
+
       {/* Progress bar */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
@@ -180,6 +185,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
       {/* Insights */}
       <InsightsPanel app={app} allApps={allApps} />
+
+      {/* Achievement Badges */}
+      <AchievementBadges app={app} />
 
       {/* Step timeline */}
       <div className="mb-4">

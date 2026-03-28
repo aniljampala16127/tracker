@@ -17,6 +17,8 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { Confetti } from "@/components/Confetti";
 import { AORWaveTracker } from "@/components/AORWaveTracker";
+import { NewSinceLastVisit } from "@/components/NewSinceLastVisit";
+import { CelebrationWall } from "@/components/CelebrationWall";
 import { playMilestoneSound } from "@/lib/sounds";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -237,6 +239,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      {/* Celebration Wall — eCoPR completions */}
+      <CelebrationWall apps={apps} />
+
+      {/* New since last visit */}
+      {apps.length > 0 && <NewSinceLastVisit apps={apps} />}
+
       {/* AOR Wave Tracker */}
       {apps.length > 0 && <AORWaveTracker apps={apps} />}
 
