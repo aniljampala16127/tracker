@@ -157,7 +157,6 @@ export default function DashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }, [myEntry]);
 
-  const myEntryRef = useRef<HTMLTableRowElement>(null);
   const hasScrolled = useRef(false);
 
   // Auto-select user's month on first load, fall back to latest month
@@ -175,15 +174,15 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!myEntry || selectedMonth !== myEntryMonth || hasScrolled.current) return;
     const tryScroll = () => {
-      if (myEntryRef.current) {
-        myEntryRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      const el = document.querySelector('[data-my-entry="true"]') as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
         hasScrolled.current = true;
       }
     };
-    // Try multiple times as table may not be rendered yet
-    const t1 = setTimeout(tryScroll, 200);
-    const t2 = setTimeout(tryScroll, 600);
-    const t3 = setTimeout(tryScroll, 1200);
+    const t1 = setTimeout(tryScroll, 300);
+    const t2 = setTimeout(tryScroll, 800);
+    const t3 = setTimeout(tryScroll, 1500);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [selectedMonth, myEntry, myEntryMonth]);
 
@@ -369,7 +368,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Mobile card view */}
-            <div className="sm:hidden max-h-[65vh] overflow-y-auto">
+            <div className="sm:hidden max-h-[65vh] overflow-y-auto" id="mobile-entries">
               {selectedGroup.map((app) => {
                 const stepsMap = buildStepsMap(app.step_events || []);
                 const completedSteps = STEPS.filter(s => stepsMap[s.id]);
@@ -381,12 +380,18 @@ export default function DashboardPage() {
                 const nextStepLabel = nextStepIdx !== null ? STEPS[nextStepIdx].label : null;
                 const statusLabel = app.is_complete ? "eCoPR \u2713" : nextStepLabel ? `Waiting for ${nextStepLabel}` : "Submitted";
                 const statusDone = app.is_complete;
+                const isOwner = !!app.pin_hash && getSavedPinHash(app.id) === app.pin_hash;
 
                 return (
                   <div
                     key={app.id}
+                    data-my-entry={isOwner ? "true" : undefined}
                     onClick={() => handleRowClick(app)}
-                    className="flex items-center gap-3 px-4 py-3 border-b border-sand-100 active:bg-brand-50/30 cursor-pointer transition-colors"
+                    className={`flex items-center gap-3 px-4 py-3 border-b cursor-pointer transition-colors ${
+                      isOwner
+                        ? "border-brand-400 bg-brand-50 border-l-4 border-l-brand-500"
+                        : "border-sand-100 active:bg-brand-50/30"
+                    }`}
                   >
                     <div className="relative w-10 h-10 flex-shrink-0">
                       <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
@@ -402,6 +407,9 @@ export default function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-sand-900">{app.initials}</span>
+                        {isOwner && (
+                          <span className="text-[8px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none">YOU</span>
+                        )}
                         <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold ${
                           app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
                         }`}>{app.stream}</span>
@@ -464,7 +472,7 @@ export default function DashboardPage() {
                       const isOwner = hasPin && getSavedPinHash(app.id) === app.pin_hash;
                       return (
                         <tr key={app.id}
-                          ref={isOwner ? myEntryRef : undefined}
+                          data-my-entry={isOwner ? "true" : undefined}
                           className={`border-t cursor-pointer transition-colors ${
                             isOwner
                               ? "border-brand-400 bg-brand-50"
