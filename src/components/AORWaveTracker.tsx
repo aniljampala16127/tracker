@@ -18,41 +18,41 @@ interface WaveTrackerProps {
 export function AORWaveTracker({ apps }: WaveTrackerProps) {
   const wave = useMemo(() => {
     const now = Date.now();
-    const today = new Date().toISOString().split("T")[0];
 
-    // Find all AOR events with dates
-    const aorEvents: { initials: string; aorDate: string; createdAt: string; stream: string }[] = [];
+    // Find all AOR events with details
+    const aorEntries: { initials: string; aorDate: string; subDate: string; createdAt: string; stream: string; days: number }[] = [];
     apps.forEach((a) => {
       const ev = (a.step_events || []).find(e => e.step_id === "aor");
       if (!ev) return;
-      aorEvents.push({
+      const s = buildStepsMap(a.step_events || []);
+      const days = s.submitted && s.aor ? daysBetween(s.submitted, s.aor) : 0;
+      aorEntries.push({
         initials: a.initials,
         aorDate: ev.event_date,
+        subDate: s.submitted || "",
         createdAt: ev.created_at,
         stream: a.stream,
+        days,
       });
     });
 
-    if (aorEvents.length === 0) return null;
+    if (aorEntries.length === 0) return null;
 
-    // Sort by when the AOR was reported (created_at)
-    aorEvents.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    // Sort by AOR date (most recent first)
+    aorEntries.sort((a, b) => b.aorDate.localeCompare(a.aorDate) || b.createdAt.localeCompare(a.createdAt));
 
-    // Latest AOR event
-    const latest = aorEvents[0];
+    const latest = aorEntries[0];
     const latestDate = new Date(latest.createdAt);
     const hoursSinceLast = Math.floor((now - latestDate.getTime()) / 3600000);
     const daysSinceLast = Math.floor(hoursSinceLast / 24);
 
-    // Count AORs in the last wave (same day as latest)
-    const latestDay = latest.createdAt.split("T")[0];
-    const waveAors = aorEvents.filter(e => e.createdAt.startsWith(latestDay));
+    const latestDay = latest.aorDate;
+    const waveAors = aorEntries.filter(e => e.aorDate === latestDay);
 
-    // AORs in last 7 days
-    const weekAors = aorEvents.filter(e => now - new Date(e.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000);
+    const weekAors = aorEntries.filter(e => now - new Date(e.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000);
 
-    // Streak: count consecutive days with AOR reports (going backwards from today)
-    const aorDays = new Set(aorEvents.map(e => e.createdAt.split("T")[0]));
+    // Streak
+    const aorDays = new Set(aorEntries.map(e => e.createdAt.split("T")[0]));
     let streak = 0;
     const checkDate = new Date();
     for (let i = 0; i < 30; i++) {
@@ -61,7 +61,6 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
         streak++;
         checkDate.setDate(checkDate.getDate() - 1);
       } else if (i === 0) {
-        // Today might not have AOR yet, check yesterday
         checkDate.setDate(checkDate.getDate() - 1);
         continue;
       } else {
@@ -69,25 +68,21 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
       }
     }
 
-    // Total waiting
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
 
+    // Recent AORs for the ticker (last 10)
+    const recentAors = aorEntries.slice(0, 10);
+
     return {
-      hoursSinceLast,
-      daysSinceLast,
-      waveCount: waveAors.length,
-      waveDate: latestDay,
-      weekCount: weekAors.length,
-      streak,
-      waiting,
-      latestStream: latest.stream,
-      latestInitials: latest.initials,
+      hoursSinceLast, daysSinceLast,
+      waveCount: waveAors.length, waveDate: latestDay,
+      weekCount: weekAors.length, streak, waiting,
+      recentAors,
     };
   }, [apps]);
 
   if (!wave) return null;
 
-  // Urgency color based on time since last AOR
   const isHot = wave.hoursSinceLast < 24;
   const isWarm = wave.hoursSinceLast < 72;
 
@@ -111,16 +106,12 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
         )}
       </div>
 
-      <div className="flex items-end gap-4">
-        {/* Main counter */}
+      <div className="flex items-end gap-4 mb-3">
         <div className="flex-1">
           {isHot ? (
             <div>
               <div className="text-2xl font-bold text-brand-600">
                 {wave.waveCount} AOR{wave.waveCount > 1 ? "s" : ""} today
-              </div>
-              <div className="text-xs text-sand-500">
-                Last: {wave.latestInitials} ({wave.latestStream})
               </div>
             </div>
           ) : (
@@ -133,14 +124,9 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
                   day{wave.daysSinceLast !== 1 ? "s" : ""} since last AOR
                 </span>
               </div>
-              <div className="text-xs text-sand-400 mt-0.5">
-                Last wave: {fmtDate(wave.waveDate)} ({wave.waveCount} AOR{wave.waveCount > 1 ? "s" : ""})
-              </div>
             </div>
           )}
         </div>
-
-        {/* Side stats */}
         <div className="flex gap-3 text-center">
           <div>
             <div className="text-lg font-bold text-brand-600">{wave.weekCount}</div>
@@ -150,6 +136,26 @@ export function AORWaveTracker({ apps }: WaveTrackerProps) {
             <div className="text-lg font-bold text-warn-dark">{wave.waiting}</div>
             <div className="text-[9px] text-sand-400 uppercase">Waiting</div>
           </div>
+        </div>
+      </div>
+
+      {/* Scrolling AOR ticker */}
+      <div className="overflow-hidden relative">
+        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+          {wave.recentAors.map((a, i) => (
+            <div key={i} className="flex-shrink-0 flex items-center gap-2 bg-white/70 rounded-lg px-2.5 py-1.5 border border-sand-100">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${
+                a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
+              }`}>
+                {a.initials.slice(0, 2)}
+              </div>
+              <div className="text-[10px] leading-tight">
+                <div className="font-semibold text-sand-900">{a.initials}</div>
+                <div className="text-sand-400">Sub {fmtDate(a.subDate)} &rarr; AOR {fmtDate(a.aorDate)}</div>
+              </div>
+              <div className="text-[10px] font-bold text-brand-600 ml-1">{a.days}d</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
