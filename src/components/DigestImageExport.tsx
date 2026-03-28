@@ -19,15 +19,15 @@ interface StreamWeekData {
   avgDays: number | null;
   totalWithAor: number;
   weekAorCount: number;
-  weekEarlySub: string;
-  weekLateSub: string;
+  weekEarlyAor: string;
+  weekLateAor: string;
 }
 
 function getStreamWeekData(apps: Application[], stream: string, cutoff: number): StreamWeekData {
   const sa = apps.filter(a => a.stream === stream);
   const allDays: number[] = [];
   let weekCount = 0;
-  let wEarly = "9999", wLate = "";
+  let wEarlyAor = "9999", wLateAor = "";
 
   sa.forEach(a => {
     const s = buildStepsMap(a.step_events || []);
@@ -36,8 +36,8 @@ function getStreamWeekData(apps: Application[], stream: string, cutoff: number):
     const aorEv = (a.step_events || []).find(e => e.step_id === "aor");
     if (aorEv && new Date(aorEv.created_at).getTime() > cutoff) {
       weekCount++;
-      if (s.submitted < wEarly) wEarly = s.submitted;
-      if (s.submitted > wLate) wLate = s.submitted;
+      if (s.aor < wEarlyAor) wEarlyAor = s.aor;
+      if (s.aor > wLateAor) wLateAor = s.aor;
     }
   });
 
@@ -46,12 +46,12 @@ function getStreamWeekData(apps: Application[], stream: string, cutoff: number):
     avgDays: allDays.length ? Math.round(allDays.reduce((a, b) => a + b, 0) / allDays.length) : null,
     totalWithAor: allDays.length,
     weekAorCount: weekCount,
-    weekEarlySub: wEarly === "9999" ? "" : wEarly,
-    weekLateSub: wLate,
+    weekEarlyAor: wEarlyAor === "9999" ? "" : wEarlyAor,
+    weekLateAor: wLateAor,
   };
 }
 
-export function DigestImageExport({ apps, period }: { apps: Application[]; period: string }) {
+export function DigestImageExport({ apps }: { apps: Application[] }) {
   const [exporting, setExporting] = useState(false);
 
   const handleExport = useCallback(() => {
@@ -61,7 +61,7 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     const pad = 24;
     const inner = W - pad * 2;
 
-    const cutoff = Date.now() - parseInt(period) * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const outland = getStreamWeekData(apps, "Outland", cutoff);
     const inland = getStreamWeekData(apps, "Inland", cutoff);
 
@@ -79,7 +79,7 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     const nonAor = Object.entries(milestones).filter(([k]) => k !== "AOR").sort((a, b) => b[1] - a[1]).slice(0, 4);
     const totalWithAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
     const totalWaiting = apps.length - totalWithAor;
-    const periodLabel = period === "7" ? "This Week" : period === "14" ? "2 Weeks" : "This Month";
+    const periodLabel = "This Week";
     const today = new Date();
     const dateStr = `${MO[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
 
@@ -222,7 +222,7 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
         setExporting(false);
       }
     }, "image/png");
-  }, [apps, period]);
+  }, [apps]);
 
   return (
     <button
@@ -320,13 +320,13 @@ function drawStreamCard(
   ctx.fillText("with AOR", x + halfW + halfW / 2, numY + 14);
 
   // AOR date range (bottom of card)
-  if (sd.weekAorCount > 0 && sd.weekEarlySub) {
+  if (sd.weekAorCount > 0 && sd.weekEarlyAor) {
     ctx.fillStyle = "#A8A69E";
     ctx.font = "400 8px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    const range = sd.weekEarlySub === sd.weekLateSub
-      ? `${fmt(sd.weekEarlySub)} submissions received AOR`
-      : `${fmt(sd.weekEarlySub)} → ${fmt(sd.weekLateSub)} submissions received AOR`;
+    const range = sd.weekEarlyAor === sd.weekLateAor
+      ? `AOR received ${fmt(sd.weekEarlyAor)}`
+      : `AOR received ${fmt(sd.weekEarlyAor)} – ${fmt(sd.weekLateAor)}`;
     ctx.fillText(range, x + w / 2, y + h - 6);
   }
 

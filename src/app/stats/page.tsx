@@ -534,7 +534,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
             </>
           )}
         </button>
-        <DigestImageExport apps={apps} period={period} />
+        <DigestImageExport apps={apps} />
       </div>
     </div>
   );
