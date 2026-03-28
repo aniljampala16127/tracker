@@ -14,7 +14,7 @@ import { FilterBar, Filters, EMPTY_FILTERS } from "@/components/FilterBar";
 import { StepChart } from "@/components/StepChart";
 import { Reactions, ReactionsBadge } from "@/components/Reactions";
 import { ShareButtons } from "@/components/ShareButtons";
-import { InsightsPanel } from "@/components/InsightsPanel";
+
 import { Confetti } from "@/components/Confetti";
 import { AORWaveTracker } from "@/components/AORWaveTracker";
 import { NewSinceLastVisit } from "@/components/NewSinceLastVisit";
@@ -615,9 +615,6 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
         {app.subcategory && <><span>·</span><span>{app.subcategory}</span></>}
         {app.notes && <><span>·</span><span className="italic">{app.notes}</span></>}
       </div>
-
-      {/* Insights Panel */}
-      <InsightsPanel app={app} allApps={allApps} />
 
       {/* MEI / Medical Exam */}
       <div className="bg-sand-50 rounded-lg px-3 py-2.5 mb-3">
