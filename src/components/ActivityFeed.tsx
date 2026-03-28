@@ -240,11 +240,16 @@ export function ActivityPanel() {
                             <path d="M12 5V19M5 12H19" />
                           </svg>
                         </div>
-                        <div className="text-xs text-sand-600">
-                          <span className={`font-medium ${isUnread ? "text-sand-900" : "text-sand-800"}`}>{a.app_initials}</span> · {a.app_country}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-sand-600">
+                            <span className={`font-medium ${isUnread ? "text-sand-900" : "text-sand-800"}`}>{a.app_initials}</span> · {a.app_country}
+                          </div>
+                          {a.event_date && (
+                            <div className="text-[10px] text-sand-400">Sub {MONTHS[new Date(a.event_date + "T00:00:00").getMonth()]} {new Date(a.event_date + "T00:00:00").getDate()}, {new Date(a.event_date + "T00:00:00").getFullYear()}</div>
+                          )}
                         </div>
                         {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse" />}
-                        <span className="text-[10px] text-sand-400 ml-auto">{timeAgo(a.created_at)}</span>
+                        <span className="text-[10px] text-sand-400 flex-shrink-0">{timeAgo(a.created_at)}</span>
                       </div>
                     );
                   })}
