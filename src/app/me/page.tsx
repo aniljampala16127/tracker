@@ -10,6 +10,9 @@ import { InsightsPanel } from "@/components/InsightsPanel";
 import { ShareButtons } from "@/components/ShareButtons";
 import { Reactions } from "@/components/Reactions";
 import { Confetti } from "@/components/Confetti";
+import { PositionRunway } from "@/components/PositionRunway";
+import { WeeklyRankChange } from "@/components/WeeklyRankChange";
+import { playMilestoneSound } from "@/lib/sounds";
 import { Button } from "@/components/ui";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -99,6 +102,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   const handleSaveStep = async (stepId: string, date: string) => {
     setSaving(true);
     if (navigator.vibrate) navigator.vibrate(12);
+    playMilestoneSound();
     await supabase.from("step_events").insert({ application_id: app.id, step_id: stepId, event_date: date });
     await supabase.from("applications").update({ current_step: stepId, is_complete: stepId === "ecopr" }).eq("id", app.id);
     setShowConfetti(true);
@@ -149,9 +153,12 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       </div>
 
       {/* Progress bar */}
-      <div className="mb-5">
+      <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Progress</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Progress</span>
+            <WeeklyRankChange app={app} allApps={allApps} />
+          </div>
           <span className="text-xs font-bold text-brand-600">Day {daysSoFar}</span>
         </div>
         <div className="bg-sand-200 rounded-full h-3 overflow-hidden">
@@ -164,6 +171,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           <span className="text-[9px] text-sand-400">Submitted {submittedDate ? formatNice(submittedDate) : "—"}</span>
         </div>
       </div>
+
+      {/* Queue Position Runway */}
+      <PositionRunway app={app} allApps={allApps} />
 
       {/* Daily Pulse */}
       <DailyPulse app={app} allApps={allApps} />

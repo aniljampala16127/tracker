@@ -16,6 +16,8 @@ import { Reactions, ReactionsBadge } from "@/components/Reactions";
 import { ShareButtons } from "@/components/ShareButtons";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { Confetti } from "@/components/Confetti";
+import { AORWaveTracker } from "@/components/AORWaveTracker";
+import { playMilestoneSound } from "@/lib/sounds";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -235,6 +237,9 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      {/* AOR Wave Tracker */}
+      {apps.length > 0 && <AORWaveTracker apps={apps} />}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-sand-400">
@@ -587,6 +592,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
 
   const handleStepSave = (stepId: StepId, date: string) => {
     if (navigator.vibrate) navigator.vibrate(12);
+    playMilestoneSound();
     onMarkStep(app.id, stepId, date);
     setShowConfetti(true);
   };

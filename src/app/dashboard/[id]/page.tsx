@@ -14,6 +14,7 @@ import { PinModal } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
 import { StepIcon, ArrowLeftIcon, TrashIcon, ClockIcon } from "@/components/icons";
 import { Button, Avatar, Card } from "@/components/ui";
+import { playMilestoneSound } from "@/lib/sounds";
 
 export default function ApplicationDetailPage() {
   const { id } = useParams();
@@ -75,6 +76,7 @@ export default function ApplicationDetailPage() {
   const markStepDone = async (stepId: StepId, date: string) => {
     if (!app) return;
     if (navigator.vibrate) navigator.vibrate(12);
+    playMilestoneSound();
     await supabase.from("step_events").insert({
       application_id: app.id, step_id: stepId, event_date: date,
     });
