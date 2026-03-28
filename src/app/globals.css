@@ -115,10 +115,7 @@ a, button { touch-action: manipulation; }
 .aor-vertical-scroll {
   animation: aor-scroll-up 20s linear infinite;
   will-change: transform;
-}
-.aor-vertical-scroll:hover,
-.aor-vertical-scroll:active {
-  animation-play-state: paused;
+  contain: layout style;
 }
 @keyframes aor-scroll-up {
   0% { transform: translateY(0); }
