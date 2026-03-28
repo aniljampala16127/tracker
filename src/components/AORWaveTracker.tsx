@@ -76,27 +76,34 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
   // Auto-scroll ticker
   useEffect(() => {
     const el = tickerRef.current;
-    if (!el || !wave || wave.tickerAors.length <= 2) return;
+    if (!el || !wave || wave.tickerAors.length < 1) return;
+
+    // Only scroll if content overflows
+    const checkOverflow = () => el.scrollWidth > el.clientWidth;
+    if (!checkOverflow()) return;
 
     let scrollPos = 0;
-    const speed = 0.5; // px per frame
+    const speed = 0.4;
     let animId: number;
+    let paused = false;
 
     const scroll = () => {
-      scrollPos += speed;
-      if (scrollPos >= el.scrollWidth - el.clientWidth) {
-        scrollPos = 0;
+      if (!paused) {
+        scrollPos += speed;
+        // Loop back seamlessly at halfway (since we duplicate cards)
+        const halfScroll = (el.scrollWidth - el.clientWidth) / 2;
+        if (halfScroll > 0 && scrollPos >= halfScroll) {
+          scrollPos = 0;
+        }
+        el.scrollLeft = scrollPos;
       }
-      el.scrollLeft = scrollPos;
       animId = requestAnimationFrame(scroll);
     };
 
-    // Start after a short delay
     const timeout = setTimeout(() => { animId = requestAnimationFrame(scroll); }, 1500);
 
-    // Pause on touch
-    const pause = () => cancelAnimationFrame(animId);
-    const resume = () => { animId = requestAnimationFrame(scroll); };
+    const pause = () => { paused = true; };
+    const resume = () => { paused = false; };
     el.addEventListener("touchstart", pause);
     el.addEventListener("touchend", resume);
 
@@ -171,8 +178,8 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
             {wave.isToday ? "Received today" : `Last wave — ${fmtDate(wave.waveDate)}`}
           </div>
           <div ref={tickerRef} className="flex gap-3 overflow-x-auto hide-scrollbar">
-            {wave.tickerAors.map((a, i) => (
-              <div key={i} className="flex-shrink-0 min-w-[200px] flex items-center gap-3 bg-white/80 rounded-xl px-3 py-2.5 border border-sand-100">
+            {[...wave.tickerAors, ...wave.tickerAors].map((a, i) => (
+              <div key={i} className="flex-shrink-0 w-[55vw] max-w-[220px] flex items-center gap-3 bg-white/80 rounded-xl px-3 py-2.5 border border-sand-100">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${
                   a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
                 }`}>
