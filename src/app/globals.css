@@ -70,3 +70,22 @@ a, button { touch-action: manipulation; }
   from { opacity: 0; transform: scale(0.5); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* My entry highlight animation */
+.my-entry-highlight {
+  animation: entry-glow 2s ease-in-out;
+}
+@keyframes entry-glow {
+  0% { box-shadow: inset 3px 0 0 #2D6A4F, 0 0 0 rgba(45,106,79,0); }
+  30% { box-shadow: inset 3px 0 0 #2D6A4F, 0 0 12px rgba(45,106,79,0.25); }
+  60% { box-shadow: inset 3px 0 0 #2D6A4F, 0 0 6px rgba(45,106,79,0.15); }
+  100% { box-shadow: inset 3px 0 0 #2D6A4F, 0 0 0 rgba(45,106,79,0); }
+}
+
+.my-entry-slide {
+  animation: entry-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes entry-slide-in {
+  from { opacity: 0.3; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}

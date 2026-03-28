@@ -157,7 +157,6 @@ export default function DashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }, [myEntry]);
 
-  const myEntryRef = useRef<HTMLElement>(null);
   const hasScrolled = useRef(false);
 
   // Auto-select user's month on first load, fall back to latest month
@@ -175,14 +174,15 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!myEntry || selectedMonth !== myEntryMonth || hasScrolled.current) return;
     const tryScroll = () => {
-      if (myEntryRef.current) {
-        myEntryRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      const el = document.querySelector('[data-my-entry="true"]') as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
         hasScrolled.current = true;
       }
     };
-    const t1 = setTimeout(tryScroll, 300);
-    const t2 = setTimeout(tryScroll, 800);
-    const t3 = setTimeout(tryScroll, 1500);
+    const t1 = setTimeout(tryScroll, 400);
+    const t2 = setTimeout(tryScroll, 900);
+    const t3 = setTimeout(tryScroll, 1600);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [selectedMonth, myEntry, myEntryMonth]);
 
@@ -386,11 +386,11 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={app.id}
-                    ref={isMe ? myEntryRef as React.Ref<HTMLDivElement> : undefined}
+                    data-my-entry={isMe ? "true" : undefined}
                     onClick={() => handleRowClick(app)}
                     className={`flex items-center gap-3 px-4 py-3 border-b cursor-pointer transition-colors ${
                       isMe
-                        ? "border-brand-400 bg-brand-50 border-l-4 border-l-brand-500"
+                        ? "border-brand-400 bg-brand-50 border-l-4 border-l-brand-500 my-entry-highlight my-entry-slide"
                         : "border-sand-100 active:bg-brand-50/30"
                     }`}
                   >
@@ -474,10 +474,10 @@ export default function DashboardPage() {
                       const isMe = myEntry?.id === app.id;
                       return (
                         <tr key={app.id}
-                          ref={isMe ? myEntryRef as React.Ref<HTMLTableRowElement> : undefined}
+                          data-my-entry={isMe ? "true" : undefined}
                           className={`border-t cursor-pointer transition-colors ${
                             isMe
-                              ? "border-brand-400 bg-brand-50"
+                              ? "border-brand-400 bg-brand-50 my-entry-highlight"
                               : "border-sand-100 hover:bg-brand-50/30"
                           }`}
                           style={isMe ? { boxShadow: "inset 3px 0 0 #2D6A4F" } : undefined}
