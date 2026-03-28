@@ -61,10 +61,11 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     { label: "This Week", entries: data.weekAors, color: "brand" as const },
   ];
 
-  // Auto-swipe cards every 5 seconds
+  // Auto-swipe cards — waits for names to finish scrolling
   const scrollRef = useRef<HTMLDivElement>(null);
   const cardIdx = useRef(0);
   const pausedRef = useRef(false);
+  const touchTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const scrollToCard = useCallback((idx: number) => {
     const el = scrollRef.current;
@@ -76,32 +77,44 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     const diff = targetScroll - startScroll;
     if (Math.abs(diff) < 2) return;
     let start: number | null = null;
-    // Smooth ease-out for natural deceleration
-    const ease = (t: number) => 1 - Math.pow(1 - t, 4);
-    const duration = 800;
+    const ease = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     const step = (ts: number) => {
       if (!start) start = ts;
-      const p = Math.min((ts - start) / duration, 1);
+      const p = Math.min((ts - start) / 1000, 1);
       el.scrollLeft = startScroll + diff * ease(p);
       if (p < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (pausedRef.current) return;
-      cardIdx.current = (cardIdx.current + 1) % 3;
-      scrollToCard(cardIdx.current);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [scrollToCard]);
+  // Dwell time per card — let names scroll through before swiping
+  const getDwellTime = useCallback((idx: number): number => {
+    const counts = [data.todayAors.length, data.yesterdayAors.length, data.weekAors.length];
+    const count = counts[idx] || 0;
+    if (count === 0) return 3000;
+    return Math.max(5000, count * 2000);
+  }, [data]);
 
-  // Pause auto-swipe on touch
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const scheduleNext = () => {
+      const dwell = getDwellTime(cardIdx.current);
+      timeout = setTimeout(() => {
+        if (!pausedRef.current) {
+          cardIdx.current = (cardIdx.current + 1) % 3;
+          scrollToCard(cardIdx.current);
+        }
+        scheduleNext();
+      }, dwell);
+    };
+    scheduleNext();
+    return () => clearTimeout(timeout);
+  }, [scrollToCard, getDwellTime]);
+
   const handleTouchStart = useCallback(() => { pausedRef.current = true; }, []);
   const handleTouchEnd = useCallback(() => {
-    // Resume after 8 seconds of no touch
-    setTimeout(() => { pausedRef.current = false; }, 8000);
+    clearTimeout(touchTimer.current);
+    touchTimer.current = setTimeout(() => { pausedRef.current = false; }, 10000);
   }, []);
 
   return (
@@ -182,7 +195,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                 <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white/80 to-transparent z-10 pointer-events-none" />
 
                 {/* Vertically scrolling entries */}
-                <div className="aor-vertical-scroll">
+                <div className="aor-vertical-scroll" style={{ animationDuration: `${Math.max(8, card.entries.length * 3)}s` }}>
                   {[...card.entries, ...card.entries].map((a, i) => (
                     <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
                       <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
