@@ -1,30 +1,51 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Application } from "@/lib/types";
-import { STEPS } from "@/lib/constants";
+import { STEPS, getStepIndex } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const BRAND = "#2D6A4F";
+const BRAND_LIGHT = "#D1E8DA";
+const SAND_900 = "#1C1B19";
+const SAND_500 = "#A8A69E";
+const SAND_300 = "#D9D7D2";
+const SAND_100 = "#F0EEEA";
+const BG = "#FAFAF8";
+const WHITE = "#FFFFFF";
+const WARN = "#D4A03C";
 
 function fmt(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+
+function fmtFull(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 export function TimelineExport({ app }: { app: Application }) {
+  const [exporting, setExporting] = useState(false);
+
   const handleExport = useCallback(() => {
+    setExporting(true);
     const stepsMap = buildStepsMap(app.step_events || []);
+    const currentIdx = getStepIndex(app.current_step);
     const today = new Date().toISOString().split("T")[0];
     const daysSoFar = stepsMap.submitted ? daysBetween(stepsMap.submitted, today) : 0;
 
-    const dpr = window.devicePixelRatio || 2;
-    const W = 390;
-    const stepH = 44;
-    const headerH = 100;
-    const footerH = 50;
-    const padding = 24;
-    const H = headerH + STEPS.length * stepH + footerH + padding * 2;
+    const dpr = Math.min(window.devicePixelRatio || 2, 3);
+    const W = 400;
+    const padding = 20;
+    const cardPad = 16;
+    const headerCardH = 80;
+    const stepRowH = 38;
+    const timelineTop = headerCardH + padding * 2 + 16;
+    const timelineH = STEPS.length * stepRowH + 20;
+    const footerH = 40;
+    const H = timelineTop + timelineH + footerH + padding;
 
     const canvas = document.createElement("canvas");
     canvas.width = W * dpr;
@@ -33,131 +54,207 @@ export function TimelineExport({ app }: { app: Application }) {
     ctx.scale(dpr, dpr);
 
     // Background
-    ctx.fillStyle = "#FAFAF8";
+    ctx.fillStyle = BG;
     ctx.fillRect(0, 0, W, H);
 
-    // Header card
-    ctx.fillStyle = "#FFFFFF";
-    roundRect(ctx, padding, padding, W - padding * 2, headerH - 10, 16);
+    // Top accent bar
+    const grad = ctx.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0, BRAND);
+    grad.addColorStop(1, "#40916C");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, 4);
+
+    // Header card with shadow
+    const cardX = padding;
+    const cardY = padding + 4;
+    const cardW = W - padding * 2;
+    ctx.shadowColor = "rgba(0,0,0,0.06)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = WHITE;
+    roundRect(ctx, cardX, cardY, cardW, headerCardH, 14);
     ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
     ctx.strokeStyle = "#E8E6E1";
     ctx.lineWidth = 1;
-    roundRect(ctx, padding, padding, W - padding * 2, headerH - 10, 16);
+    roundRect(ctx, cardX, cardY, cardW, headerCardH, 14);
     ctx.stroke();
 
-    // Avatar circle
-    const avatarX = padding + 18;
-    const avatarY = padding + 20;
-    ctx.fillStyle = "#2D6A4F";
+    // Avatar
+    const avX = cardX + cardPad;
+    const avY = cardY + cardPad;
+    const avR = 22;
+    ctx.fillStyle = BRAND;
     ctx.beginPath();
-    ctx.arc(avatarX + 18, avatarY + 18, 18, 0, Math.PI * 2);
+    ctx.arc(avX + avR, avY + avR, avR, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 14px -apple-system, system-ui, sans-serif";
+    ctx.fillStyle = WHITE;
+    ctx.font = "bold 15px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(app.initials.slice(0, 2).toUpperCase(), avatarX + 18, avatarY + 23);
+    ctx.textBaseline = "middle";
+    ctx.fillText(app.initials.slice(0, 2).toUpperCase(), avX + avR, avY + avR + 1);
+    ctx.textBaseline = "alphabetic";
 
-    // Name
+    // Name + meta
+    const infoX = avX + avR * 2 + 14;
     ctx.textAlign = "left";
-    ctx.fillStyle = "#1C1B19";
-    ctx.font = "bold 16px -apple-system, system-ui, sans-serif";
-    ctx.fillText(app.initials, avatarX + 46, avatarY + 14);
-
-    // Meta
-    ctx.fillStyle = "#A8A69E";
+    ctx.fillStyle = SAND_900;
+    ctx.font = "bold 17px -apple-system, system-ui, sans-serif";
+    ctx.fillText(app.initials, infoX, avY + 18);
+    ctx.fillStyle = SAND_500;
     ctx.font = "11px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`${app.country_origin} · ${app.sponsor_status} · ${app.stream}`, avatarX + 46, avatarY + 30);
+    ctx.fillText(`${app.country_origin} · ${app.sponsor_status} · ${app.stream}`, infoX, avY + 34);
 
-    // Day count
-    ctx.textAlign = "right";
-    ctx.fillStyle = "#2D6A4F";
-    ctx.font = "bold 12px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`Day ${daysSoFar}`, W - padding - 16, avatarY + 14);
-    ctx.fillStyle = "#C4C2BB";
+    // Day badge
+    const badgeW = 56;
+    const badgeH = 28;
+    const badgeX = cardX + cardW - cardPad - badgeW;
+    const badgeY = avY + 4;
+    ctx.fillStyle = BRAND_LIGHT;
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 8);
+    ctx.fill();
+    ctx.fillStyle = BRAND;
+    ctx.font = "bold 13px -apple-system, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`Day ${daysSoFar}`, badgeX + badgeW / 2, badgeY + 18);
+    ctx.fillStyle = SAND_500;
     ctx.font = "9px -apple-system, system-ui, sans-serif";
-    if (stepsMap.submitted) ctx.fillText(fmt(stepsMap.submitted), W - padding - 16, avatarY + 28);
+    if (stepsMap.submitted) ctx.fillText(fmtFull(stepsMap.submitted), badgeX + badgeW / 2, badgeY + badgeH + 13);
     ctx.textAlign = "left";
 
-    // Steps
-    const startY = headerH + padding + 8;
+    // Progress bar in header
+    const progY = cardY + headerCardH - 12;
+    const progW = cardW - cardPad * 2;
+    const progPct = Math.min(((currentIdx + 1) / STEPS.length) * 100, 100);
+    ctx.fillStyle = SAND_100;
+    roundRect(ctx, cardX + cardPad, progY, progW, 4, 2);
+    ctx.fill();
+    const progGrad = ctx.createLinearGradient(cardX + cardPad, 0, cardX + cardPad + progW * progPct / 100, 0);
+    progGrad.addColorStop(0, BRAND);
+    progGrad.addColorStop(1, "#40916C");
+    ctx.fillStyle = progGrad;
+    roundRect(ctx, cardX + cardPad, progY, progW * progPct / 100, 4, 2);
+    ctx.fill();
+
+    // Timeline
+    const dotX = padding + 18;
+
     STEPS.forEach((step, i) => {
-      const y = startY + i * stepH;
+      const y = timelineTop + i * stepRowH + 14;
       const date = stepsMap[step.id];
       const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
       const days = date && prevDate ? daysBetween(prevDate, date) : null;
-      const isDone = !!date;
-
-      // Dot
-      const dotX = padding + 16;
-      const dotY = y + 12;
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, 5, 0, Math.PI * 2);
-      ctx.fillStyle = isDone ? "#2D6A4F" : "#D9D7D2";
-      ctx.fill();
+      const isDone = !!date && i <= currentIdx;
+      const isNext = i === currentIdx + 1;
 
       // Connecting line
-      if (i < STEPS.length - 1) {
+      if (i > 0) {
         ctx.beginPath();
-        ctx.moveTo(dotX, dotY + 5);
-        ctx.lineTo(dotX, y + stepH + 7);
-        ctx.strokeStyle = isDone && stepsMap[STEPS[i + 1]?.id] ? "#2D6A4F" : "#E8E6E1";
+        ctx.moveTo(dotX, y - stepRowH + 6);
+        ctx.lineTo(dotX, y - 6);
+        ctx.strokeStyle = isDone ? BRAND : SAND_300;
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
 
-      // Label
-      ctx.fillStyle = isDone ? "#1C1B19" : "#C4C2BB";
-      ctx.font = `${isDone ? "600" : "normal"} 13px -apple-system, system-ui, sans-serif`;
-      ctx.fillText(step.label, dotX + 16, dotY + 4);
-
-      // Date + days
+      // Dot with ring style for done
       if (isDone) {
+        ctx.beginPath();
+        ctx.arc(dotX, y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = BRAND;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(dotX, y, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = WHITE;
+        ctx.fill();
+      } else if (isNext) {
+        ctx.beginPath();
+        ctx.arc(dotX, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = WARN;
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(dotX, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = SAND_300;
+        ctx.fill();
+      }
+
+      // Label
+      ctx.fillStyle = isDone ? SAND_900 : isNext ? WARN : SAND_300;
+      ctx.font = `${isDone ? "600" : "normal"} 13px -apple-system, system-ui, sans-serif`;
+      ctx.textAlign = "left";
+      ctx.fillText(step.label, dotX + 16, y + 4);
+
+      // Right side
+      if (isDone) {
+        const rightEdge = W - padding - 12;
         ctx.textAlign = "right";
-        ctx.fillStyle = "#65635D";
-        ctx.font = "11px -apple-system, system-ui, sans-serif";
-        ctx.fillText(fmt(date!).replace(/, \d{4}/, ""), W - padding - 16, dotY);
-        if (days != null && i > 0) {
-          ctx.fillStyle = "#2D6A4F";
-          ctx.font = "bold 10px -apple-system, system-ui, sans-serif";
-          ctx.fillText(`${days}d`, W - padding - 16, dotY + 14);
-        }
-        ctx.textAlign = "left";
 
         // Checkmark
-        ctx.strokeStyle = "#2D6A4F";
+        ctx.strokeStyle = BRAND;
         ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctx.beginPath();
-        ctx.moveTo(W - padding - 54, dotY - 2);
-        ctx.lineTo(W - padding - 50, dotY + 2);
-        ctx.lineTo(W - padding - 44, dotY - 5);
+        ctx.moveTo(rightEdge - 6, y - 1);
+        ctx.lineTo(rightEdge - 3, y + 2);
+        ctx.lineTo(rightEdge + 3, y - 4);
         ctx.stroke();
+
+        // Date text
+        ctx.fillStyle = SAND_500;
+        ctx.font = "11px -apple-system, system-ui, sans-serif";
+        ctx.fillText(fmt(date!), rightEdge - 14, y + 4);
+
+        // Days badge
+        if (days != null && i > 0) {
+          const badgeText = `${days}d`;
+          ctx.font = "bold 9px -apple-system, system-ui, sans-serif";
+          const tw = ctx.measureText(badgeText).width;
+          const dateTextW = ctx.measureText(fmt(date!)).width;
+          ctx.font = "11px -apple-system, system-ui, sans-serif";
+          const bx = rightEdge - 14 - dateTextW - tw - 14;
+          ctx.fillStyle = BRAND_LIGHT;
+          roundRect(ctx, bx, y - 8, tw + 8, 16, 4);
+          ctx.fill();
+          ctx.fillStyle = BRAND;
+          ctx.font = "bold 9px -apple-system, system-ui, sans-serif";
+          ctx.fillText(badgeText, bx + tw + 4, y + 3);
+        }
+
+        ctx.textAlign = "left";
       }
     });
 
-    // Footer branding
-    const footerY = H - footerH + 5;
-    ctx.fillStyle = "#C4C2BB";
-    ctx.font = "10px -apple-system, system-ui, sans-serif";
+    // Footer divider + branding
+    const fY = H - footerH;
+    ctx.beginPath();
+    ctx.moveTo(padding + 60, fY);
+    ctx.lineTo(W - padding - 60, fY);
+    ctx.strokeStyle = SAND_300;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    ctx.fillStyle = SAND_500;
+    ctx.font = "9px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("SponsorTrack · tracker-lime-five.vercel.app", W / 2, footerY + 16);
-    ctx.fillText(`Generated ${fmt(today)}`, W / 2, footerY + 30);
+    ctx.fillText("SponsorTrack · tracker-lime-five.vercel.app", W / 2, fY + 18);
 
     // Export
     canvas.toBlob((blob) => {
-      if (!blob) return;
+      if (!blob) { setExporting(false); return; }
       const file = new File([blob], `sponsortrack-${app.initials}.png`, { type: "image/png" });
-
-      // Try native share (works on mobile)
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        navigator.share({ files: [file], title: "My SponsorTrack Timeline" }).catch(() => {});
+        navigator.share({ files: [file], title: "My SponsorTrack Timeline" }).catch(() => {}).finally(() => setExporting(false));
       } else {
-        // Fallback: download
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
         a.download = `sponsortrack-${app.initials}.png`;
         a.click();
         URL.revokeObjectURL(url);
+        setExporting(false);
       }
     }, "image/png");
   }, [app]);
@@ -165,14 +262,15 @@ export function TimelineExport({ app }: { app: Application }) {
   return (
     <button
       onClick={handleExport}
-      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sand-100 text-sand-700 text-xs font-medium hover:bg-sand-200 transition-colors w-full justify-center active:scale-[0.98]"
+      disabled={exporting}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sand-100 text-sand-600 text-[10px] font-medium hover:bg-sand-200 transition-colors active:scale-[0.97] disabled:opacity-50"
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-        <circle cx="8.5" cy="8.5" r="1.5"/>
-        <path d="M21 15L16 10L5 21"/>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15V19C21 20.1 19.9 21 19 21H5C3.9 21 3 20.1 3 19V15"/>
+        <path d="M7 10L12 15L17 10"/>
+        <path d="M12 15V3"/>
       </svg>
-      Save Timeline as Image
+      {exporting ? "..." : "Export"}
     </button>
   );
 }

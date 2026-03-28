@@ -209,7 +209,10 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
       {/* 5. Step timeline */}
       <div className="mb-4">
-        <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Your Timeline</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your Timeline</div>
+          <TimelineExport app={app} />
+        </div>
         <div className="space-y-1">
           {STEPS.map((step, i) => {
             const date = stepsMap[step.id];
@@ -317,10 +320,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
         <div>
           <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Share Timeline</div>
-          <div className="space-y-2">
-            <TimelineExport app={app} />
-            <ShareButtons app={app} />
-          </div>
+          <ShareButtons app={app} />
         </div>
       </div>
     </div>
