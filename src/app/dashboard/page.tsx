@@ -382,12 +382,12 @@ export default function DashboardPage() {
 
       {/* Sticky AOR mini-bar — appears when tracker scrolls out of view */}
       {showStickyAor && aorMini && (
-        <div className="fixed top-0 left-0 right-0 z-50 animate-in" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="fixed top-12 left-0 right-0 z-40 animate-in">
           <div
-            className={`mx-auto max-w-lg px-4 py-2 flex items-center justify-between backdrop-blur-lg border-b ${
+            className={`mx-auto max-w-5xl px-4 py-2.5 flex items-center justify-between backdrop-blur-xl border-b shadow-sm ${
               aorMini.isToday
-                ? "bg-brand-50/90 border-brand-200"
-                : "bg-white/90 border-sand-200"
+                ? "bg-brand-50/95 border-brand-200"
+                : "bg-white/95 border-sand-200"
             }`}
             onClick={() => {
               const el = aorTrackerRef.current;
