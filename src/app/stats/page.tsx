@@ -10,6 +10,7 @@ import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 import { AORProgress } from "@/components/AORProgress";
+import { CountryBreakdown } from "@/components/CountryBreakdown";
 import { StatsSkeleton } from "@/components/Skeletons";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { DigestImageExport } from "@/components/DigestImageExport";
@@ -143,6 +144,9 @@ export default function StatsPage() {
 
       {/* AOR Progress */}
       <AORProgress apps={apps} />
+
+      {/* Country Breakdown */}
+      <CountryBreakdown apps={apps} />
 
       {/* Community per-step averages */}
       <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
