@@ -6,13 +6,6 @@ import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const BLACK = "#1C1B19";
-const GREY = "#65635D";
-const LIGHT = "#A8A69E";
-const LINE = "#E0DED9";
-const GREEN = "#2D6A4F";
-const GOLD = "#9B7420";
-const WHITE = "#FFFFFF";
 
 export function DigestImageExport({ apps, period }: { apps: Application[]; period: string }) {
   const [exporting, setExporting] = useState(false);
@@ -22,7 +15,7 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     const dpr = Math.min(window.devicePixelRatio || 2, 3);
     const W = 390;
     const H = 693;
-    const pad = 32;
+    const pad = 28;
     const inner = W - pad * 2;
 
     const cutoff = Date.now() - parseInt(period) * 24 * 60 * 60 * 1000;
@@ -31,11 +24,17 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     const inlandApps = apps.filter(a => a.stream === "Inland");
 
     const outlandAorDays: number[] = [];
-    outlandApps.forEach(a => { const s = buildStepsMap(a.step_events || []); if (s.submitted && s.aor) outlandAorDays.push(daysBetween(s.submitted, s.aor)); });
+    outlandApps.forEach(a => {
+      const s = buildStepsMap(a.step_events || []);
+      if (s.submitted && s.aor) outlandAorDays.push(daysBetween(s.submitted, s.aor));
+    });
     const avgOutland = outlandAorDays.length ? Math.round(outlandAorDays.reduce((a, b) => a + b, 0) / outlandAorDays.length) : null;
 
     const inlandAorDays: number[] = [];
-    inlandApps.forEach(a => { const s = buildStepsMap(a.step_events || []); if (s.submitted && s.aor) inlandAorDays.push(daysBetween(s.submitted, s.aor)); });
+    inlandApps.forEach(a => {
+      const s = buildStepsMap(a.step_events || []);
+      if (s.submitted && s.aor) inlandAorDays.push(daysBetween(s.submitted, s.aor));
+    });
     const avgInland = inlandAorDays.length ? Math.round(inlandAorDays.reduce((a, b) => a + b, 0) / inlandAorDays.length) : null;
 
     const milestones: Record<string, number> = {};
@@ -61,141 +60,120 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     const ctx = canvas.getContext("2d")!;
     ctx.scale(dpr, dpr);
 
-    // White background
-    ctx.fillStyle = WHITE;
+    // ── Background ──
+    ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, W, H);
 
-    // Top green accent bar
-    ctx.fillStyle = GREEN;
+    // ── Top accent bar ──
+    ctx.fillStyle = "#2D6A4F";
     ctx.fillRect(0, 0, W, 5);
 
-    let y = 32;
-
-    // Header row: brand + date
-    ctx.fillStyle = GREEN;
+    // ── Header ──
+    let y = 28;
+    ctx.fillStyle = "#2D6A4F";
     ctx.font = "700 10px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText("SPONSORTRACK WEEKLY", pad, y);
-    ctx.fillStyle = LIGHT;
+    ctx.fillStyle = "#A8A69E";
     ctx.font = "400 10px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "right";
     ctx.fillText(dateStr.toUpperCase(), W - pad, y);
 
-    // Thick rule
+    // ── Thick rule ──
     y += 10;
-    ctx.fillStyle = BLACK;
+    ctx.fillStyle = "#1C1B19";
     ctx.fillRect(pad, y, inner, 2);
 
-    // Hero AOR number
+    // ── Hero number ──
     y += 50;
-    ctx.fillStyle = BLACK;
-    ctx.font = "bold 64px Georgia, 'Times New Roman', serif";
+    ctx.fillStyle = "#1C1B19";
+    ctx.font = "bold 56px Georgia, serif";
     ctx.textAlign = "center";
     ctx.fillText(`${aorCount}`, W / 2, y);
-
-    // Subtitle
     y += 22;
-    ctx.fillStyle = GREY;
+    ctx.fillStyle = "#65635D";
     ctx.font = "300 13px -apple-system, system-ui, sans-serif";
     ctx.fillText("acknowledgements of receipt", W / 2, y);
 
-    // Double rule
+    // ── Double rule ──
     y += 16;
-    ctx.fillStyle = BLACK;
-    ctx.fillRect(pad + 60, y, inner - 120, 1.5);
-    ctx.fillRect(pad + 60, y + 4, inner - 120, 0.5);
+    ctx.fillStyle = "#1C1B19";
+    ctx.fillRect(pad + 50, y, inner - 100, 1.5);
+    ctx.fillRect(pad + 50, y + 3, inner - 100, 0.5);
 
-    // Three stats
-    y += 28;
+    // ── Three stats ──
+    y += 26;
     const statW = inner / 3;
-    const statsData = [
+    const cStats = [
       { val: `${apps.length}`, label: "TRACKED" },
       { val: `${totalWithAor}`, label: "GOT AOR" },
       { val: `${totalWaiting}`, label: "WAITING" },
     ];
-    statsData.forEach((s, i) => {
+    cStats.forEach((s, i) => {
       const cx = pad + statW * i + statW / 2;
-      ctx.fillStyle = BLACK;
-      ctx.font = "bold 24px Georgia, 'Times New Roman', serif";
+      ctx.fillStyle = "#1C1B19";
+      ctx.font = "bold 22px Georgia, serif";
       ctx.textAlign = "center";
-      ctx.fillText(s.val, cx, y);
-      ctx.fillStyle = LIGHT;
+      ctx.fillText(s.val, cx, y + 16);
+      ctx.fillStyle = "#A8A69E";
       ctx.font = "600 7px -apple-system, system-ui, sans-serif";
-      ctx.fillText(s.label, cx, y + 14);
+      ctx.fillText(s.label, cx, y + 28);
       if (i < 2) {
-        ctx.fillStyle = LINE;
-        ctx.fillRect(pad + statW * (i + 1), y - 16, 1, 28);
+        ctx.fillStyle = "#E8E6E1";
+        ctx.fillRect(pad + statW * (i + 1) - 0.5, y + 2, 1, 26);
       }
     });
 
-    // Thin rule
-    y += 28;
-    ctx.fillStyle = LINE;
+    // ── Outland section ──
+    y += 48;
+    drawStream(ctx, pad, y, inner, "OUTLAND", "#2D6A4F", outlandApps.length, avgOutland, outlandAorDays.length);
+
+    // ── Inland section ──
+    y += 68;
+    drawStream(ctx, pad, y, inner, "INLAND", "#9B7420", inlandApps.length, avgInland, inlandAorDays.length);
+
+    // ── Milestones ──
+    y += 74;
+    ctx.fillStyle = "#E8E6E1";
     ctx.fillRect(pad, y, inner, 1);
+    y += 16;
+    ctx.fillStyle = "#1C1B19";
+    ctx.font = "700 8px -apple-system, system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("OTHER MILESTONES", pad, y);
+    y += 16;
 
-    // ===== OUTLAND =====
-    y += 20;
-    drawEditorialStream(ctx, pad, y, inner, "OUTLAND", GREEN, outlandApps.length, avgOutland, outlandAorDays.length);
-
-    // Thin rule
-    y += 66;
-    ctx.fillStyle = LINE;
-    ctx.fillRect(pad, y, inner, 1);
-
-    // ===== INLAND =====
-    y += 20;
-    drawEditorialStream(ctx, pad, y, inner, "INLAND", GOLD, inlandApps.length, avgInland, inlandAorDays.length);
-
-    // Thin rule
-    y += 66;
-    ctx.fillStyle = LINE;
-    ctx.fillRect(pad, y, inner, 1);
-
-    // ===== MILESTONES =====
-    if (nonAor.length > 0) {
-      y += 20;
-      ctx.fillStyle = BLACK;
-      ctx.font = "700 9px -apple-system, system-ui, sans-serif";
+    nonAor.forEach(([step, count]) => {
+      ctx.fillStyle = "#2D6A4F";
+      ctx.font = "bold 15px Georgia, serif";
       ctx.textAlign = "left";
-      ctx.fillText("OTHER MILESTONES", pad, y);
+      ctx.fillText(`${count}`, pad, y + 2);
 
-      y += 8;
-      nonAor.forEach(([step, count]) => {
-        y += 20;
-        // Number
-        ctx.fillStyle = GREEN;
-        ctx.font = "bold 16px Georgia, 'Times New Roman', serif";
-        ctx.textAlign = "left";
-        ctx.fillText(`${count}`, pad, y);
+      ctx.fillStyle = "#C4C2BB";
+      ctx.beginPath();
+      ctx.arc(pad + 24, y - 2, 1.5, 0, Math.PI * 2);
+      ctx.fill();
 
-        // Dot
-        const numW = ctx.measureText(`${count}`).width;
-        ctx.fillStyle = LINE;
-        ctx.beginPath();
-        ctx.arc(pad + numW + 8, y - 4, 1.5, 0, Math.PI * 2);
-        ctx.fill();
+      ctx.fillStyle = "#65635D";
+      ctx.font = "13px -apple-system, system-ui, sans-serif";
+      ctx.fillText(step, pad + 32, y + 2);
+      y += 24;
+    });
 
-        // Step name
-        ctx.fillStyle = GREY;
-        ctx.font = "13px -apple-system, system-ui, sans-serif";
-        ctx.fillText(step, pad + numW + 14, y);
-      });
-    }
-
-    // ===== FOOTER =====
-    ctx.fillStyle = BLACK;
-    ctx.fillRect(pad, H - 36, inner, 1);
-    ctx.fillStyle = LIGHT;
+    // ── Footer ──
+    ctx.fillStyle = "#1C1B19";
+    ctx.fillRect(pad, H - 28, inner, 1);
+    ctx.fillStyle = "#A8A69E";
     ctx.font = "600 7px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("TRACKER-LIME-FIVE.VERCEL.APP", W / 2, H - 20);
+    ctx.fillText("TRACKER-LIME-FIVE.VERCEL.APP", W / 2, H - 14);
 
-    // Export
+    // ── Export ──
     canvas.toBlob((blob) => {
       if (!blob) { setExporting(false); return; }
       const file = new File([blob], "sponsortrack-digest.png", { type: "image/png" });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        navigator.share({ files: [file], title: "SponsorTrack Weekly Digest" }).catch(() => {}).finally(() => setExporting(false));
+        navigator.share({ files: [file], title: "SponsorTrack Weekly" }).catch(() => {}).finally(() => setExporting(false));
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -224,54 +202,48 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
   );
 }
 
-function drawEditorialStream(
-  ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number,
-  label: string, color: string,
-  entries: number, avgDays: number | null, aorCount: number
-) {
+function drawStream(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
+  label: string, color: string, entries: number, avgDays: number | null, aorCount: number) {
+
   // Color accent bar
   ctx.fillStyle = color;
-  ctx.fillRect(x, y - 2, 3, 50);
+  ctx.fillRect(x, y, 3, 56);
 
-  // Label + entries
-  ctx.fillStyle = BLACK;
-  ctx.font = "700 10px -apple-system, system-ui, sans-serif";
+  // Label
+  ctx.fillStyle = "#1C1B19";
+  ctx.font = "700 9px -apple-system, system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(label, x + 14, y + 8);
-  ctx.fillStyle = LIGHT;
-  ctx.font = "400 10px -apple-system, system-ui, sans-serif";
-  const labelW = ctx.measureText(label).width;
-  ctx.font = "700 10px -apple-system, system-ui, sans-serif";
-  const labelWBold = ctx.measureText(label).width;
-  ctx.font = "400 10px -apple-system, system-ui, sans-serif";
-  ctx.fillText(`${entries} entries`, x + 14 + labelWBold + 8, y + 8);
+  ctx.fillText(label, x + 12, y + 12);
 
-  // Avg days (left)
+  // Entry count
+  ctx.fillStyle = "#A8A69E";
+  ctx.font = "400 9px -apple-system, system-ui, sans-serif";
+  const labelW = ctx.measureText(label).width;
+  ctx.font = "700 9px -apple-system, system-ui, sans-serif";
+  const labelW2 = ctx.measureText(label).width;
+  ctx.font = "400 9px -apple-system, system-ui, sans-serif";
+  ctx.fillText(`${entries} entries`, x + 12 + labelW2 + 8, y + 12);
+
+  // Avg days — left
   if (avgDays) {
     ctx.fillStyle = color;
-    ctx.font = "bold 32px Georgia, 'Times New Roman', serif";
+    ctx.font = "bold 30px Georgia, serif";
     ctx.textAlign = "left";
-    ctx.fillText(`${avgDays}`, x + 14, y + 44);
+    ctx.fillText(`${avgDays}`, x + 12, y + 48);
     const numW = ctx.measureText(`${avgDays}`).width;
-    ctx.fillStyle = LIGHT;
-    ctx.font = "10px -apple-system, system-ui, sans-serif";
-    ctx.fillText("days avg", x + 14 + numW + 6, y + 44);
-  } else {
-    ctx.fillStyle = LIGHT;
-    ctx.font = "12px -apple-system, system-ui, sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText("No AOR data", x + 14, y + 44);
+    ctx.fillStyle = "#A8A69E";
+    ctx.font = "400 10px -apple-system, system-ui, sans-serif";
+    ctx.fillText("days avg to AOR", x + 12 + numW + 6, y + 48);
   }
 
-  // AOR count (right)
+  // AOR count — right
   ctx.textAlign = "right";
   ctx.fillStyle = color;
-  ctx.font = "bold 32px Georgia, 'Times New Roman', serif";
-  ctx.fillText(`${aorCount}`, x + w, y + 44);
+  ctx.font = "bold 30px Georgia, serif";
+  ctx.fillText(`${aorCount}`, x + w, y + 48);
   const aorNumW = ctx.measureText(`${aorCount}`).width;
-  ctx.fillStyle = LIGHT;
-  ctx.font = "10px -apple-system, system-ui, sans-serif";
-  ctx.fillText("with AOR", x + w - aorNumW - 6, y + 44);
+  ctx.fillStyle = "#A8A69E";
+  ctx.font = "400 10px -apple-system, system-ui, sans-serif";
+  ctx.fillText("with AOR", x + w - aorNumW - 6, y + 48);
   ctx.textAlign = "left";
 }
