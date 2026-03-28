@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo } from "react";
 import { Application } from "@/lib/types";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
@@ -12,8 +12,6 @@ function fmtDate(d: string) {
 }
 
 export function AORWaveTracker({ apps }: { apps: Application[] }) {
-  const tickerRef = useRef<HTMLDivElement>(null);
-
   const wave = useMemo(() => {
     const now = Date.now();
 
@@ -73,49 +71,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     };
   }, [apps]);
 
-  // Auto-scroll ticker with CSS transform (GPU accelerated, buttery on iOS)
-  useEffect(() => {
-    const el = tickerRef.current;
-    if (!el || !wave || wave.tickerAors.length < 2) return;
-
-    // Create an inner wrapper for transform
-    const inner = el.querySelector('[data-ticker-inner]') as HTMLElement | null;
-    if (!inner) return;
-
-    const totalWidth = inner.scrollWidth / 2; // half because we duplicate cards
-    if (totalWidth <= el.clientWidth) return;
-
-    let pos = 0;
-    const speed = 0.3;
-    let animId: number;
-    let paused = false;
-
-    inner.style.willChange = "transform";
-
-    const animate = () => {
-      if (!paused) {
-        pos += speed;
-        if (pos >= totalWidth) pos = 0;
-        inner.style.transform = `translateX(-${pos}px)`;
-      }
-      animId = requestAnimationFrame(animate);
-    };
-
-    const timeout = setTimeout(() => { animId = requestAnimationFrame(animate); }, 1500);
-
-    const pause = () => { paused = true; };
-    const resume = () => { paused = false; };
-    el.addEventListener("touchstart", pause, { passive: true });
-    el.addEventListener("touchend", resume, { passive: true });
-
-    return () => {
-      clearTimeout(timeout);
-      cancelAnimationFrame(animId);
-      inner.style.willChange = "";
-      el.removeEventListener("touchstart", pause);
-      el.removeEventListener("touchend", resume);
-    };
-  }, [wave]);
+  // No JS ticker needed — using pure CSS animation now
 
   if (!wave) return null;
 
@@ -179,8 +135,8 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
           <div className="text-[9px] text-sand-400 mb-1.5">
             {wave.isToday ? "Received today" : `Last wave — ${fmtDate(wave.waveDate)}`}
           </div>
-          <div ref={tickerRef} className="overflow-hidden">
-            <div data-ticker-inner="" className="flex gap-3 w-max">
+          <div className="overflow-hidden">
+            <div className="flex gap-3 w-max ticker-marquee">
               {[...wave.tickerAors, ...wave.tickerAors].map((a, i) => (
               <div key={i} className="flex-shrink-0 w-[55vw] max-w-[220px] flex items-center gap-3 bg-white/80 rounded-xl px-3 py-2.5 border border-sand-100">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${

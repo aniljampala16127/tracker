@@ -97,3 +97,22 @@ a, button { touch-action: manipulation; }
   from { opacity: 0.3; transform: translateX(-8px); }
   to { opacity: 1; transform: translateX(0); }
 }
+
+/* AOR ticker marquee — pure CSS, GPU accelerated */
+.ticker-marquee {
+  animation: ticker-scroll 25s linear infinite;
+  will-change: transform;
+}
+.ticker-marquee:hover,
+.ticker-marquee:active {
+  animation-play-state: paused;
+}
+@media (pointer: coarse) {
+  .ticker-marquee:active {
+    animation-play-state: paused;
+  }
+}
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
