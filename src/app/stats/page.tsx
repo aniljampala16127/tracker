@@ -404,27 +404,47 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     });
     const avgInlandAor = inlandAorDays.length ? Math.round(inlandAorDays.reduce((a, b) => a + b, 0) / inlandAorDays.length) : null;
 
-    // Latest AOR date per stream (with their submission date)
+    // Latest AOR date per stream — find range of submission dates for that AOR date
     let latestOutlandAor = "";
-    let latestOutlandSub = "";
+    let outlandSubEarly = "9999";
+    let outlandSubLate = "";
     let latestInlandAor = "";
-    let latestInlandSub = "";
+    let inlandSubEarly = "9999";
+    let inlandSubLate = "";
     apps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
-      if (!s.aor) return;
-      if (a.stream === "Outland" && (!latestOutlandAor || s.aor > latestOutlandAor)) {
-        latestOutlandAor = s.aor;
-        latestOutlandSub = s.submitted || "";
+      if (!s.aor || !s.submitted) return;
+      if (a.stream === "Outland") {
+        if (!latestOutlandAor || s.aor > latestOutlandAor) {
+          latestOutlandAor = s.aor;
+          outlandSubEarly = s.submitted;
+          outlandSubLate = s.submitted;
+        } else if (s.aor === latestOutlandAor) {
+          if (s.submitted < outlandSubEarly) outlandSubEarly = s.submitted;
+          if (s.submitted > outlandSubLate) outlandSubLate = s.submitted;
+        }
       }
-      if (a.stream === "Inland" && (!latestInlandAor || s.aor > latestInlandAor)) {
-        latestInlandAor = s.aor;
-        latestInlandSub = s.submitted || "";
+      if (a.stream === "Inland") {
+        if (!latestInlandAor || s.aor > latestInlandAor) {
+          latestInlandAor = s.aor;
+          inlandSubEarly = s.submitted;
+          inlandSubLate = s.submitted;
+        } else if (s.aor === latestInlandAor) {
+          if (s.submitted < inlandSubEarly) inlandSubEarly = s.submitted;
+          if (s.submitted > inlandSubLate) inlandSubLate = s.submitted;
+        }
       }
     });
 
     const fmtDate = (dateStr: string) => {
       const d = new Date(dateStr + "T00:00:00");
       return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    };
+
+    const fmtSubRange = (early: string, late: string) => {
+      if (!early || early === "9999") return "";
+      if (early === late) return ` (submitted ${fmtDate(early)})`;
+      return ` (submitted ${fmtDate(early)} – ${fmtDate(late)})`;
     };
 
     const periodLabel = period === "7" ? "This Week" : period === "14" ? "Last 2 Weeks" : "This Month";
@@ -436,7 +456,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     msg += `*Outland AOR Updates*\n`;
     if (avgOutlandAor) msg += `Avg days to AOR: ${avgOutlandAor}d (${outlandAorDays.length} reported)\n`;
     if (latestOutlandAor) {
-      msg += `Latest AOR: ${fmtDate(latestOutlandAor)}${latestOutlandSub ? ` (submitted ${fmtDate(latestOutlandSub)})` : ""}\n`;
+      msg += `Latest AOR: ${fmtDate(latestOutlandAor)}${fmtSubRange(outlandSubEarly, outlandSubLate)}\n`;
     } else {
       msg += `No AORs reported yet\n`;
     }
@@ -446,7 +466,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     msg += `*Inland AOR Updates*\n`;
     if (avgInlandAor) msg += `Avg days to AOR: ${avgInlandAor}d (${inlandAorDays.length} reported)\n`;
     if (latestInlandAor) {
-      msg += `Latest AOR: ${fmtDate(latestInlandAor)}${latestInlandSub ? ` (submitted ${fmtDate(latestInlandSub)})` : ""}\n`;
+      msg += `Latest AOR: ${fmtDate(latestInlandAor)}${fmtSubRange(inlandSubEarly, inlandSubLate)}\n`;
     } else {
       msg += `No AORs reported yet\n`;
     }
