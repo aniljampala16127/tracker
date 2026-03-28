@@ -77,8 +77,9 @@ export function CountryBreakdown({ apps }: { apps: Application[] }) {
             {/* Country header */}
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-sand-900">{d.country}</span>
+                <a href={`/country/${d.country.toLowerCase().replace(/\s+/g, "-")}`} className="text-xs font-semibold text-brand-600 hover:underline">{d.country}</a>
                 <span className="text-[9px] text-sand-400">{d.totalEntries} entries · {d.totalAor} AOR</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#A8A69E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="M9 18L15 12L9 6"/></svg>
               </div>
             </div>
 
