@@ -170,22 +170,24 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
           <div className="text-[9px] text-sand-400 mb-1.5">
             {wave.isToday ? "Received today" : `Last wave — ${fmtDate(wave.waveDate)}`}
           </div>
-          <div ref={tickerRef} className="flex gap-2 overflow-x-auto hide-scrollbar">
+          <div ref={tickerRef} className="flex gap-3 overflow-x-auto hide-scrollbar">
             {wave.tickerAors.map((a, i) => (
-              <div key={i} className="flex-shrink-0 flex items-center gap-2 bg-white/80 rounded-lg px-2.5 py-1.5 border border-sand-100">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${
+              <div key={i} className="flex-shrink-0 min-w-[200px] flex items-center gap-3 bg-white/80 rounded-xl px-3 py-2.5 border border-sand-100">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${
                   a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
                 }`}>
                   {a.initials.slice(0, 2)}
                 </div>
-                <div className="text-[10px] leading-tight">
-                  <span className="font-semibold text-sand-900">{a.initials}</span>
-                  <span className={`ml-1 px-1 py-px rounded text-[8px] font-semibold ${
-                    a.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
-                  }`}>{a.stream}</span>
-                  <div className="text-sand-400">Sub {fmtDate(a.subDate)}</div>
+                <div className="text-[11px] leading-snug flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-sand-900">{a.initials}</span>
+                    <span className={`px-1.5 py-px rounded text-[8px] font-semibold ${
+                      a.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
+                    }`}>{a.stream}</span>
+                  </div>
+                  <div className="text-sand-400 mt-0.5">Sub {fmtDate(a.subDate)}</div>
                 </div>
-                <span className="text-[10px] font-bold text-brand-600">{a.days}d</span>
+                <span className="text-xs font-bold text-brand-600">{a.days}d</span>
               </div>
             ))}
           </div>
