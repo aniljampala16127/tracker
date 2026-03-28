@@ -157,6 +157,7 @@ export default function DashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }, [myEntry]);
 
+  const myEntryRef = useRef<HTMLElement>(null);
   const hasScrolled = useRef(false);
 
   // Auto-select user's month on first load, fall back to latest month
@@ -174,9 +175,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!myEntry || selectedMonth !== myEntryMonth || hasScrolled.current) return;
     const tryScroll = () => {
-      const el = document.querySelector('[data-my-entry="true"]') as HTMLElement | null;
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (myEntryRef.current) {
+        myEntryRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
         hasScrolled.current = true;
       }
     };
@@ -381,14 +381,15 @@ export default function DashboardPage() {
                 const statusLabel = app.is_complete ? "eCoPR \u2713" : nextStepLabel ? `Waiting for ${nextStepLabel}` : "Submitted";
                 const statusDone = app.is_complete;
                 const isOwner = !!app.pin_hash && getSavedPinHash(app.id) === app.pin_hash;
+                const isMe = myEntry?.id === app.id;
 
                 return (
                   <div
                     key={app.id}
-                    data-my-entry={isOwner ? "true" : undefined}
+                    ref={isMe ? myEntryRef as React.Ref<HTMLDivElement> : undefined}
                     onClick={() => handleRowClick(app)}
                     className={`flex items-center gap-3 px-4 py-3 border-b cursor-pointer transition-colors ${
-                      isOwner
+                      isMe
                         ? "border-brand-400 bg-brand-50 border-l-4 border-l-brand-500"
                         : "border-sand-100 active:bg-brand-50/30"
                     }`}
@@ -407,7 +408,7 @@ export default function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-sand-900">{app.initials}</span>
-                        {isOwner && (
+                        {isMe && (
                           <span className="text-[8px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none">YOU</span>
                         )}
                         <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold ${
@@ -470,21 +471,22 @@ export default function DashboardPage() {
                       const stepsMap = buildStepsMap(app.step_events || []);
                       const hasPin = !!app.pin_hash;
                       const isOwner = hasPin && getSavedPinHash(app.id) === app.pin_hash;
+                      const isMe = myEntry?.id === app.id;
                       return (
                         <tr key={app.id}
-                          data-my-entry={isOwner ? "true" : undefined}
+                          ref={isMe ? myEntryRef as React.Ref<HTMLTableRowElement> : undefined}
                           className={`border-t cursor-pointer transition-colors ${
-                            isOwner
+                            isMe
                               ? "border-brand-400 bg-brand-50"
                               : "border-sand-100 hover:bg-brand-50/30"
                           }`}
-                          style={isOwner ? { boxShadow: "inset 3px 0 0 #2D6A4F" } : undefined}
+                          style={isMe ? { boxShadow: "inset 3px 0 0 #2D6A4F" } : undefined}
                           onClick={() => handleRowClick(app)}
                         >
-                          <td className={`px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 ${isOwner ? "bg-brand-50" : "bg-white"}`}>
+                          <td className={`px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 ${isMe ? "bg-brand-50" : "bg-white"}`}>
                             <span className="flex items-center gap-1.5">
                               {app.initials}
-                              {isOwner && (
+                              {isMe && (
                                 <span className="text-[8px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none">YOU</span>
                               )}
                               <ReactionsBadge applicationId={app.id} />
