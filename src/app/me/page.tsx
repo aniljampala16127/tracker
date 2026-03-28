@@ -6,12 +6,10 @@ import { Application, StepId } from "@/lib/types";
 import { STEPS, getStepIndex } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
-import { InsightsPanel } from "@/components/InsightsPanel";
 import { ShareButtons } from "@/components/ShareButtons";
 import { Reactions } from "@/components/Reactions";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
-import { WeeklyRankChange } from "@/components/WeeklyRankChange";
 import { AORCountdown } from "@/components/AORCountdown";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { playMilestoneSound } from "@/lib/sounds";
@@ -127,8 +125,6 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   // Days since submitted
   const today = new Date().toISOString().split("T")[0];
   const daysSoFar = submittedDate ? daysBetween(submittedDate, today) : 0;
-  const irccDays = app.stream === "Outland" ? 456 : 639;
-  const pct = Math.min(Math.round((daysSoFar / irccDays) * 100), 100);
 
   // WhatsApp self-reminder
   const reminderText = aorPrediction
@@ -140,56 +136,34 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
     <div className="bg-white border border-sand-200 rounded-2xl p-5 mb-5">
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      {/* Header */}
+      {/* 1. Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="w-12 h-12 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-lg">
           {app.initials.slice(0, 2).toUpperCase()}
         </div>
-        <div>
+        <div className="flex-1">
           <h2 className="text-lg font-bold text-sand-900">{app.initials}</h2>
           <p className="text-xs text-sand-500">
             {app.country_origin} · {app.sponsor_status} · {app.stream}
             {app.visa_country && ` · ${app.visa_country}`}
           </p>
         </div>
+        <div className="text-right">
+          <div className="text-xs font-bold text-brand-600">Day {daysSoFar}</div>
+          <div className="text-[9px] text-sand-400">{submittedDate ? formatNice(submittedDate) : "—"}</div>
+        </div>
       </div>
 
-      {/* AOR Countdown */}
+      {/* 2. AOR Countdown */}
       <AORCountdown app={app} allApps={allApps} />
 
-      {/* Progress bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Progress</span>
-            <WeeklyRankChange app={app} allApps={allApps} />
-          </div>
-          <span className="text-xs font-bold text-brand-600">Day {daysSoFar}</span>
-        </div>
-        <div className="bg-sand-200 rounded-full h-3 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-full transition-all duration-1000"
-            style={{ width: `${Math.max(pct, 3)}%` }}
-          />
-        </div>
-        <div className="mt-1">
-          <span className="text-[9px] text-sand-400">Submitted {submittedDate ? formatNice(submittedDate) : "—"}</span>
-        </div>
-      </div>
-
-      {/* Queue Position Runway */}
+      {/* 3. Queue Position */}
       <PositionRunway app={app} allApps={allApps} />
 
-      {/* Daily Pulse */}
-      <DailyPulse app={app} allApps={allApps} />
-
-      {/* Insights */}
-      <InsightsPanel app={app} allApps={allApps} />
-
-      {/* Achievement Badges */}
+      {/* 4. Achievement Badges */}
       <AchievementBadges app={app} />
 
-      {/* Step timeline */}
+      {/* 5. Step timeline */}
       <div className="mb-4">
         <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Your Timeline</div>
         <div className="space-y-1">
@@ -306,101 +280,4 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   );
 }
 
-// ============================================
-// Daily Pulse — changes every day to create return habit
-// ============================================
-function DailyPulse({ app, allApps }: { app: Application; allApps: Application[] }) {
-  const stepsMap = buildStepsMap(app.step_events || []);
-  const submittedDate = stepsMap.submitted;
-  if (!submittedDate) return null;
-
-  const now = Date.now();
-  const today = new Date().toISOString().split("T")[0];
-
-  // Same stream apps
-  const streamApps = allApps.filter(a => a.stream === app.stream);
-
-  // AORs received in last 7 days (same stream)
-  const recentAors = streamApps.filter(a => {
-    const ev = (a.step_events || []).find(e => e.step_id === "aor");
-    if (!ev) return false;
-    return now - new Date(ev.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
-  });
-
-  // AORs today
-  const todayAors = streamApps.filter(a => {
-    const ev = (a.step_events || []).find(e => e.step_id === "aor");
-    if (!ev) return false;
-    return ev.event_date === today || ev.created_at.startsWith(today);
-  });
-
-  // New entries this week
-  const newThisWeek = allApps.filter(a => now - new Date(a.created_at).getTime() < 7 * 24 * 60 * 60 * 1000);
-
-  // Same week cohort progress
-  const subDate = new Date(submittedDate + "T00:00:00");
-  const cohort = allApps.filter(a => {
-    if (a.id === app.id) return false;
-    const s = buildStepsMap(a.step_events || []);
-    if (!s.submitted) return false;
-    return Math.abs(new Date(s.submitted + "T00:00:00").getTime() - subDate.getTime()) < 7 * 24 * 60 * 60 * 1000;
-  });
-  const cohortWithAor = cohort.filter(a => a.step_events?.some(e => e.step_id === "aor"));
-
-  // Days until predicted AOR
-  const aorDays: number[] = [];
-  streamApps.forEach(a => {
-    const s = buildStepsMap(a.step_events || []);
-    if (s.submitted && s.aor) aorDays.push(daysBetween(s.submitted, s.aor));
-  });
-  const avgAor = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
-  const daysSoFar = daysBetween(submittedDate, today);
-  const daysUntilAor = avgAor ? avgAor - daysSoFar : null;
-  const hasAor = !!stepsMap.aor;
-
-  // Build pulse items
-  const items: { icon: string; text: string; color: string }[] = [];
-
-  if (todayAors.length > 0) {
-    items.push({ icon: "M13 2L3 14H12L11 22L21 10H12L13 2Z", text: `${todayAors.length} ${app.stream} AOR${todayAors.length > 1 ? "s" : ""} received today!`, color: "text-brand-600" });
-  } else if (recentAors.length > 0) {
-    items.push({ icon: "M13 2L3 14H12L11 22L21 10H12L13 2Z", text: `${recentAors.length} ${app.stream} AOR${recentAors.length > 1 ? "s" : ""} this week`, color: "text-brand-600" });
-  }
-
-  if (!hasAor && daysUntilAor != null && daysUntilAor > 0) {
-    items.push({ icon: "M12 6V12L16 14", text: `~${daysUntilAor} days until your predicted AOR`, color: "text-warn-dark" });
-  } else if (!hasAor && daysUntilAor != null && daysUntilAor <= 0) {
-    items.push({ icon: "M12 6V12L16 14", text: `Your AOR could arrive any day now!`, color: "text-brand-600" });
-  }
-
-  if (cohortWithAor.length > 0) {
-    items.push({ icon: "M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21", text: `${cohortWithAor.length} of ${cohort.length} in your cohort have AOR`, color: "text-sand-700" });
-  }
-
-  if (newThisWeek.length > 0) {
-    items.push({ icon: "M12 5V19M5 12H19", text: `${newThisWeek.length} new entries joined this week`, color: "text-sand-600" });
-  }
-
-  if (items.length === 0) return null;
-
-  return (
-    <div className="bg-gradient-to-r from-brand-50 to-warn-light rounded-xl p-3.5 mb-4 border border-brand-200/30">
-      <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-        Today&apos;s Pulse
-      </div>
-      <div className="space-y-2">
-        {items.map((item, i) => (
-          <div key={i} className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-lg bg-white/60 flex items-center justify-center flex-shrink-0">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={item.color}>
-                <path d={item.icon} />
-              </svg>
-            </div>
-            <span className={`text-xs font-medium ${item.color}`}>{item.text}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// End of file
