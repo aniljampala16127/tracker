@@ -163,9 +163,9 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
 
     // ── Stream cards ──
     y += 48;
-    y = drawStreamCard(ctx, pad, y, inner, BRAND, "Outland", outland, periodLabel);
+    y = drawStreamCard(ctx, pad, y, inner, BRAND, "Outland", outland);
     y += 8;
-    y = drawStreamCard(ctx, pad, y, inner, GOLD, "Inland", inland, periodLabel);
+    y = drawStreamCard(ctx, pad, y, inner, GOLD, "Inland", inland);
 
     // ── Milestones ──
     if (nonAor.length > 0) {
@@ -243,7 +243,7 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
 function drawStreamCard(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number,
-  color: string, label: string, sd: StreamWeekData, periodLabel: string
+  color: string, label: string, sd: StreamWeekData
 ): number {
   const h = 88;
 
@@ -267,25 +267,11 @@ function drawStreamCard(
   ctx.textAlign = "left";
   ctx.fillText(label, x + 26, y + 22);
 
-  // Entries + week AOR count
+  // Entries
   ctx.fillStyle = "#A8A69E";
   ctx.font = "400 10px -apple-system, system-ui, sans-serif";
   const lw = ctx.measureText(label).width;
   ctx.fillText(`${sd.entries} entries`, x + 26 + lw + 8, y + 22);
-
-  // Week AOR badge (right)
-  if (sd.weekAorCount > 0) {
-    const badge = `+${sd.weekAorCount} ${periodLabel.toLowerCase()}`;
-    ctx.font = "600 9px -apple-system, system-ui, sans-serif";
-    const bw = ctx.measureText(badge).width + 12;
-    ctx.fillStyle = color + "15";
-    roundRect(ctx, x + w - 12 - bw, y + 10, bw, 18, 9);
-    ctx.fill();
-    ctx.fillStyle = color;
-    ctx.textAlign = "right";
-    ctx.fillText(badge, x + w - 18, y + 23);
-    ctx.textAlign = "left";
-  }
 
   // Two big numbers row
   const halfW = w / 2;
