@@ -14,6 +14,8 @@ import { AORCountdown } from "@/components/AORCountdown";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { playMilestoneSound } from "@/lib/sounds";
 import { TimelineExport } from "@/components/TimelineExport";
+import { MeSkeleton } from "@/components/Skeletons";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { Button } from "@/components/ui";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -52,7 +54,7 @@ export default function MyAppPage() {
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
-  if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
+  if (loading) return <MeSkeleton />;
 
   if (myApps.length === 0) {
     return (
@@ -76,6 +78,7 @@ export default function MyAppPage() {
   }
 
   return (
+    <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
     <div>
       <h1 className="text-xl font-bold text-sand-900 mb-1">My Application</h1>
       <p className="text-xs text-sand-500 mb-5">Your personal timeline and predictions</p>
@@ -84,6 +87,7 @@ export default function MyAppPage() {
         <MyAppCard key={app.id} app={app} allApps={apps} onRefresh={fetchApps} />
       ))}
     </div>
+    </PullToRefresh>
   );
 }
 
@@ -224,10 +228,10 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
             return (
               <div key={step.id}>
                 <div className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  isDone ? "bg-brand-50" : isNext ? "bg-warn-light border border-warn/20" : "opacity-30"
+                  isDone ? "bg-brand-50 step-done" : isNext ? "bg-warn-light border border-warn/20" : "opacity-30"
                 }`}>
                   <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                    isDone ? "bg-brand-500" : isNext ? "bg-warn animate-pulse" : "bg-sand-300"
+                    isDone ? "bg-brand-500 dot-fill" : isNext ? "bg-warn animate-pulse" : "bg-sand-300"
                   }`} />
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium text-sand-900">{step.label}</span>
@@ -235,7 +239,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
                   {/* Done — show date */}
                   {isDone && (
-                    <div className="text-right">
+                    <div className="text-right date-slide">
                       <div className="text-xs font-medium text-sand-700">{formatNice(date!).replace(/, \d{4}/, "")}</div>
                       {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d</div>}
                     </div>
@@ -252,7 +256,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
                   )}
 
                   {isDone && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0 check-draw">
                       <Reactions applicationId={app.id} stepId={step.id} compact />
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M20 6L9 17L4 12" />

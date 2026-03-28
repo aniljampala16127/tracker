@@ -10,6 +10,9 @@ import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 import { AORProgress } from "@/components/AORProgress";
+import { StatsSkeleton } from "@/components/Skeletons";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { DigestImageExport } from "@/components/DigestImageExport";
 
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -102,13 +105,14 @@ export default function StatsPage() {
     });
   }, [monthCohorts]);
 
-  if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading stats...</div>;
+  if (loading) return <StatsSkeleton />;
 
   const totalOutland = apps.filter(a => a.stream === "Outland").length;
   const totalInland = apps.filter(a => a.stream === "Inland").length;
   const totalWithAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
 
   return (
+    <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-sand-900">Processing Analytics</h1>
@@ -351,6 +355,7 @@ export default function StatsPage() {
         All data is community-reported. Processing times vary by case.
       </p>
     </div>
+    </PullToRefresh>
   );
 }
 
@@ -529,6 +534,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
             </>
           )}
         </button>
+        <DigestImageExport apps={apps} period={period} />
       </div>
     </div>
   );

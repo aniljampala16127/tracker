@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
+import { MeSkeleton } from "@/components/Skeletons";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -85,7 +86,7 @@ export default function CohortPage() {
   const gotAor = cohort.filter(c => c.aorDate);
   const waiting = cohort.filter(c => !c.aorDate);
 
-  if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
+  if (loading) return <MeSkeleton />;
 
   if (!myApp || !mySubmitted || !week) {
     return (

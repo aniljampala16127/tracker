@@ -19,6 +19,8 @@ import { Confetti } from "@/components/Confetti";
 import { AORWaveTracker } from "@/components/AORWaveTracker";
 import { NewSinceLastVisit } from "@/components/NewSinceLastVisit";
 import { CelebrationWall } from "@/components/CelebrationWall";
+import { DashboardSkeleton } from "@/components/Skeleton";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { playMilestoneSound } from "@/lib/sounds";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -148,7 +150,7 @@ export default function DashboardPage() {
     }
   }, [sortedMonths, selectedMonth]);
 
-  if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
+  if (loading) return <DashboardSkeleton />;
 
   const isFiltered = Object.values(filters).some(Boolean);
   const hasMyEntry = apps.some(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
@@ -170,6 +172,7 @@ export default function DashboardPage() {
   const selectedMonthLabel = selectedMonthParts.length === 2 ? `${MO[parseInt(selectedMonthParts[1]) - 1]} ${selectedMonthParts[0]}` : "";
 
   return (
+    <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
     <div>
       {/* CTA Banner - only for users who haven't added */}
       {!hasMyEntry && (
@@ -574,6 +577,7 @@ export default function DashboardPage() {
         />
       )}
     </div>
+    </PullToRefresh>
   );
 }
 

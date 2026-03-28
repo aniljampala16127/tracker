@@ -15,6 +15,7 @@ import { ClaimPinModal } from "@/components/ClaimPinModal";
 import { StepIcon, ArrowLeftIcon, TrashIcon, ClockIcon } from "@/components/icons";
 import { Button, Avatar, Card } from "@/components/ui";
 import { playMilestoneSound } from "@/lib/sounds";
+import { DetailSkeleton } from "@/components/Skeletons";
 
 export default function ApplicationDetailPage() {
   const { id } = useParams();
@@ -96,7 +97,7 @@ export default function ApplicationDetailPage() {
     router.push("/dashboard");
   };
 
-  if (loading) return <div className="py-20 text-center text-sand-400 text-sm">Loading...</div>;
+  if (loading) return <DetailSkeleton />;
 
   if (!app) {
     return (
