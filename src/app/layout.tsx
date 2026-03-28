@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     "PR application tracker",
     "family sponsorship",
   ],
+  verification: {
+    google: "59KnbqBJoeD2akfgK9NxJShfbusGsccubengzXEsrE4",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
