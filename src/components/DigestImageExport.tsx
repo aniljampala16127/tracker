@@ -6,16 +6,6 @@ import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const BRAND = "#2D6A4F";
-const BRAND_LIGHT = "#D1E8DA";
-const SAND_900 = "#1C1B19";
-const SAND_500 = "#A8A69E";
-const SAND_300 = "#D9D7D2";
-const SAND_100 = "#F0EEEA";
-const BG = "#FAFAF8";
-const WHITE = "#FFFFFF";
-const WARN = "#D4A03C";
-const WARN_LIGHT = "#FDF6E3";
 
 function fmt(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
@@ -28,8 +18,8 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
   const handleExport = useCallback(() => {
     setExporting(true);
     const dpr = Math.min(window.devicePixelRatio || 2, 3);
-    const W = 400;
-    const padding = 20;
+    const W = 390;
+    const H = 693; // 9:16 ratio
 
     const cutoff = Date.now() - parseInt(period) * 24 * 60 * 60 * 1000;
 
@@ -63,16 +53,10 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
       });
     });
     const aorCount = milestones["AOR"] || 0;
-    const nonAor = Object.entries(milestones).filter(([k]) => k !== "AOR").sort((a, b) => b[1] - a[1]).slice(0, 4);
-
+    const nonAor = Object.entries(milestones).filter(([k]) => k !== "AOR").sort((a, b) => b[1] - a[1]).slice(0, 5);
     const periodLabel = period === "7" ? "This Week" : period === "14" ? "Last 2 Weeks" : "This Month";
-
-    // Dynamic height
-    const headerH = 80;
-    const streamCardH = 70;
-    const milestonesH = nonAor.length > 0 ? 30 + nonAor.length * 22 : 0;
-    const footerH = 50;
-    const H = padding + headerH + 12 + streamCardH * 2 + 16 + milestonesH + footerH + padding;
+    const totalWithAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
+    const totalWaiting = apps.length - totalWithAor;
 
     const canvas = document.createElement("canvas");
     canvas.width = W * dpr;
@@ -80,94 +64,178 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     const ctx = canvas.getContext("2d")!;
     ctx.scale(dpr, dpr);
 
-    // BG
-    ctx.fillStyle = BG;
+    // ===== BACKGROUND =====
+    // Deep dark gradient
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, "#0B1A14");
+    bgGrad.addColorStop(0.4, "#0F2419");
+    bgGrad.addColorStop(1, "#081210");
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // Top accent
-    const grad = ctx.createLinearGradient(0, 0, W, 0);
-    grad.addColorStop(0, BRAND);
-    grad.addColorStop(1, "#40916C");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, 4);
+    // Ambient glow orbs
+    drawGlow(ctx, 60, 120, 140, "rgba(45,106,79,0.15)");
+    drawGlow(ctx, W - 50, 350, 120, "rgba(64,145,108,0.1)");
+    drawGlow(ctx, 100, 550, 100, "rgba(212,160,60,0.08)");
 
-    // Header
-    let y = padding + 4;
-    ctx.fillStyle = SAND_900;
-    ctx.font = "bold 18px -apple-system, system-ui, sans-serif";
+    // Subtle grid pattern
+    ctx.strokeStyle = "rgba(255,255,255,0.02)";
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < W; x += 30) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = 0; y < H; y += 30) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    // ===== TOP SECTION =====
+    const pad = 28;
+    let y = 40;
+
+    // Logo + branding
+    ctx.fillStyle = "#40916C";
+    ctx.font = "600 11px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText("SponsorTrack", padding, y + 20);
-    ctx.fillStyle = SAND_500;
-    ctx.font = "11px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`${periodLabel} · ${apps.length} entries tracked`, padding, y + 38);
+    ctx.fillText("SPONSORTRACK", pad, y);
 
-    // Period badge
+    // Period pill (right)
     ctx.textAlign = "right";
-    ctx.fillStyle = BRAND_LIGHT;
-    roundRect(ctx, W - padding - 50, y + 6, 50, 24, 8);
+    ctx.fillStyle = "rgba(64,145,108,0.2)";
+    roundRect(ctx, W - pad - 52, y - 12, 52, 20, 10);
     ctx.fill();
-    ctx.fillStyle = BRAND;
-    ctx.font = "bold 11px -apple-system, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(period === "7" ? "7 days" : period === "14" ? "14 days" : "30 days", W - padding - 25, y + 22);
+    ctx.strokeStyle = "rgba(64,145,108,0.4)";
+    ctx.lineWidth = 0.5;
+    roundRect(ctx, W - pad - 52, y - 12, 52, 20, 10);
+    ctx.stroke();
+    ctx.fillStyle = "#5CBA8B";
+    ctx.font = "600 9px -apple-system, system-ui, sans-serif";
+    ctx.fillText(period === "7" ? "7 DAYS" : period === "14" ? "14 DAYS" : "30 DAYS", W - pad - 8, y + 1);
     ctx.textAlign = "left";
 
-    // AOR banner
-    if (aorCount > 0) {
-      y += 50;
-      ctx.fillStyle = BRAND;
-      roundRect(ctx, padding, y, W - padding * 2, 28, 8);
-      ctx.fill();
-      ctx.fillStyle = WHITE;
-      ctx.font = "bold 12px -apple-system, system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(`${aorCount} AOR${aorCount > 1 ? "s" : ""} received ${periodLabel.toLowerCase()}`, W / 2, y + 18);
-      ctx.textAlign = "left";
-      y += 40;
-    } else {
-      y += 52;
-    }
-
-    // Outland card
-    drawStreamCard(ctx, padding, y, W - padding * 2, streamCardH, "Outland", BRAND, BRAND_LIGHT,
-      avgOutland, outlandAorDays.length, outlandApps.length);
-    y += streamCardH + 8;
-
-    // Inland card
-    drawStreamCard(ctx, padding, y, W - padding * 2, streamCardH, "Inland", WARN, WARN_LIGHT,
-      avgInland, inlandAorDays.length, inlandApps.length);
-    y += streamCardH + 16;
-
-    // Other milestones
-    if (nonAor.length > 0) {
-      ctx.fillStyle = SAND_500;
-      ctx.font = "bold 10px -apple-system, system-ui, sans-serif";
-      ctx.fillText("OTHER MILESTONES", padding, y + 10);
-      y += 20;
-      nonAor.forEach(([step, count]) => {
-        ctx.fillStyle = SAND_900;
-        ctx.font = "13px -apple-system, system-ui, sans-serif";
-        ctx.fillText(`${count}× ${step}`, padding + 8, y + 14);
-        y += 22;
-      });
-      y += 8;
-    }
-
-    // Footer
+    // Divider line
+    y += 18;
     ctx.beginPath();
-    ctx.moveTo(padding + 60, y);
-    ctx.lineTo(W - padding - 60, y);
-    ctx.strokeStyle = SAND_300;
+    ctx.moveTo(pad, y);
+    ctx.lineTo(W - pad, y);
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // ===== HERO: AOR Count =====
+    y += 40;
+    if (aorCount > 0) {
+      // Big glowing number
+      ctx.fillStyle = "#5CBA8B";
+      ctx.font = "bold 72px -apple-system, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      // Glow behind number
+      ctx.shadowColor = "rgba(92,186,139,0.4)";
+      ctx.shadowBlur = 30;
+      ctx.fillText(`${aorCount}`, W / 2, y + 10);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.font = "300 14px -apple-system, system-ui, sans-serif";
+      ctx.fillText(`AOR${aorCount > 1 ? "s" : ""} received ${periodLabel.toLowerCase()}`, W / 2, y + 34);
+    } else {
+      ctx.fillStyle = "rgba(255,255,255,0.3)";
+      ctx.font = "300 14px -apple-system, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`No AORs ${periodLabel.toLowerCase()}`, W / 2, y + 10);
+    }
+
+    // ===== COMMUNITY STAT BAR =====
+    y += 60;
+    const barW = W - pad * 2;
+    ctx.fillStyle = "rgba(255,255,255,0.04)";
+    roundRect(ctx, pad, y, barW, 48, 12);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    ctx.lineWidth = 0.5;
+    roundRect(ctx, pad, y, barW, 48, 12);
+    ctx.stroke();
+
+    // Three stats in a row
+    const statW = barW / 3;
+    const stats = [
+      { value: `${apps.length}`, label: "TRACKED" },
+      { value: `${totalWithAor}`, label: "GOT AOR" },
+      { value: `${totalWaiting}`, label: "WAITING" },
+    ];
+    stats.forEach((s, i) => {
+      const cx = pad + statW * i + statW / 2;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 18px -apple-system, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(s.value, cx, y + 24);
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.font = "600 8px -apple-system, system-ui, sans-serif";
+      ctx.fillText(s.label, cx, y + 38);
+
+      // Divider between stats
+      if (i < 2) {
+        ctx.beginPath();
+        ctx.moveTo(pad + statW * (i + 1), y + 10);
+        ctx.lineTo(pad + statW * (i + 1), y + 38);
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    });
+
+    // ===== STREAM CARDS =====
+    y += 72;
+    drawStreamCardDark(ctx, pad, y, barW, 100, "Outland",
+      "#2D6A4F", "#5CBA8B", avgOutland, outlandAorDays.length, outlandApps.length);
+    y += 112;
+    drawStreamCardDark(ctx, pad, y, barW, 100, "Inland",
+      "#9B7420", "#D4A03C", avgInland, inlandAorDays.length, inlandApps.length);
+
+    // ===== MILESTONES =====
+    y += 120;
+    if (nonAor.length > 0) {
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.font = "600 9px -apple-system, system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("OTHER MILESTONES", pad, y);
+      y += 16;
+
+      nonAor.forEach(([step, count]) => {
+        ctx.fillStyle = "rgba(255,255,255,0.06)";
+        roundRect(ctx, pad, y, barW, 30, 8);
+        ctx.fill();
+
+        ctx.fillStyle = "#5CBA8B";
+        ctx.font = "bold 13px -apple-system, system-ui, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(`${count}`, pad + 12, y + 20);
+
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.font = "13px -apple-system, system-ui, sans-serif";
+        ctx.fillText(step, pad + 36, y + 20);
+
+        y += 36;
+      });
+    }
+
+    // ===== FOOTER =====
+    const fY = H - 40;
+    ctx.beginPath();
+    ctx.moveTo(pad + 60, fY - 10);
+    ctx.lineTo(W - pad - 60, fY - 10);
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
     ctx.lineWidth = 0.5;
     ctx.stroke();
-    ctx.fillStyle = SAND_500;
+
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
     ctx.font = "9px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("SponsorTrack · tracker-lime-five.vercel.app", W / 2, y + 18);
+    ctx.fillText("tracker-lime-five.vercel.app", W / 2, fY + 4);
     const today = new Date();
-    ctx.fillText(`${MONTHS[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`, W / 2, y + 32);
+    ctx.fillText(`${MONTHS[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`, W / 2, fY + 18);
 
-    // Export
+    // ===== EXPORT =====
     canvas.toBlob((blob) => {
       if (!blob) { setExporting(false); return; }
       const file = new File([blob], "sponsortrack-digest.png", { type: "image/png" });
@@ -201,56 +269,90 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
   );
 }
 
-function drawStreamCard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
+function drawStreamCardDark(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
   label: string, color: string, lightColor: string, avgDays: number | null, aorCount: number, total: number) {
-  // Card bg
-  ctx.fillStyle = WHITE;
-  roundRect(ctx, x, y, w, h, 12);
+
+  // Glass card background
+  ctx.fillStyle = "rgba(255,255,255,0.04)";
+  roundRect(ctx, x, y, w, h, 14);
   ctx.fill();
-  ctx.strokeStyle = "#E8E6E1";
-  ctx.lineWidth = 1;
-  roundRect(ctx, x, y, w, h, 12);
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.lineWidth = 0.5;
+  roundRect(ctx, x, y, w, h, 14);
   ctx.stroke();
 
-  // Left color bar
-  ctx.fillStyle = color;
-  roundRect(ctx, x, y, 4, h, 2);
+  // Accent line on left
+  ctx.fillStyle = lightColor;
+  roundRect(ctx, x, y + 8, 3, h - 16, 2);
   ctx.fill();
 
   // Stream badge
-  ctx.fillStyle = lightColor;
-  roundRect(ctx, x + 14, y + 12, 60, 20, 6);
+  ctx.fillStyle = color + "30";
+  roundRect(ctx, x + 16, y + 14, 64, 22, 6);
   ctx.fill();
-  ctx.fillStyle = color;
+  ctx.strokeStyle = color + "50";
+  ctx.lineWidth = 0.5;
+  roundRect(ctx, x + 16, y + 14, 64, 22, 6);
+  ctx.stroke();
+  ctx.fillStyle = lightColor;
   ctx.font = "bold 10px -apple-system, system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(label, x + 44, y + 26);
+  ctx.fillText(label, x + 48, y + 29);
+
+  // Entry count next to badge
   ctx.textAlign = "left";
-
-  // Entry count
-  ctx.fillStyle = SAND_500;
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
   ctx.font = "10px -apple-system, system-ui, sans-serif";
-  ctx.fillText(`${total} entries`, x + 82, y + 25);
+  ctx.fillText(`${total} entries`, x + 88, y + 28);
 
-  // Avg days (big number)
+  // Big avg number
   if (avgDays) {
-    ctx.fillStyle = color;
-    ctx.font = "bold 22px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`${avgDays}d`, x + 14, y + 56);
-    ctx.fillStyle = SAND_500;
-    ctx.font = "10px -apple-system, system-ui, sans-serif";
-    ctx.fillText("avg to AOR", x + 14 + ctx.measureText(`${avgDays}d`).width + 6, y + 56);
+    ctx.fillStyle = lightColor;
+    ctx.font = "bold 36px -apple-system, system-ui, sans-serif";
+    ctx.textAlign = "left";
+    // Subtle glow
+    ctx.shadowColor = lightColor + "40";
+    ctx.shadowBlur = 15;
+    ctx.fillText(`${avgDays}`, x + 16, y + 76);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.font = "11px -apple-system, system-ui, sans-serif";
+    const numW = ctx.measureText(`${avgDays}`).width;
+    ctx.font = "bold 36px -apple-system, system-ui, sans-serif";
+    const bigW = ctx.measureText(`${avgDays}`).width;
+    ctx.font = "11px -apple-system, system-ui, sans-serif";
+    ctx.fillText("days avg", x + 16 + bigW + 6, y + 76);
+  } else {
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.font = "13px -apple-system, system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("No AOR data yet", x + 16, y + 70);
   }
 
-  // AOR count (right side)
+  // AOR count on right
   ctx.textAlign = "right";
-  ctx.fillStyle = color;
-  ctx.font = "bold 22px -apple-system, system-ui, sans-serif";
-  ctx.fillText(`${aorCount}`, x + w - 14, y + 56);
-  ctx.fillStyle = SAND_500;
-  ctx.font = "10px -apple-system, system-ui, sans-serif";
-  ctx.fillText("with AOR", x + w - 14 - ctx.measureText(`${aorCount}`).width - 6, y + 56);
+  ctx.fillStyle = lightColor;
+  ctx.font = "bold 36px -apple-system, system-ui, sans-serif";
+  ctx.shadowColor = lightColor + "30";
+  ctx.shadowBlur = 10;
+  ctx.fillText(`${aorCount}`, x + w - 16, y + 76);
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.font = "11px -apple-system, system-ui, sans-serif";
+  ctx.fillText("with AOR", x + w - 16, y + 92);
   ctx.textAlign = "left";
+}
+
+function drawGlow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, "transparent");
+  ctx.fillStyle = grad;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
