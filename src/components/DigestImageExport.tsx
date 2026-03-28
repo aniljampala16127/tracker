@@ -14,59 +14,40 @@ function fmt(d: string): string {
   return `${MO[dt.getMonth()]} ${dt.getDate()}`;
 }
 
-function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function blob(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
-  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, color);
-  g.addColorStop(1, "transparent");
-  ctx.fillStyle = g;
-  ctx.fillRect(x - r, y - r, r * 2, r * 2);
-}
-
-interface StreamInfo {
+interface StreamWeekData {
   entries: number;
   avgDays: number | null;
   totalWithAor: number;
   weekAorCount: number;
-  weekSubFrom: string;
-  weekSubTo: string;
+  weekEarlySub: string;
+  weekLateSub: string;
 }
 
-function streamInfo(apps: Application[], stream: string, cutoff: number): StreamInfo {
+function getStreamWeekData(apps: Application[], stream: string, cutoff: number): StreamWeekData {
   const sa = apps.filter(a => a.stream === stream);
-  const days: number[] = [];
-  let wk = 0, wFrom = "9999", wTo = "";
+  const allDays: number[] = [];
+  let weekCount = 0;
+  let wEarly = "9999", wLate = "";
+
   sa.forEach(a => {
     const s = buildStepsMap(a.step_events || []);
     if (!s.submitted || !s.aor) return;
-    days.push(daysBetween(s.submitted, s.aor));
-    const ev = (a.step_events || []).find(e => e.step_id === "aor");
-    if (ev && new Date(ev.created_at).getTime() > cutoff) {
-      wk++;
-      if (s.submitted < wFrom) wFrom = s.submitted;
-      if (s.submitted > wTo) wTo = s.submitted;
+    allDays.push(daysBetween(s.submitted, s.aor));
+    const aorEv = (a.step_events || []).find(e => e.step_id === "aor");
+    if (aorEv && new Date(aorEv.created_at).getTime() > cutoff) {
+      weekCount++;
+      if (s.submitted < wEarly) wEarly = s.submitted;
+      if (s.submitted > wLate) wLate = s.submitted;
     }
   });
+
   return {
     entries: sa.length,
-    avgDays: days.length ? Math.round(days.reduce((a, b) => a + b, 0) / days.length) : null,
-    totalWithAor: days.length,
-    weekAorCount: wk,
-    weekSubFrom: wFrom === "9999" ? "" : wFrom,
-    weekSubTo: wTo,
+    avgDays: allDays.length ? Math.round(allDays.reduce((a, b) => a + b, 0) / allDays.length) : null,
+    totalWithAor: allDays.length,
+    weekAorCount: weekCount,
+    weekEarlySub: wEarly === "9999" ? "" : wEarly,
+    weekLateSub: wLate,
   };
 }
 
@@ -81,8 +62,8 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     const inner = W - pad * 2;
 
     const cutoff = Date.now() - parseInt(period) * 24 * 60 * 60 * 1000;
-    const ol = streamInfo(apps, "Outland", cutoff);
-    const il = streamInfo(apps, "Inland", cutoff);
+    const outland = getStreamWeekData(apps, "Outland", cutoff);
+    const inland = getStreamWeekData(apps, "Inland", cutoff);
 
     const milestones: Record<string, number> = {};
     apps.forEach(a => {
@@ -95,16 +76,16 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
       });
     });
     const aorCount = milestones["AOR"] || 0;
-    const nonAor = Object.entries(milestones).filter(([k]) => k !== "AOR").sort((a, b) => b[1] - a[1]).slice(0, 5);
-    const totalAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
-    const waiting = apps.length - totalAor;
-    const pLabel = period === "7" ? "this week" : period === "14" ? "last 2 weeks" : "this month";
+    const nonAor = Object.entries(milestones).filter(([k]) => k !== "AOR").sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const totalWithAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
+    const totalWaiting = apps.length - totalWithAor;
+    const periodLabel = period === "7" ? "This Week" : period === "14" ? "2 Weeks" : "This Month";
     const today = new Date();
     const dateStr = `${MO[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
 
-    // Auto-height calc
-    const milestonePillRows = Math.ceil(nonAor.length / 2);
-    const H = 44 + 110 + 52 + 96 + 96 + (nonAor.length > 0 ? 28 + milestonePillRows * 32 : 0) + 44;
+    // Dynamic height based on content
+    const milestoneRows = Math.ceil(nonAor.length / 2);
+    const H = 36 + 110 + 50 + 98 * 2 + 16 + (nonAor.length > 0 ? 24 + milestoneRows * 32 : 0) + 50;
 
     const canvas = document.createElement("canvas");
     canvas.width = W * dpr;
@@ -112,22 +93,21 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     const ctx = canvas.getContext("2d")!;
     ctx.scale(dpr, dpr);
 
-    // ── Gradient BG ──
-    const bg = ctx.createLinearGradient(0, 0, W, H);
-    bg.addColorStop(0, "#E8F5F0");
-    bg.addColorStop(0.35, "#F0F7F4");
-    bg.addColorStop(0.65, "#FDF8EE");
-    bg.addColorStop(1, "#F5EFE0");
-    ctx.fillStyle = bg;
+    // ── Mesh gradient background ──
+    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+    bgGrad.addColorStop(0, "#EAF4EF");
+    bgGrad.addColorStop(0.35, "#F2F8F5");
+    bgGrad.addColorStop(0.65, "#FBF7EE");
+    bgGrad.addColorStop(1, "#F5EFE0");
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // Blobs
-    blob(ctx, 70, 90, 110, "rgba(45,106,79,0.07)");
-    blob(ctx, W - 50, 280, 90, "rgba(212,160,60,0.05)");
-    blob(ctx, 80, H - 100, 80, "rgba(45,106,79,0.04)");
+    // Subtle blobs
+    drawBlob(ctx, 70, 80, 110, "rgba(45,106,79,0.06)");
+    drawBlob(ctx, W - 50, 280, 90, "rgba(212,160,60,0.05)");
 
     // ── Header ──
-    let y = 32;
+    let y = 28;
     ctx.fillStyle = BRAND;
     ctx.font = "bold 13px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "left";
@@ -135,60 +115,57 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     ctx.fillStyle = "#A8A69E";
     ctx.font = "400 10px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(dateStr, W - pad, y);
+    ctx.fillText(`${periodLabel} · ${dateStr}`, W - pad, y);
 
     // ── Hero card ──
     y += 16;
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
-    rr(ctx, pad, y, inner, 100, 18);
+    const heroH = 96;
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    roundRect(ctx, pad, y, inner, heroH, 18);
     ctx.fill();
     ctx.strokeStyle = "rgba(45,106,79,0.08)";
     ctx.lineWidth = 1;
-    rr(ctx, pad, y, inner, 100, 18);
+    roundRect(ctx, pad, y, inner, heroH, 18);
     ctx.stroke();
 
-    ctx.fillStyle = BRAND;
+    ctx.fillStyle = "#1C1B19";
     ctx.font = "bold 44px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(`${aorCount}`, W / 2, y + 48);
+    ctx.fillText(`${aorCount}`, W / 2, y + 46);
     ctx.fillStyle = "#65635D";
-    ctx.font = "12px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`AORs received ${pLabel}`, W / 2, y + 68);
+    ctx.font = "300 12px -apple-system, system-ui, sans-serif";
+    ctx.fillText("acknowledgements received", W / 2, y + 64);
     ctx.fillStyle = "#A8A69E";
-    ctx.font = "10px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`${apps.length} applications tracked`, W / 2, y + 86);
+    ctx.font = "300 9px -apple-system, system-ui, sans-serif";
+    ctx.fillText(`from ${apps.length} tracked applications`, W / 2, y + 80);
 
     // ── Stat pills ──
-    y += 112;
-    const pillW = (inner - 10) / 2;
-    // Got AOR pill
-    ctx.fillStyle = "rgba(45,106,79,0.08)";
-    rr(ctx, pad, y, pillW, 38, 12);
-    ctx.fill();
-    ctx.fillStyle = BRAND;
-    ctx.font = "bold 17px -apple-system, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(`${totalAor}`, pad + pillW / 2, y + 18);
-    ctx.fillStyle = "#A8A69E";
-    ctx.font = "600 8px -apple-system, system-ui, sans-serif";
-    ctx.fillText("GOT AOR", pad + pillW / 2, y + 31);
-
-    // Waiting pill
-    ctx.fillStyle = "rgba(212,160,60,0.08)";
-    rr(ctx, pad + pillW + 10, y, pillW, 38, 12);
-    ctx.fill();
-    ctx.fillStyle = GOLD;
-    ctx.font = "bold 17px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`${waiting}`, pad + pillW + 10 + pillW / 2, y + 18);
-    ctx.fillStyle = "#A8A69E";
-    ctx.font = "600 8px -apple-system, system-ui, sans-serif";
-    ctx.fillText("WAITING", pad + pillW + 10 + pillW / 2, y + 31);
+    y += heroH + 12;
+    const pillW = (inner - 10) / 3;
+    const pills = [
+      { v: `${apps.length}`, l: "Tracked", bg: "rgba(45,106,79,0.08)" },
+      { v: `${totalWithAor}`, l: "Got AOR", bg: "rgba(45,106,79,0.08)" },
+      { v: `${totalWaiting}`, l: "Waiting", bg: "rgba(155,116,32,0.08)" },
+    ];
+    pills.forEach((p, i) => {
+      const px = pad + i * (pillW + 5);
+      ctx.fillStyle = p.bg;
+      roundRect(ctx, px, y, pillW, 36, 10);
+      ctx.fill();
+      ctx.fillStyle = "#1C1B19";
+      ctx.font = "bold 16px -apple-system, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(p.v, px + pillW / 2, y + 18);
+      ctx.fillStyle = "#A8A69E";
+      ctx.font = "600 7px -apple-system, system-ui, sans-serif";
+      ctx.fillText(p.l, px + pillW / 2, y + 30);
+    });
 
     // ── Stream cards ──
-    y += 52;
-    y = drawStreamCard(ctx, pad, y, inner, BRAND, "Outland", ol, pLabel);
+    y += 48;
+    y = drawStreamCard(ctx, pad, y, inner, BRAND, "Outland", outland, periodLabel);
     y += 8;
-    y = drawStreamCard(ctx, pad, y, inner, GOLD, "Inland", il, pLabel);
+    y = drawStreamCard(ctx, pad, y, inner, GOLD, "Inland", inland, periodLabel);
 
     // ── Milestones ──
     if (nonAor.length > 0) {
@@ -197,31 +174,29 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
       ctx.font = "600 8px -apple-system, system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.fillText("MILESTONES", pad, y);
-      y += 10;
+      y += 8;
 
-      const mPillW = (inner - 8) / 2;
+      const mColW = (inner - 8) / 2;
       nonAor.forEach(([step, count], i) => {
         const col = i % 2;
         const row = Math.floor(i / 2);
-        const mx = pad + col * (mPillW + 8);
-        const my = y + row * 32;
-
+        const mx = pad + col * (mColW + 8);
+        const my = y + row * 30;
         ctx.fillStyle = "rgba(255,255,255,0.55)";
-        rr(ctx, mx, my, mPillW, 26, 13);
+        roundRect(ctx, mx, my, mColW, 24, 8);
         ctx.fill();
         ctx.strokeStyle = "rgba(0,0,0,0.04)";
         ctx.lineWidth = 0.5;
-        rr(ctx, mx, my, mPillW, 26, 13);
+        roundRect(ctx, mx, my, mColW, 24, 8);
         ctx.stroke();
-
         ctx.fillStyle = BRAND;
         ctx.font = "bold 12px -apple-system, system-ui, sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(`${count}`, mx + 10, my + 17);
-        const nw = ctx.measureText(`${count}`).width;
+        ctx.fillText(`${count}`, mx + 10, my + 16);
         ctx.fillStyle = "#65635D";
         ctx.font = "11px -apple-system, system-ui, sans-serif";
-        ctx.fillText(` ${step}`, mx + 10 + nw, my + 17);
+        const nw = ctx.measureText(`${count}`).width;
+        ctx.fillText(step, mx + 10 + nw + 5, my + 16);
       });
     }
 
@@ -229,7 +204,7 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
     ctx.fillStyle = "#C4C2BB";
     ctx.font = "8px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("tracker-lime-five.vercel.app", W / 2, H - 14);
+    ctx.fillText("tracker-lime-five.vercel.app", W / 2, H - 12);
 
     // ── Export ──
     canvas.toBlob((blob) => {
@@ -268,61 +243,58 @@ export function DigestImageExport({ apps, period }: { apps: Application[]; perio
 function drawStreamCard(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number,
-  color: string, label: string, sd: StreamInfo, pLabel: string
+  color: string, label: string, sd: StreamWeekData, periodLabel: string
 ): number {
-  const h = sd.weekAorCount > 0 ? 84 : 72;
+  const h = 88;
 
   // Frosted card
-  ctx.fillStyle = "rgba(255,255,255,0.55)";
-  rr(ctx, x, y, w, h, 14);
+  ctx.fillStyle = "rgba(255,255,255,0.6)";
+  roundRect(ctx, x, y, w, h, 14);
   ctx.fill();
   ctx.strokeStyle = "rgba(0,0,0,0.04)";
   ctx.lineWidth = 1;
-  rr(ctx, x, y, w, h, 14);
+  roundRect(ctx, x, y, w, h, 14);
   ctx.stroke();
 
-  // Color dot
+  // Color dot + label
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.arc(x + 16, y + 17, 4, 0, Math.PI * 2);
+  ctx.arc(x + 16, y + 18, 4, 0, Math.PI * 2);
   ctx.fill();
 
-  // Label
   ctx.fillStyle = "#1C1B19";
   ctx.font = "600 12px -apple-system, system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(label, x + 26, y + 21);
+  ctx.fillText(label, x + 26, y + 22);
 
-  // Entries + week AOR
+  // Entries + week AOR count
   ctx.fillStyle = "#A8A69E";
   ctx.font = "400 10px -apple-system, system-ui, sans-serif";
-  ctx.font = "600 12px -apple-system, system-ui, sans-serif";
   const lw = ctx.measureText(label).width;
-  ctx.font = "400 10px -apple-system, system-ui, sans-serif";
-  ctx.fillText(`${sd.entries} entries`, x + 26 + lw + 8, y + 21);
+  ctx.fillText(`${sd.entries} entries`, x + 26 + lw + 8, y + 22);
 
-  // +X AOR this week badge (right)
+  // Week AOR badge (right)
   if (sd.weekAorCount > 0) {
-    const badge = `+${sd.weekAorCount} AOR`;
+    const badge = `+${sd.weekAorCount} ${periodLabel.toLowerCase()}`;
     ctx.font = "600 9px -apple-system, system-ui, sans-serif";
     const bw = ctx.measureText(badge).width + 12;
-    ctx.fillStyle = color + "18";
-    rr(ctx, x + w - 12 - bw, y + 10, bw, 18, 9);
+    ctx.fillStyle = color + "15";
+    roundRect(ctx, x + w - 12 - bw, y + 10, bw, 18, 9);
     ctx.fill();
     ctx.fillStyle = color;
     ctx.textAlign = "right";
-    ctx.fillText(badge, x + w - 18, y + 22);
+    ctx.fillText(badge, x + w - 18, y + 23);
     ctx.textAlign = "left";
   }
 
-  // Two numbers row
+  // Two big numbers row
   const halfW = w / 2;
-  const numY = y + 52;
+  const numY = y + 56;
 
-  // Avg days — left
+  // Avg days (left)
   if (sd.avgDays) {
     ctx.fillStyle = color;
-    ctx.font = "bold 26px -apple-system, system-ui, sans-serif";
+    ctx.font = "bold 28px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(`${sd.avgDays}`, x + halfW / 2, numY);
     ctx.fillStyle = "#A8A69E";
@@ -332,34 +304,54 @@ function drawStreamCard(
 
   // Divider
   ctx.beginPath();
-  ctx.moveTo(x + halfW, y + 34);
-  ctx.lineTo(x + halfW, numY + 12);
+  ctx.moveTo(x + halfW, y + 36);
+  ctx.lineTo(x + halfW, y + 74);
   ctx.strokeStyle = "rgba(0,0,0,0.06)";
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // With AOR — right
+  // With AOR (right)
   ctx.fillStyle = color;
-  ctx.font = "bold 26px -apple-system, system-ui, sans-serif";
+  ctx.font = "bold 28px -apple-system, system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(`${sd.totalWithAor}`, x + halfW + halfW / 2, numY);
   ctx.fillStyle = "#A8A69E";
   ctx.font = "9px -apple-system, system-ui, sans-serif";
   ctx.fillText("with AOR", x + halfW + halfW / 2, numY + 14);
-  ctx.textAlign = "left";
 
-  // Date range row
-  if (sd.weekAorCount > 0 && sd.weekSubFrom) {
-    const rangeY = numY + 26;
+  // AOR date range (bottom of card)
+  if (sd.weekAorCount > 0 && sd.weekEarlySub) {
     ctx.fillStyle = "#A8A69E";
-    ctx.font = "400 9px -apple-system, system-ui, sans-serif";
+    ctx.font = "400 8px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    const range = sd.weekSubFrom === sd.weekSubTo
-      ? `${fmt(sd.weekSubFrom)} submissions got AOR ${pLabel}`
-      : `${fmt(sd.weekSubFrom)} – ${fmt(sd.weekSubTo)} submissions got AOR ${pLabel}`;
-    ctx.fillText(range, x + w / 2, rangeY);
-    ctx.textAlign = "left";
+    const range = sd.weekEarlySub === sd.weekLateSub
+      ? `${fmt(sd.weekEarlySub)} submissions received AOR`
+      : `${fmt(sd.weekEarlySub)} → ${fmt(sd.weekLateSub)} submissions received AOR`;
+    ctx.fillText(range, x + w / 2, y + h - 6);
   }
 
+  ctx.textAlign = "left";
   return y + h;
+}
+
+function drawBlob(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, "transparent");
+  ctx.fillStyle = grad;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
