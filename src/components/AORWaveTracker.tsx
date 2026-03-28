@@ -180,7 +180,10 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                 </div>
                 <div className="text-[10px] leading-tight">
                   <span className="font-semibold text-sand-900">{a.initials}</span>
-                  <span className="text-sand-400"> Sub {fmtDate(a.subDate)}</span>
+                  <span className={`ml-1 px-1 py-px rounded text-[8px] font-semibold ${
+                    a.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
+                  }`}>{a.stream}</span>
+                  <div className="text-sand-400">Sub {fmtDate(a.subDate)}</div>
                 </div>
                 <span className="text-[10px] font-bold text-brand-600">{a.days}d</span>
               </div>
