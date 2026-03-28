@@ -160,6 +160,49 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       {/* 3. Queue Position */}
       <PositionRunway app={app} allApps={allApps} />
 
+      {/* 3.5 Submission Week Cohort */}
+      {submittedDate && (() => {
+        const subDate = new Date(submittedDate + "T00:00:00");
+        const day = subDate.getDay();
+        const weekStart = new Date(subDate);
+        weekStart.setDate(weekStart.getDate() - day);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        const sameWeek = allApps.filter(a => {
+          if (a.id === app.id) return false;
+          const s = buildStepsMap(a.step_events || []);
+          if (!s.submitted) return false;
+          const d = new Date(s.submitted + "T00:00:00");
+          return d >= weekStart && d <= weekEnd;
+        });
+        const withAor = sameWeek.filter(a => a.step_events?.some(e => e.step_id === "aor"));
+        if (sameWeek.length === 0) return null;
+        return (
+          <a href={`/cohort/${app.id}`} className="block bg-sand-50 rounded-xl px-3 py-2.5 mb-3 hover:bg-sand-100 transition-colors active:scale-[0.99]">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-sand-200 flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#65635D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21V19C23 17.5 22 16.2 20.6 15.8"/><path d="M16.5 3.1C17.9 3.6 19 5 19 6.5C19 8 17.9 9.4 16.5 9.9"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your Submission Week</div>
+                <div className="text-sm font-bold text-sand-900">{sameWeek.length} others submitted the same week</div>
+                <div className="text-[10px] text-sand-400">
+                  {withAor.length > 0 ? `${withAor.length} have AOR` : "None have AOR yet"}
+                  {" · "}
+                  {sameWeek.slice(0, 4).map(a => a.initials).join(", ")}{sameWeek.length > 4 ? "..." : ""}
+                </div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8A69E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                <path d="M9 18L15 12L9 6"/>
+              </svg>
+            </div>
+          </a>
+        );
+      })()}
+
       {/* 4. Achievement Badges */}
       <AchievementBadges app={app} />
 
