@@ -76,10 +76,12 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     const diff = targetScroll - startScroll;
     if (Math.abs(diff) < 2) return;
     let start: number | null = null;
-    const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    // Smooth ease-out for natural deceleration
+    const ease = (t: number) => 1 - Math.pow(1 - t, 4);
+    const duration = 800;
     const step = (ts: number) => {
       if (!start) start = ts;
-      const p = Math.min((ts - start) / 500, 1);
+      const p = Math.min((ts - start) / duration, 1);
       el.scrollLeft = startScroll + diff * ease(p);
       if (p < 1) requestAnimationFrame(step);
     };
@@ -152,13 +154,13 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
         ref={scrollRef}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="flex gap-3 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-1"
-        style={{ WebkitOverflowScrolling: "touch" }}
+        className="flex gap-3 overflow-x-auto hide-scrollbar pb-1"
+        style={{ WebkitOverflowScrolling: "touch", scrollBehavior: "auto" }}
       >
         {cards.map((card) => (
           <div
             key={card.label}
-            className="flex-shrink-0 w-[78vw] max-w-[300px] snap-center bg-white/80 rounded-xl border border-sand-100 overflow-hidden"
+            className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden"
           >
             {/* Card header */}
             <div className="px-3 py-2 border-b border-sand-100 flex items-center justify-between">

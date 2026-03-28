@@ -15,7 +15,6 @@ html {
 .overflow-x-auto,
 .overflow-auto {
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
 }
 
 body {
