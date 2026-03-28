@@ -594,8 +594,21 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
   const [activeStep, setActiveStep] = useState<StepId | null>(null);
   const [meiType, setMeiType] = useState(app.mei_type || "");
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    initials: app.initials,
+    country_origin: app.country_origin,
+    stream: app.stream as string,
+    sponsor_status: app.sponsor_status as string,
+    visa_country: app.visa_country || "",
+    notes: app.notes || "",
+    submitted_date: stepsMap.submitted || "",
+  });
   const nextStep = getNextStep(app.current_step);
   const supabase = createClient();
+
+  const eu = (f: string, v: string) => setEditForm(p => ({ ...p, [f]: v }));
 
   const handleMeiChange = async (val: string) => {
     setMeiType(val);
@@ -609,6 +622,29 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
     setShowConfetti(true);
   };
 
+  const handleEditSave = async () => {
+    setSaving(true);
+    await supabase.from("applications").update({
+      initials: editForm.initials.trim(),
+      country_origin: editForm.country_origin,
+      stream: editForm.stream,
+      sponsor_status: editForm.sponsor_status,
+      visa_country: editForm.visa_country || null,
+      notes: editForm.notes || null,
+    }).eq("id", app.id);
+
+    // Update submission date if changed
+    if (editForm.submitted_date && editForm.submitted_date !== stepsMap.submitted) {
+      const subEvent = (app.step_events || []).find(e => e.step_id === "submitted");
+      if (subEvent) {
+        await supabase.from("step_events").update({ event_date: editForm.submitted_date }).eq("id", subEvent.id);
+      }
+    }
+    setSaving(false);
+    setShowEdit(false);
+    onClose();
+  };
+
   return (
     <Modal open={true} onClose={onClose} title={`${app.initials} - ${app.country_origin}`}>
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
@@ -618,7 +654,39 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete }: {
         {app.visa_country && <><span>·</span><span>{app.visa_country}</span></>}
         {app.subcategory && <><span>·</span><span>{app.subcategory}</span></>}
         {app.notes && <><span>·</span><span className="italic">{app.notes}</span></>}
+        <button onClick={() => setShowEdit(!showEdit)} className="ml-auto text-brand-500 font-medium hover:text-brand-600 transition-colors flex items-center gap-1">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Edit
+        </button>
       </div>
+
+      {/* Edit Details */}
+      {showEdit && (
+        <div className="bg-sand-50 rounded-xl p-3 mb-3 space-y-2.5 animate-in">
+          <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Edit Details</div>
+          <Input label="Name" value={editForm.initials} onChange={(e: React.ChangeEvent<HTMLInputElement>) => eu("initials", e.target.value)} />
+          <div className="grid grid-cols-2 gap-2">
+            <Select label="Status" value={editForm.sponsor_status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map(s => ({ value: s, label: s }))} />
+            <Select label="Stream" value={editForm.stream} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("stream", e.target.value)} options={STREAMS.map(s => ({ value: s, label: s }))} />
+          </div>
+          <SearchableSelect label="PA Country" value={editForm.country_origin} onChange={(v: string) => eu("country_origin", v)} options={COMMON_COUNTRIES.map(c => ({ value: c, label: c }))} />
+          <Select label="PA Visa Country" value={editForm.visa_country} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("visa_country", e.target.value)} options={VISA_COUNTRIES.map(v => ({ value: v, label: v || "None" }))} />
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date</label>
+            <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+              value={editForm.submitted_date} onChange={(e) => eu("submitted_date", e.target.value)} max={new Date().toISOString().split("T")[0]} />
+          </div>
+          <Input label="Notes" value={editForm.notes} onChange={(e: React.ChangeEvent<HTMLInputElement>) => eu("notes", e.target.value)} />
+          <div className="flex gap-2 pt-1">
+            <Button onClick={handleEditSave} disabled={saving || !editForm.initials.trim() || !editForm.country_origin} className="flex-1">
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+            <button onClick={() => setShowEdit(false)} className="text-xs text-sand-400 px-3 hover:text-sand-600 transition-colors">Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* MEI / Medical Exam */}
       <div className="bg-sand-50 rounded-lg px-3 py-2.5 mb-3">
