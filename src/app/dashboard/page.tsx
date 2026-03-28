@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, PROVINCES, VISA_COUNTRIES, MEI_TYPES, getNextStep } from "@/lib/constants";
@@ -143,12 +143,41 @@ export default function DashboardPage() {
   });
   const sortedMonths = Object.keys(monthGroups).sort();
 
-  // Auto-select latest month on first load
+  // Find user's own entry
+  const myEntry = useMemo(() => {
+    return apps.find(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash) || null;
+  }, [apps]);
+
+  // Find which month the user's entry is in
+  const myEntryMonth = useMemo(() => {
+    if (!myEntry) return "";
+    const sub = myEntry.step_events?.find(e => e.step_id === "submitted");
+    if (!sub) return "";
+    const d = new Date(sub.event_date + "T00:00:00");
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, [myEntry]);
+
+  const myEntryRef = useRef<HTMLTableRowElement>(null);
+
+  // Auto-select user's month on first load, fall back to latest month
   useEffect(() => {
     if (sortedMonths.length > 0 && !selectedMonth) {
-      setSelectedMonth(sortedMonths[sortedMonths.length - 1]);
+      if (myEntryMonth && monthGroups[myEntryMonth]) {
+        setSelectedMonth(myEntryMonth);
+      } else {
+        setSelectedMonth(sortedMonths[sortedMonths.length - 1]);
+      }
     }
-  }, [sortedMonths, selectedMonth]);
+  }, [sortedMonths, selectedMonth, myEntryMonth]);
+
+  // Auto-scroll to user's entry after month is selected
+  useEffect(() => {
+    if (myEntry && selectedMonth === myEntryMonth && myEntryRef.current) {
+      setTimeout(() => {
+        myEntryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+    }
+  }, [selectedMonth, myEntry, myEntryMonth]);
 
   if (loading) return <DashboardSkeleton />;
 
@@ -427,10 +456,23 @@ export default function DashboardPage() {
                       const isOwner = hasPin && getSavedPinHash(app.id) === app.pin_hash;
                       return (
                         <tr key={app.id}
-                          className="border-t border-sand-100 hover:bg-brand-50/30 cursor-pointer transition-colors"
+                          ref={isOwner ? myEntryRef : undefined}
+                          className={`border-t cursor-pointer transition-colors ${
+                            isOwner
+                              ? "border-brand-500 bg-brand-50/40 ring-2 ring-brand-500/30 ring-inset"
+                              : "border-sand-100 hover:bg-brand-50/30"
+                          }`}
                           onClick={() => handleRowClick(app)}
                         >
-                          <td className="px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 bg-white">{app.initials}<ReactionsBadge applicationId={app.id} /></td>
+                          <td className={`px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 ${isOwner ? "bg-brand-50/40" : "bg-white"}`}>
+                            <span className="flex items-center gap-1.5">
+                              {app.initials}
+                              {isOwner && (
+                                <span className="text-[8px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider">YOU</span>
+                              )}
+                              <ReactionsBadge applicationId={app.id} />
+                            </span>
+                          </td>
                           <td className="px-1.5 py-2 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                               app.sponsor_status === "Citizen" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
