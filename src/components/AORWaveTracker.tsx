@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef, useCallback } from "react";
 import { Application } from "@/lib/types";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
@@ -61,6 +61,47 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     { label: "This Week", entries: data.weekAors, color: "brand" as const },
   ];
 
+  // Auto-swipe cards every 5 seconds
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const cardIdx = useRef(0);
+  const pausedRef = useRef(false);
+
+  const scrollToCard = useCallback((idx: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardEl = el.children[idx] as HTMLElement | undefined;
+    if (!cardEl) return;
+    const targetScroll = cardEl.offsetLeft - el.offsetLeft - 8;
+    const startScroll = el.scrollLeft;
+    const diff = targetScroll - startScroll;
+    if (Math.abs(diff) < 2) return;
+    let start: number | null = null;
+    const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / 500, 1);
+      el.scrollLeft = startScroll + diff * ease(p);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (pausedRef.current) return;
+      cardIdx.current = (cardIdx.current + 1) % 3;
+      scrollToCard(cardIdx.current);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [scrollToCard]);
+
+  // Pause auto-swipe on touch
+  const handleTouchStart = useCallback(() => { pausedRef.current = true; }, []);
+  const handleTouchEnd = useCallback(() => {
+    // Resume after 8 seconds of no touch
+    setTimeout(() => { pausedRef.current = false; }, 8000);
+  }, []);
+
   return (
     <div className={`rounded-xl p-4 mb-4 border transition-all ${
       hasWeekActivity
@@ -107,7 +148,13 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
       </div>
 
       {/* Three swipeable cards */}
-      <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div
+        ref={scrollRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-1"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {cards.map((card) => (
           <div
             key={card.label}
