@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const REACTIONS = [
@@ -132,24 +132,41 @@ export function Reactions({ applicationId, stepId, compact }: ReactionsProps) {
 
 export function ReactionsBadge({ applicationId }: { applicationId: string }) {
   const [total, setTotal] = useState(0);
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
   const supabase = createClient();
 
+  // Only fetch when the badge scrolls into view
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
+      { rootMargin: "100px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
     supabase
       .from("reactions")
       .select("id", { count: "exact", head: true })
       .eq("application_id", applicationId)
       .then(({ count }) => { if (count) setTotal(count); });
-  }, [applicationId, supabase]);
-
-  if (total === 0) return null;
+  }, [applicationId, supabase, visible]);
 
   return (
-    <span className="inline-flex items-center gap-0.5 ml-1 text-[9px] text-brand-500">
-      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-      </svg>
-      {total}
+    <span ref={ref} className="inline-flex items-center gap-0.5 ml-1 text-[9px] text-brand-500">
+      {total > 0 && (
+        <>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          {total}
+        </>
+      )}
     </span>
   );
 }

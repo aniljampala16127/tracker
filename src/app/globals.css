@@ -2,15 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
-
 html {
   font-family: "DM Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
-  scroll-behavior: smooth;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Buttery smooth scrolling on all scroll containers */
+/* Smooth native scrolling on iOS */
 .overflow-y-auto,
 .overflow-x-auto,
 .overflow-auto {
@@ -35,12 +34,34 @@ a, button { touch-action: manipulation; }
   main { padding-bottom: 80px !important; }
 }
 
+/* Smooth fade-slide for modals and overlays */
 .animate-in {
-  animation: slide-in 0.2s ease-out;
+  animation: slide-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes slide-in {
-  from { opacity: 0; transform: translateY(-4px); }
+  from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal backdrop + content transitions */
+.modal-backdrop {
+  animation: fade-in 0.2s ease-out;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.modal-content {
+  animation: modal-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes modal-slide-up {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Card containment for layout performance */
+.perf-card {
+  contain: layout style paint;
 }
 
 /* Step completion micro-animations */
@@ -120,4 +141,26 @@ a, button { touch-action: manipulation; }
 @keyframes aor-scroll-up {
   0% { transform: translateY(0); }
   100% { transform: translateY(-50%); }
+}
+
+/* Loading spinner */
+.spinner {
+  animation: spin 0.8s linear infinite;
+  border: 2px solid #E8E6E1;
+  border-top-color: #2D6A4F;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Smooth page content appearance */
+.page-enter {
+  animation: page-fade 0.3s ease-out;
+}
+@keyframes page-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

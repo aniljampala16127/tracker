@@ -191,12 +191,11 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         className="flex gap-3 overflow-x-auto hide-scrollbar pb-1"
-        style={{ WebkitOverflowScrolling: "touch", scrollBehavior: "auto" }}
       >
         {cards.map((card) => (
           <div
             key={card.label}
-            className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden"
+            className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden perf-card"
           >
             {/* Card header */}
             <div className="px-3 py-2 border-b border-sand-100 flex items-center justify-between">

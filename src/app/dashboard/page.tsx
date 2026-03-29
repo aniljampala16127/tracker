@@ -19,6 +19,7 @@ import { Confetti } from "@/components/Confetti";
 import { AORWaveTracker } from "@/components/AORWaveTracker";
 import { NewSinceLastVisit } from "@/components/NewSinceLastVisit";
 import { CelebrationWall } from "@/components/CelebrationWall";
+import { CohortAORAlert } from "@/components/CohortAORAlert";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { playMilestoneSound } from "@/lib/sounds";
@@ -311,6 +312,9 @@ export default function DashboardPage() {
       {/* New since last visit */}
       {apps.length > 0 && <NewSinceLastVisit apps={apps} />}
 
+      {/* Cohort AOR Alert — someone in your week got AOR! */}
+      {apps.length > 0 && <CohortAORAlert apps={apps} />}
+
       {/* AOR Wave Tracker — sticky below header */}
       {apps.length > 0 && (
         <div className="sticky top-12 z-30">
@@ -399,7 +403,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Mobile card view */}
-            <div className="sm:hidden max-h-[65vh] overflow-y-auto p-2 space-y-2" id="mobile-entries" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="sm:hidden max-h-[65vh] overflow-y-auto p-2 space-y-2" id="mobile-entries">
               {selectedGroup.map((app) => {
                 const stepsMap = buildStepsMap(app.step_events || []);
                 const completedSteps = STEPS.filter(s => stepsMap[s.id]);
@@ -472,8 +476,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Desktop table */}
-            <div className="hidden sm:block overflow-auto max-h-[70vh]">
-              <div className="hidden sm:block border-t border-sand-100 overflow-auto max-h-[70vh]">
+            <div className="hidden sm:block border-t border-sand-100 overflow-auto max-h-[70vh]">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-20 bg-sand-50">
                     <tr className="bg-sand-50 text-[8px] font-semibold text-sand-500 uppercase tracking-wider">
@@ -627,7 +630,6 @@ export default function DashboardPage() {
                   </tfoot>
                 </table>
               </div>
-            </div>
           </div>
       )}
 
