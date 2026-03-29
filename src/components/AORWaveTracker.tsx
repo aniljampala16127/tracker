@@ -55,11 +55,19 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
 
   const hasWeekActivity = data.weekAors.length > 0;
 
-  const cards = [
-    { label: "Today", entries: data.todayAors, color: "brand" as const },
-    { label: "Yesterday", entries: data.yesterdayAors, color: "brand" as const },
-    { label: "This Week", entries: data.weekAors, color: "brand" as const },
-  ];
+  // Smart order: if Today has AORs, show it first. Otherwise This Week first.
+  const hasTodayAors = data.todayAors.length > 0;
+  const cards = hasTodayAors
+    ? [
+        { label: "Today", entries: data.todayAors, color: "brand" as const },
+        { label: "Yesterday", entries: data.yesterdayAors, color: "brand" as const },
+        { label: "This Week", entries: data.weekAors, color: "brand" as const },
+      ]
+    : [
+        { label: "This Week", entries: data.weekAors, color: "brand" as const },
+        { label: "Yesterday", entries: data.yesterdayAors, color: "brand" as const },
+        { label: "Today", entries: data.todayAors, color: "brand" as const },
+      ];
 
   // Auto-swipe cards — waits for names to finish scrolling
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -89,12 +97,11 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
 
   // Dwell time per card — let names scroll through before swiping
   const getDwellTime = useCallback((idx: number): number => {
-    const counts = [data.todayAors.length, data.yesterdayAors.length, data.weekAors.length];
-    const count = Math.min(counts[idx] || 0, 8);
+    const count = Math.min(cards[idx]?.entries.length || 0, 8);
     if (count === 0) return 3000;
-    if (count <= 3) return 5000; // static list, just pause to read
-    return count * 2500; // match scroll animation
-  }, [data]);
+    if (count <= 3) return 5000;
+    return count * 2500;
+  }, [cards]);
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
@@ -136,7 +143,11 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
       {/* Stats row */}
       <div className="flex items-end gap-4 mb-3">
         <div className="flex-1">
-          {hasWeekActivity ? (
+          {hasTodayAors ? (
+            <div className="text-2xl font-bold text-brand-600">
+              {data.todayAors.length} AOR{data.todayAors.length > 1 ? "s" : ""} today
+            </div>
+          ) : hasWeekActivity ? (
             <div className="text-2xl font-bold text-brand-600">
               {data.weekAors.length} AOR{data.weekAors.length > 1 ? "s" : ""} this week
             </div>
@@ -152,6 +163,12 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
           )}
         </div>
         <div className="flex gap-3 text-center">
+          {hasTodayAors && (
+            <div>
+              <div className="text-lg font-bold text-brand-600">{data.todayAors.length}</div>
+              <div className="text-[9px] text-sand-400 uppercase">Today</div>
+            </div>
+          )}
           <div>
             <div className="text-lg font-bold text-brand-600">{data.weekAors.length}</div>
             <div className="text-[9px] text-sand-400 uppercase">This week</div>
