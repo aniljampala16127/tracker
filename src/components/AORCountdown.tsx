@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Application } from "@/lib/types";
-import { buildStepsMap, daysBetween } from "@/lib/utils";
+import { buildStepsMap, daysBetween, localToday } from "@/lib/utils";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 

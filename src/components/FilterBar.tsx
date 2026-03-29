@@ -145,7 +145,7 @@ function FilterDropdown({
             : "border-sand-200 text-sand-600 bg-white hover:bg-sand-50"
         )}
       >
-        {value || `All ${label}s`}
+        {value || `All ${label === "Country" ? "Countries" : label + "s"}`}
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
           className={cn("transition-transform", open && "rotate-180")}>
           <path d="M6 9L12 15L18 9" />
