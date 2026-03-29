@@ -114,7 +114,7 @@ export default function StatsPage() {
 
   return (
     <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
-    <div>
+    <div className="page-enter">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-sand-900">Processing Analytics</h1>
         <p className="text-xs text-sand-500 mt-0.5">

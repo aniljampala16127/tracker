@@ -10,8 +10,12 @@ import { PlusIcon } from "@/components/icons";
 import { Button, Modal, Input, Select, SearchableSelect } from "@/components/ui";
 import { PinModal, PinInput } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
+import dynamic from "next/dynamic";
 import { FilterBar, Filters, EMPTY_FILTERS } from "@/components/FilterBar";
-import { StepChart } from "@/components/StepChart";
+const StepChart = dynamic(() => import("@/components/StepChart").then(m => ({ default: m.StepChart })), {
+  loading: () => <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5 h-[300px] animate-pulse bg-sand-50" />,
+  ssr: false,
+});
 import { Reactions, ReactionsBadge } from "@/components/Reactions";
 import { ShareButtons } from "@/components/ShareButtons";
 
@@ -237,7 +241,7 @@ export default function DashboardPage() {
 
   return (
     <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
-    <div>
+    <div className="page-enter">
       {/* CTA Banner - only for users who haven't added */}
       {!hasMyEntry && (
         <div className="mb-4 bg-gradient-to-r from-brand-500 to-brand-600 rounded-xl p-4 text-white relative overflow-hidden">

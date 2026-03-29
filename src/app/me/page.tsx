@@ -79,7 +79,7 @@ export default function MyAppPage() {
 
   return (
     <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
-    <div>
+    <div className="page-enter">
       <h1 className="text-xl font-bold text-sand-900 mb-1">My Application</h1>
       <p className="text-xs text-sand-500 mb-5">Your personal timeline and predictions</p>
 
