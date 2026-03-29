@@ -23,9 +23,14 @@ interface AorEntry {
 export function AORWaveTracker({ apps }: { apps: Application[] }) {
   const data = useMemo(() => {
     const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    const weekCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    // Use LOCAL date, not UTC — toISOString() gives UTC which breaks after 8pm EDT
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const localDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const todayStr = localDate(now);
+    const yesterdayD = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const yesterdayStr = localDate(yesterdayD);
+    const weekCutoffD = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+    const weekCutoff = localDate(weekCutoffD);
 
     const allAors: AorEntry[] = [];
     apps.forEach(a => {
@@ -42,7 +47,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     allAors.sort((a, b) => b.aorDate.localeCompare(a.aorDate));
 
     const todayAors = allAors.filter(e => e.aorDate === todayStr);
-    const yesterdayAors = allAors.filter(e => e.aorDate === yesterday);
+    const yesterdayAors = allAors.filter(e => e.aorDate === yesterdayStr);
     const weekAors = allAors.filter(e => e.aorDate >= weekCutoff);
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
     const latestAorDate = allAors.length > 0 ? allAors[0].aorDate : "";
