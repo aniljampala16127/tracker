@@ -16,11 +16,11 @@ const STEP_CHECKLISTS: Record<string, { title: string; items: ChecklistItem[] }>
   aor: {
     title: "Preparing While You Wait",
     items: [
-      { id: "aor-account", label: "Create IRCC online account", detail: "Link your application to check status updates online", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/account.html" },
       { id: "aor-passport", label: "Check passport validity", detail: "Must be valid for the entire processing period — renew early if expiring", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports.html" },
       { id: "aor-dmp", label: "Find your nearest panel physician", detail: "For the medical exam later — popular DMPs book weeks out", link: "https://secure.cic.gc.ca/pp-md/pp-list.aspx" },
-      { id: "aor-police", label: "Get police clearance certificates ready", detail: "May be needed later — check requirements for your country", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/medical-police/police-certificates.html" },
-      { id: "aor-checklist", label: "Review IRCC spousal document checklist", detail: "Official list of required documents — IMM 5533", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/application-forms-guides/guide-5289-sponsor-your-spouse-common-law-partner-conjugal-partner-dependent-child-complete-guide.html" },
+      { id: "aor-police", label: "Get police clearance certificates ready", detail: "Some countries take months — start now", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/medical-police/police-certificates.html" },
+      { id: "aor-photos", label: "Take new photos (if older than 6 months)", detail: "IRCC may request updated photos at any step" },
+      { id: "aor-checklist", label: "Review IRCC spousal document checklist", detail: "Official guide — IMM 5289", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/application-forms-guides/guide-5289-sponsor-your-spouse-common-law-partner-conjugal-partner-dependent-child-complete-guide.html" },
     ],
   },
   bil: {
