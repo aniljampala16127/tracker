@@ -172,6 +172,7 @@ export function CohortAORAlert({ apps }: { apps: Application[] }) {
               <div className="flex-1 min-w-0">
                 <span className="text-[11px] font-semibold">{a.initials}</span>
                 <span className="text-[10px] text-white/60 ml-1">{a.country} · {a.stream}</span>
+                <div className="text-[9px] text-white/40">Sub {fmt(a.subDate)}</div>
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="text-[11px] font-bold">{a.days}d</div>
