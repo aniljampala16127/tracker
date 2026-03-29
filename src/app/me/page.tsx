@@ -12,7 +12,6 @@ import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
 import { AORCountdown } from "@/components/AORCountdown";
 import { AchievementBadges } from "@/components/AchievementBadges";
-import { DocumentChecklist } from "@/components/DocumentChecklist";
 import { playMilestoneSound } from "@/lib/sounds";
 import { TimelineExport } from "@/components/TimelineExport";
 import { MeSkeleton } from "@/components/Skeletons";
@@ -211,12 +210,6 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
       {/* 4. Achievement Badges */}
       <AchievementBadges app={app} />
-
-      {/* 4.5 Document Checklist */}
-      <DocumentChecklist
-        currentStep={nextStepId as any}
-        completedSteps={STEPS.filter(s => stepsMap[s.id]).map(s => s.id)}
-      />
 
       {/* 5. Step timeline */}
       <div className="mb-4">
