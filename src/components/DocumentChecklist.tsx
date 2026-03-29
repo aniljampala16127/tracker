@@ -9,23 +9,24 @@ interface ChecklistItem {
   id: string;
   label: string;
   detail?: string;
+  link?: string;
 }
 
 const STEP_CHECKLISTS: Record<string, { title: string; items: ChecklistItem[] }> = {
   aor: {
-    title: "While Waiting for AOR",
+    title: "Preparing While You Wait",
     items: [
-      { id: "aor-passport", label: "Passport valid for 6+ months", detail: "Renew now if expiring soon — changes delay processing" },
-      { id: "aor-fees", label: "Confirm IRCC fees paid in full", detail: "Check your receipt — biometrics ($85) + processing fees" },
-      { id: "aor-address", label: "Update IRCC if address changed", detail: "Use the IRCC web form to notify of any address changes" },
-      { id: "aor-docs", label: "Organize original documents", detail: "Keep marriage cert, police clearances, and photos accessible" },
-      { id: "aor-account", label: "Create IRCC online account", detail: "Link your application to track status at ircc.canada.ca" },
+      { id: "aor-account", label: "Create IRCC online account", detail: "Link your application to check status updates online", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/account.html" },
+      { id: "aor-passport", label: "Check passport validity", detail: "Must be valid for the entire processing period — renew early if expiring", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports.html" },
+      { id: "aor-dmp", label: "Find your nearest panel physician", detail: "For the medical exam later — popular DMPs book weeks out", link: "https://secure.cic.gc.ca/pp-md/pp-list.aspx" },
+      { id: "aor-police", label: "Get police clearance certificates ready", detail: "May be needed later — check requirements for your country", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/medical-police/police-certificates.html" },
+      { id: "aor-checklist", label: "Review IRCC spousal document checklist", detail: "Official list of required documents — IMM 5533", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/application-forms-guides/guide-5289-sponsor-your-spouse-common-law-partner-conjugal-partner-dependent-child-complete-guide.html" },
     ],
   },
   bil: {
     title: "Biometrics (BIL) Preparation",
     items: [
-      { id: "bil-appt", label: "Book biometrics appointment", detail: "At nearest Service Canada (inland) or VAC office (outland)" },
+      { id: "bil-appt", label: "Book biometrics appointment", detail: "Service Canada (inland) or VAC office (outland)", link: "https://www.canada.ca/en/immigration-refugees-citizenship/campaigns/biometrics/where-to-give-biometrics.html" },
       { id: "bil-letter", label: "Print BIL letter", detail: "Bring the original biometrics instruction letter" },
       { id: "bil-passport", label: "Bring valid passport", detail: "Must match passport used in application" },
       { id: "bil-fee", label: "Confirm biometrics fee paid ($85)", detail: "May already be included in your initial payment" },
@@ -38,13 +39,13 @@ const STEP_CHECKLISTS: Record<string, { title: string; items: ChecklistItem[] }>
       { id: "se-income", label: "Review income documentation", detail: "NOA, T4s, pay stubs may be requested" },
       { id: "se-status", label: "Confirm sponsor's PR/citizen status", detail: "Keep citizenship or PR card accessible" },
       { id: "se-rfe", label: "Watch for RFE (Request for Evidence)", detail: "Check IRCC account regularly — respond promptly if received" },
-      { id: "se-address", label: "Report any address or status changes", detail: "Marriage, employment, or address changes must be reported" },
+      { id: "se-update", label: "Report any changes to IRCC", detail: "Address, marriage status, or employment changes", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/change-address.html" },
     ],
   },
   medical: {
     title: "Medical Exam Preparation",
     items: [
-      { id: "med-dmp", label: "Find a Designated Medical Practitioner", detail: "Use IRCC's panel physician finder at ircc.canada.ca" },
+      { id: "med-dmp", label: "Find a Designated Medical Practitioner", detail: "Use IRCC's panel physician finder", link: "https://secure.cic.gc.ca/pp-md/pp-list.aspx" },
       { id: "med-book", label: "Book medical appointment", detail: "Book early — popular DMPs have long wait times" },
       { id: "med-passport", label: "Bring valid passport + photos", detail: "2 passport-size photos and valid ID" },
       { id: "med-form", label: "Bring IMM 1017B form (if received)", detail: "IRCC may send this or your DMP can pull it online" },
@@ -89,11 +90,12 @@ const STEP_CHECKLISTS: Record<string, { title: string; items: ChecklistItem[] }>
   pre_arrival: {
     title: "Pre-Arrival Preparation",
     items: [
-      { id: "pre-sin", label: "Apply for SIN number", detail: "Can apply online before landing at canada.ca" },
+      { id: "pre-sin", label: "Apply for SIN number", detail: "Can apply online before landing", link: "https://www.canada.ca/en/employment-social-development/services/sin/apply.html" },
       { id: "pre-health", label: "Register for provincial health insurance", detail: "OHIP (ON), RAMQ (QC), etc. — may have 3-month wait" },
       { id: "pre-bank", label: "Open Canadian bank account", detail: "Most banks allow pre-arrival account opening online" },
       { id: "pre-flight", label: "Book travel (outland)", detail: "COPR has an expiry date — land before it expires" },
       { id: "pre-docs", label: "Prepare landing documents packet", detail: "COPR, passport, proof of funds, and supporting docs" },
+      { id: "pre-settle", label: "Register with free settlement services", detail: "Free government-funded help for newcomers", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/new-immigrants/new-life-canada/pre-arrival-services.html" },
     ],
   },
   ecopr: {
@@ -101,8 +103,8 @@ const STEP_CHECKLISTS: Record<string, { title: string; items: ChecklistItem[] }>
     items: [
       { id: "ecopr-save", label: "Download and save your eCoPR", detail: "Save digital copy and print a physical backup" },
       { id: "ecopr-land", label: "Complete landing (outland)", detail: "Enter Canada before COPR expiry date" },
-      { id: "ecopr-pr", label: "Wait for PR card in mail", detail: "Takes 4-8 weeks after landing — sent to Canadian address" },
-      { id: "ecopr-sin", label: "Get your SIN number", detail: "Visit Service Canada office with your COPR and passport" },
+      { id: "ecopr-pr", label: "Wait for PR card in mail", detail: "Takes 4-8 weeks after landing — sent to Canadian address", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/new-immigrants/pr-card.html" },
+      { id: "ecopr-sin", label: "Get your SIN number", detail: "Visit Service Canada office with your COPR and passport", link: "https://www.canada.ca/en/employment-social-development/services/sin/apply.html" },
       { id: "ecopr-celebrate", label: "Celebrate! 🎉", detail: "You made it through the entire process!" },
     ],
   },
@@ -231,25 +233,27 @@ export function DocumentChecklist({ currentStep, completedSteps }: {
                   {section.items.map(item => {
                     const isDone = !!checked[item.id];
                     return (
-                      <button
+                      <div
                         key={item.id}
-                        onClick={() => toggle(item.id)}
-                        className={`w-full flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all ${
+                        className={`flex items-start gap-2.5 px-2.5 py-2 rounded-lg transition-all ${
                           isDone ? "bg-brand-50/50" : "bg-white hover:bg-sand-50"
                         }`}
                       >
-                        <div className={`w-4.5 h-4.5 mt-0.5 rounded flex items-center justify-center flex-shrink-0 border transition-all ${
-                          isDone
-                            ? "bg-brand-500 border-brand-500"
-                            : "border-sand-300 bg-white"
-                        }`} style={{ width: 18, height: 18 }}>
+                        <button
+                          onClick={() => toggle(item.id)}
+                          className={`mt-0.5 rounded flex items-center justify-center flex-shrink-0 border transition-all ${
+                            isDone
+                              ? "bg-brand-500 border-brand-500"
+                              : "border-sand-300 bg-white"
+                          }`} style={{ width: 18, height: 18 }}
+                        >
                           {isDone && (
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
                               <path d="M20 6L9 17L4 12" />
                             </svg>
                           )}
-                        </div>
-                        <div className="flex-1 min-w-0">
+                        </button>
+                        <div className="flex-1 min-w-0" onClick={() => toggle(item.id)}>
                           <div className={`text-[11px] font-medium ${isDone ? "text-sand-400 line-through" : "text-sand-900"}`}>
                             {item.label}
                           </div>
@@ -259,7 +263,22 @@ export function DocumentChecklist({ currentStep, completedSteps }: {
                             </div>
                           )}
                         </div>
-                      </button>
+                        {item.link && (
+                          <a
+                            href={item.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-md bg-brand-50 flex items-center justify-center"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                              <polyline points="15 3 21 3 21 9" />
+                              <line x1="10" y1="14" x2="21" y2="3" />
+                            </svg>
+                          </a>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
