@@ -23,14 +23,20 @@ interface AorEntry {
 export function AORWaveTracker({ apps }: { apps: Application[] }) {
   const data = useMemo(() => {
     const now = new Date();
-    // Use LOCAL date, not UTC — toISOString() gives UTC which breaks after 8pm EDT
     const pad = (n: number) => String(n).padStart(2, "0");
     const localDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     const todayStr = localDate(now);
-    const yesterdayD = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    const yesterdayStr = localDate(yesterdayD);
-    const weekCutoffD = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-    const weekCutoff = localDate(weekCutoffD);
+
+    // This Week = Sunday to Saturday (current week)
+    const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
+    const thisWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+    const thisWeekStartStr = localDate(thisWeekStart);
+
+    // Last Week = previous Sunday to Saturday
+    const lastWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek - 7);
+    const lastWeekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek - 1);
+    const lastWeekStartStr = localDate(lastWeekStart);
+    const lastWeekEndStr = localDate(lastWeekEnd);
 
     const allAors: AorEntry[] = [];
     apps.forEach(a => {
@@ -47,13 +53,13 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     allAors.sort((a, b) => b.aorDate.localeCompare(a.aorDate));
 
     const todayAors = allAors.filter(e => e.aorDate === todayStr);
-    const yesterdayAors = allAors.filter(e => e.aorDate === yesterdayStr);
-    const weekAors = allAors.filter(e => e.aorDate >= weekCutoff);
+    const lastWeekAors = allAors.filter(e => e.aorDate >= lastWeekStartStr && e.aorDate <= lastWeekEndStr);
+    const weekAors = allAors.filter(e => e.aorDate >= thisWeekStartStr);
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
     const latestAorDate = allAors.length > 0 ? allAors[0].aorDate : "";
     const daysSinceLast = latestAorDate ? daysBetween(latestAorDate, todayStr) : 0;
 
-    return { todayAors, yesterdayAors, weekAors, waiting, totalAor: allAors.length, daysSinceLast, latestAorDate };
+    return { todayAors, lastWeekAors, weekAors, waiting, totalAor: allAors.length, daysSinceLast, latestAorDate };
   }, [apps]);
 
   if (data.totalAor === 0) return null;
@@ -65,12 +71,12 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
   const cards = hasTodayAors
     ? [
         { label: "Today", entries: data.todayAors, color: "brand" as const },
-        { label: "Yesterday", entries: data.yesterdayAors, color: "brand" as const },
         { label: "This Week", entries: data.weekAors, color: "brand" as const },
+        { label: "Last Week", entries: data.lastWeekAors, color: "brand" as const },
       ]
     : [
         { label: "This Week", entries: data.weekAors, color: "brand" as const },
-        { label: "Yesterday", entries: data.yesterdayAors, color: "brand" as const },
+        { label: "Last Week", entries: data.lastWeekAors, color: "brand" as const },
         { label: "Today", entries: data.todayAors, color: "brand" as const },
       ];
 
