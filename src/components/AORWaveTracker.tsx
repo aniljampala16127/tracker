@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useRef, useCallback } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Application } from "@/lib/types";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
@@ -136,68 +136,60 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     touchTimer.current = setTimeout(() => { pausedRef.current = false; }, 10000);
   }, []);
 
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <div className={`rounded-xl p-4 mb-4 border transition-all ${
+    <div className={`rounded-xl mb-4 border transition-all ${
       hasWeekActivity
         ? "bg-gradient-to-r from-brand-50 to-brand-100 border-brand-200"
         : "bg-white border-sand-200"
     }`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${hasWeekActivity ? "bg-brand-500 animate-pulse" : "bg-sand-400"}`} />
-          <span className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">AOR Wave Tracker</span>
-        </div>
-        <span className="text-[10px] text-sand-400">{data.totalAor} total AORs</span>
-      </div>
-
-      {/* Stats row */}
-      <div className="flex items-end gap-4 mb-3">
-        <div className="flex-1">
-          {hasTodayAors ? (
-            <div className="text-2xl font-bold text-brand-600">
-              {data.todayAors.length} AOR{data.todayAors.length > 1 ? "s" : ""} today
-            </div>
-          ) : hasWeekActivity ? (
-            <div className="text-2xl font-bold text-brand-600">
-              {data.weekAors.length} AOR{data.weekAors.length > 1 ? "s" : ""} this week
-            </div>
-          ) : (
-            <div className="flex items-baseline gap-1.5">
-              <span className={`text-3xl font-bold tabular-nums ${data.daysSinceLast > 5 ? "text-warn-dark" : "text-sand-800"}`}>
-                {data.daysSinceLast}
-              </span>
-              <span className="text-sm text-sand-500">
-                day{data.daysSinceLast !== 1 ? "s" : ""} since last AOR
-              </span>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-3 text-center">
-          {hasTodayAors && (
-            <div>
-              <div className="text-lg font-bold text-brand-600">{data.todayAors.length}</div>
-              <div className="text-[9px] text-sand-400 uppercase">Today</div>
-            </div>
-          )}
-          <div>
-            <div className="text-lg font-bold text-brand-600">{data.weekAors.length}</div>
-            <div className="text-[9px] text-sand-400 uppercase">This week</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold text-warn-dark">{data.waiting}</div>
-            <div className="text-[9px] text-sand-400 uppercase">Waiting</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Three swipeable cards */}
-      <div
-        ref={scrollRef}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        className="flex gap-3 overflow-x-auto hide-scrollbar pb-1"
+      {/* Tappable header — always visible */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left"
       >
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${hasWeekActivity ? "bg-brand-500 animate-pulse" : "bg-sand-400"}`} />
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-bold text-sand-900">
+            {hasTodayAors
+              ? `${data.todayAors.length} AOR${data.todayAors.length > 1 ? "s" : ""} today`
+              : hasWeekActivity
+              ? `${data.weekAors.length} AOR${data.weekAors.length > 1 ? "s" : ""} this week`
+              : `${data.daysSinceLast}d since last AOR`}
+          </div>
+          <div className="text-[10px] text-sand-400">{data.totalAor} total · {data.waiting} waiting</div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex gap-2 text-center">
+            <div>
+              <div className="text-sm font-bold text-brand-600">{data.weekAors.length}</div>
+              <div className="text-[8px] text-sand-400">Week</div>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-warn-dark">{data.waiting}</div>
+              <div className="text-[8px] text-sand-400">Wait</div>
+            </div>
+          </div>
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round"
+            className={`transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
+          >
+            <path d="M6 9L12 15L18 9" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Expandable cards section */}
+      {expanded && (
+        <div className="px-4 pb-4 animate-in">
+          {/* Three swipeable cards */}
+          <div
+            ref={scrollRef}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="flex gap-3 overflow-x-auto hide-scrollbar pb-1"
+          >
         {cards.map((card) => (
           <div
             key={card.label}
@@ -261,6 +253,8 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
           </div>
         ))}
       </div>
+        </div>
+      )}
     </div>
   );
 }
