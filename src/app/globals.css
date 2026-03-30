@@ -189,15 +189,15 @@ button, a, [role="button"] {
   -webkit-backface-visibility: hidden;
 }
 
-/* Skeleton shimmer — smoother */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.animate-pulse {
+/* Skeleton shimmer — separate class, don't override Tailwind's animate-pulse */
+.skeleton-shimmer {
   background: linear-gradient(90deg, transparent 0%, rgba(45,106,79,0.04) 50%, transparent 100%) !important;
   background-size: 200% 100% !important;
   animation: shimmer 2s ease-in-out infinite !important;
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 /* Stagger children animation */
