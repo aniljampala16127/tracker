@@ -14,6 +14,7 @@ import { AORCountdown } from "@/components/AORCountdown";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { playMilestoneSound } from "@/lib/sounds";
 import { TimelineExport } from "@/components/TimelineExport";
+import { PostAORGuide } from "@/components/PostAORGuide";
 import { MeSkeleton } from "@/components/Skeletons";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { Button } from "@/components/ui";
@@ -224,6 +225,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
       {/* 4. Achievement Badges */}
       <AchievementBadges app={app} />
+
+      {/* 4.5 Post-AOR Guide — only after AOR received */}
+      {stepsMap.aor && <PostAORGuide />}
 
       {/* 5. Step timeline */}
       <div className="mb-4">
