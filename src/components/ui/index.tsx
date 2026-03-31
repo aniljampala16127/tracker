@@ -342,10 +342,18 @@ interface ModalProps {
 export function Modal({ open, onClose, title, children }: ModalProps) {
   const [visible, setVisible] = React.useState(false);
   const [closing, setClosing] = React.useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (open) { setVisible(true); setClosing(false); }
   }, [open]);
+
+  // Force scroll to top when modal opens
+  React.useEffect(() => {
+    if (visible && !closing && contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
+  }, [visible, closing]);
 
   const handleClose = React.useCallback(() => {
     setClosing(true);
@@ -359,6 +367,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       onClick={handleClose}
     >
       <div
+        ref={contentRef}
         className={`bg-white rounded-t-2xl sm:rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-auto ${closing ? "modal-content-out" : "modal-content"}`}
         onClick={(e) => e.stopPropagation()}
       >
