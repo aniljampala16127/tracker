@@ -117,15 +117,33 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
 
   const [expanded, setExpanded] = useState(true);
   const [userToggled, setUserToggled] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
   const lastScrollY = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
   const touchTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  // Scroll-to-collapse with debounce
+  // Measure content height on mount and resize
+  useEffect(() => {
+    const measure = () => {
+      if (contentRef.current) {
+        setContentHeight(contentRef.current.scrollHeight);
+      }
+    };
+    measure();
+    // Re-measure after a tick (fonts/images may load)
+    const t = setTimeout(measure, 100);
+    window.addEventListener("resize", measure);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", measure);
+    };
+  }, [data]);
+
+  // Scroll-to-collapse
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     let rafId: number | null = null;
 
     const handleScroll = () => {
@@ -156,7 +174,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     };
   }, [expanded, userToggled]);
 
-  // Reset manual toggle so scroll auto-collapse resumes
+  // Reset manual toggle
   useEffect(() => {
     if (!userToggled) return;
     const t = setTimeout(() => setUserToggled(false), 5000);
@@ -164,6 +182,10 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
   }, [userToggled]);
 
   const handleToggle = () => {
+    // Re-measure before expanding
+    if (!expanded && contentRef.current) {
+      setContentHeight(contentRef.current.scrollHeight);
+    }
     setExpanded(prev => !prev);
     setUserToggled(true);
   };
@@ -193,17 +215,16 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
 
   return (
     <div
-      className={`rounded-xl mb-4 border will-change-[transform] ${
+      className={`rounded-xl mb-4 border ${
         hasWeekActivity
           ? "bg-gradient-to-r from-brand-50 to-brand-100 border-brand-200"
           : "bg-white border-sand-200"
-      } ${!expanded ? "shadow-sm" : ""}`}
-      style={{ transition: "box-shadow 0.3s ease" }}
+      }`}
     >
       {/* Tappable header */}
       <button
         onClick={handleToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left active:scale-[0.99] transition-transform duration-150"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left"
       >
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${hasWeekActivity ? "bg-brand-500 animate-pulse" : "bg-sand-400"}`} />
         <div className="flex-1 min-w-0">
@@ -229,95 +250,98 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
           </div>
           <svg
             width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round"
-            style={{ transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
+            className="flex-shrink-0"
+            style={{
+              transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+            }}
           >
             <path d="M6 9L12 15L18 9" />
           </svg>
         </div>
       </button>
 
-      {/* Collapsible body — CSS grid row trick for smooth height animation */}
+      {/* Collapsible body — measured height approach */}
       <div
-        className="grid will-change-[grid-template-rows]"
         style={{
-          gridTemplateRows: expanded ? "1fr" : "0fr",
-          transition: "grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          height: expanded ? `${contentHeight}px` : "0px",
+          overflow: "hidden",
+          transition: "height 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
         }}
       >
-        <div className="overflow-hidden">
+        <div
+          ref={contentRef}
+          className="px-4 pb-4"
+          style={{
+            opacity: expanded ? 1 : 0,
+            transition: "opacity 0.25s ease",
+            transitionDelay: expanded ? "0.08s" : "0s",
+          }}
+        >
+          <AutoSwipeController scrollRef={scrollRef} cards={cards} pausedRef={pausedRef} expanded={expanded} />
           <div
-            className="px-4 pb-4"
-            style={{
-              opacity: expanded ? 1 : 0,
-              transition: "opacity 0.3s ease",
-              transitionDelay: expanded ? "0.1s" : "0s",
-            }}
+            ref={scrollRef}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="flex gap-3 overflow-x-auto hide-scrollbar pb-1"
           >
-            <AutoSwipeController scrollRef={scrollRef} cards={cards} pausedRef={pausedRef} expanded={expanded} />
-            <div
-              ref={scrollRef}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              className="flex gap-3 overflow-x-auto hide-scrollbar pb-1"
-            >
-              {cards.map((card) => (
-                <div
-                  key={card.label}
-                  className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden perf-card"
-                >
-                  <div className="px-3 py-2 border-b border-sand-100 flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-sand-900">{card.label}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      card.entries.length > 0 ? "bg-brand-100 text-brand-700" : "bg-sand-100 text-sand-400"
-                    }`}>{card.entries.length}</span>
-                  </div>
-
-                  {card.entries.length === 0 ? (
-                    <div className="px-3 py-5 text-center">
-                      <div className="text-[11px] text-sand-400">No AORs {card.label.toLowerCase()}</div>
-                    </div>
-                  ) : (
-                    <div className="overflow-hidden h-[120px] relative">
-                      <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-white/90 to-transparent z-10 pointer-events-none" />
-                      <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-white/90 to-transparent z-10 pointer-events-none" />
-                      <div
-                        className={card.entries.length > 3 ? "aor-vertical-scroll" : ""}
-                        style={card.entries.length > 3 ? { animationDuration: `${Math.min(card.entries.length, 8) * 2.5}s` } : { paddingTop: 4 }}
-                      >
-                        {(card.entries.length > 3
-                          ? [...card.entries.slice(0, 8), ...card.entries.slice(0, 8)]
-                          : card.entries
-                        ).map((a, i) => (
-                          <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
-                            <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
-                              a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
-                            }`}>
-                              {a.initials.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1">
-                                <span className="text-[11px] font-semibold text-sand-900 truncate">{a.initials}</span>
-                                <span className={`px-1 py-px rounded text-[7px] font-semibold flex-shrink-0 ${
-                                  a.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
-                                }`}>{a.stream}</span>
-                              </div>
-                              <div className="text-[9px] text-sand-400">{a.country} · Sub {fmtDate(a.subDate)}</div>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <div className="text-[11px] font-bold text-brand-600">{a.days}d</div>
-                              <div className="text-[8px] text-sand-400">{fmtDate(a.aorDate)}</div>
-                            </div>
-                          </div>
-                        ))}
-                        {card.entries.length > 8 && (
-                          <div className="text-center text-[9px] text-sand-400 py-1">+{card.entries.length - 8} more</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+            {cards.map((card) => (
+              <div
+                key={card.label}
+                className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden"
+              >
+                <div className="px-3 py-2 border-b border-sand-100 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-sand-900">{card.label}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    card.entries.length > 0 ? "bg-brand-100 text-brand-700" : "bg-sand-100 text-sand-400"
+                  }`}>{card.entries.length}</span>
                 </div>
-              ))}
-            </div>
+
+                {card.entries.length === 0 ? (
+                  <div className="px-3 py-5 text-center">
+                    <div className="text-[11px] text-sand-400">No AORs {card.label.toLowerCase()}</div>
+                  </div>
+                ) : (
+                  <div className="overflow-hidden h-[120px] relative">
+                    <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-white/90 to-transparent z-10 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-white/90 to-transparent z-10 pointer-events-none" />
+                    <div
+                      className={card.entries.length > 3 ? "aor-vertical-scroll" : ""}
+                      style={card.entries.length > 3 ? { animationDuration: `${Math.min(card.entries.length, 8) * 2.5}s` } : { paddingTop: 4 }}
+                    >
+                      {(card.entries.length > 3
+                        ? [...card.entries.slice(0, 8), ...card.entries.slice(0, 8)]
+                        : card.entries
+                      ).map((a, i) => (
+                        <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
+                          <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
+                            a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
+                          }`}>
+                            {a.initials.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] font-semibold text-sand-900 truncate">{a.initials}</span>
+                              <span className={`px-1 py-px rounded text-[7px] font-semibold flex-shrink-0 ${
+                                a.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
+                              }`}>{a.stream}</span>
+                            </div>
+                            <div className="text-[9px] text-sand-400">{a.country} · Sub {fmtDate(a.subDate)}</div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-[11px] font-bold text-brand-600">{a.days}d</div>
+                            <div className="text-[8px] text-sand-400">{fmtDate(a.aorDate)}</div>
+                          </div>
+                        </div>
+                      ))}
+                      {card.entries.length > 8 && (
+                        <div className="text-center text-[9px] text-sand-400 py-1">+{card.entries.length - 8} more</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
