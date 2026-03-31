@@ -210,7 +210,7 @@ export function SearchableSelect({
           </button>
         )}
         {open && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-sand-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-sand-200 rounded-lg shadow-lg max-h-48 overflow-y-auto dropdown-enter">
             {filtered.length === 0 ? (
               <div className="px-3 py-2 text-xs text-sand-400">No matches</div>
             ) : (
@@ -330,7 +330,7 @@ export function StatCard({ label, value, highlight, className }: StatCardProps) 
 }
 
 // ============================================
-// Modal
+// Modal (with close animation + bottom sheet handle)
 // ============================================
 interface ModalProps {
   open: boolean;
@@ -340,21 +340,37 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children }: ModalProps) {
-  if (!open) return null;
+  const [visible, setVisible] = React.useState(false);
+  const [closing, setClosing] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) { setVisible(true); setClosing(false); }
+  }, [open]);
+
+  const handleClose = React.useCallback(() => {
+    setClosing(true);
+    setTimeout(() => { setVisible(false); setClosing(false); onClose(); }, 220);
+  }, [onClose]);
+
+  if (!visible) return null;
   return (
     <div
-      className="fixed inset-0 bg-black/30 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 modal-backdrop"
-      onClick={onClose}
+      className={`fixed inset-0 bg-black/30 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 ${closing ? "modal-backdrop-out" : "modal-backdrop"}`}
+      onClick={handleClose}
     >
       <div
-        className="bg-white rounded-t-2xl sm:rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-auto modal-content"
+        className={`bg-white rounded-t-2xl sm:rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-auto ${closing ? "modal-content-out" : "modal-content"}`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Bottom sheet handle — mobile only */}
+        <div className="sm:hidden flex justify-center mb-3 -mt-1">
+          <div className="w-9 h-1 rounded-full bg-sand-300" />
+        </div>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-sand-900">{title}</h2>
           <button
-            onClick={onClose}
-            className="text-sand-400 hover:text-sand-700 transition-colors"
+            onClick={handleClose}
+            className="text-sand-400 hover:text-sand-700 transition-colors p-1 -mr-1 rounded-lg hover:bg-sand-100 active:scale-90"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6L6 18" /><path d="M6 6L18 18" />

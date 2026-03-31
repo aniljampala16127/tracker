@@ -148,7 +148,7 @@ export function ActivityPanel() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={handleClose} />
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-sand-200 rounded-xl shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col">
+          <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-sand-200 rounded-xl shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col panel-enter">
             {/* Header */}
             <div className="px-4 py-3 border-b border-sand-100 flex items-center justify-between">
               <h3 className="text-sm font-bold text-sand-900">

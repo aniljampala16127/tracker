@@ -33,6 +33,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
 
   const handleTouchEnd = useCallback(async () => {
     if (!pulling) return;
+    setPulling(false); // enables CSS transition
     if (pullDistance >= threshold && !refreshing) {
       setRefreshing(true);
       setPullDistance(threshold * 0.6);
@@ -40,12 +41,13 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
         await onRefresh();
       } finally {
         setRefreshing(false);
-        setPullDistance(0);
-        setPulling(false);
+        // Use rAF so transition applies before distance resets
+        requestAnimationFrame(() => setPullDistance(0));
       }
     } else {
-      setPullDistance(0);
-      setPulling(false);
+      // Spring back — transition is now active since pulling=false
+      // rAF ensures the transition property is applied before value changes
+      requestAnimationFrame(() => setPullDistance(0));
     }
   }, [pulling, pullDistance, refreshing, onRefresh]);
 
@@ -66,10 +68,11 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     <div ref={containerRef}>
       {/* Pull indicator */}
       <div
-        className="flex items-center justify-center overflow-hidden transition-all"
+        className="flex items-center justify-center overflow-hidden"
         style={{
           height: pullDistance > 0 ? pullDistance : 0,
           opacity: Math.min(pullDistance / threshold, 1),
+          transition: pulling && pullDistance > 0 ? "none" : "height 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease",
         }}
       >
         <div className={`${refreshing ? "animate-spin" : ""}`}>

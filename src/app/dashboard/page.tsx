@@ -194,6 +194,15 @@ export default function DashboardPage() {
     }
   }, [sortedMonths, selectedMonth, myEntryMonth]);
 
+  // Auto-scroll active month pill into view
+  useEffect(() => {
+    if (!selectedMonth) return;
+    requestAnimationFrame(() => {
+      const btn = document.querySelector(`[data-month="${selectedMonth}"]`) as HTMLElement | null;
+      btn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    });
+  }, [selectedMonth]);
+
   // Auto-scroll to user's entry after render
   useEffect(() => {
     if (!myEntry || selectedMonth !== myEntryMonth || hasScrolled.current) return;
@@ -378,6 +387,7 @@ export default function DashboardPage() {
                 <button
                   key={monthKey}
                   onClick={() => setSelectedMonth(monthKey)}
+                  data-month={monthKey}
                   className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-[0.97] ${
                     active
                       ? "bg-brand-500 text-white shadow-sm"
@@ -407,7 +417,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Mobile card view */}
-            <div className="sm:hidden max-h-[65vh] overflow-y-auto p-2 space-y-2" id="mobile-entries">
+            <div className="sm:hidden max-h-[65vh] overflow-y-auto p-2 space-y-2 entries-stagger" id="mobile-entries" key={selectedMonth}>
               {selectedGroup.map((app) => {
                 const stepsMap = buildStepsMap(app.step_events || []);
                 const completedSteps = STEPS.filter(s => stepsMap[s.id]);
@@ -851,14 +861,14 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
               {isNext && (
                 <div className="flex items-center gap-2">
                   {activeStep === step.id ? (
-                    <input type="date" autoFocus className="text-xs px-2 py-1 border border-sand-200 rounded-md bg-white"
+                    <input type="date" autoFocus className="text-xs px-2 py-1 border border-sand-200 rounded-md bg-white step-input-enter"
                       max={new Date().toISOString().split("T")[0]} value={stepDate}
                       onChange={(e) => setStepDate(e.target.value)}
                       onBlur={() => { if (!stepDate) setActiveStep(null); }}
                       onKeyDown={(e) => { if (e.key === "Enter" && stepDate) { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}} />
                   ) : null}
                   {activeStep === step.id && stepDate ? (
-                    <button className="text-xs bg-brand-500 text-white px-3 py-1 rounded-md font-medium hover:bg-brand-600"
+                    <button className="text-xs bg-brand-500 text-white px-3 py-1 rounded-md font-medium hover:bg-brand-600 step-input-enter active:scale-95"
                       onClick={() => { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}>Save</button>
                   ) : activeStep !== step.id ? (
                     <button className="text-xs bg-warn text-white px-3 py-1 rounded-md font-medium hover:bg-warn-dark"

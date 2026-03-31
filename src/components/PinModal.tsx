@@ -23,6 +23,7 @@ export function PinModal({
   const [digits, setDigits] = useState(["", "", "", ""]);
   const [error, setError] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [shaking, setShaking] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -73,9 +74,9 @@ export function PinModal({
         onClose();
       } else {
         setError("Wrong PIN. Try again.");
+        setShaking(true);
         if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
-        setDigits(["", "", "", ""]);
-        setTimeout(() => inputRefs.current[0]?.focus(), 100);
+        setTimeout(() => { setShaking(false); setDigits(["", "", "", ""]); inputRefs.current[0]?.focus(); }, 500);
       }
     } catch {
       setError("Verification failed. Try again.");
@@ -88,7 +89,7 @@ export function PinModal({
       <p className="text-sm text-sand-500 mb-5">
         This entry is protected. Enter the 4-digit PIN set by the creator.
       </p>
-      <div className="flex justify-center gap-3 mb-4" onPaste={handlePaste}>
+      <div className={`flex justify-center gap-3 mb-4 ${shaking ? "shake" : ""}`} onPaste={handlePaste}>
         {digits.map((digit, i) => (
           <input
             key={i}
