@@ -27,12 +27,10 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     const localDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     const todayStr = localDate(now);
 
-    // This Week = Sunday to Saturday (current week)
-    const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
+    const dayOfWeek = now.getDay();
     const thisWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
     const thisWeekStartStr = localDate(thisWeekStart);
 
-    // Last Week = previous Sunday to Saturday
     const lastWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek - 7);
     const lastWeekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek - 1);
     const lastWeekStartStr = localDate(lastWeekStart);
@@ -62,31 +60,78 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     return { todayAors, lastWeekAors, weekAors, waiting, totalAor: allAors.length, daysSinceLast, latestAorDate };
   }, [apps]);
 
-  if (data.totalAor === 0) return null;
+  // ---- Scroll-to-collapse logic ----
+  const [expanded, setExpanded] = useState(true);
+  const [userToggled, setUserToggled] = useState(false);
+  const lastScrollY = useRef(0);
 
-  const hasWeekActivity = data.weekAors.length > 0;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-  // Smart order: if Today has AORs, show it first. Otherwise This Week first.
-  const hasTodayAors = data.todayAors.length > 0;
-  const cards = hasTodayAors
-    ? [
-        { label: "Today", entries: data.todayAors, color: "brand" as const },
-        { label: "This Week", entries: data.weekAors, color: "brand" as const },
-        { label: "Last Week", entries: data.lastWeekAors, color: "brand" as const },
-      ]
-    : [
-        { label: "This Week", entries: data.weekAors, color: "brand" as const },
-        { label: "Last Week", entries: data.lastWeekAors, color: "brand" as const },
-        { label: "Today", entries: data.todayAors, color: "brand" as const },
-      ];
+    let ticking = false;
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const goingDown = y > lastScrollY.current && y > 80;
 
-  // Auto-swipe cards — waits for names to finish scrolling
+        // Auto-collapse on scroll down (unless user manually expanded)
+        if (!userToggled && goingDown && expanded) {
+          setExpanded(false);
+        }
+
+        // Scroll back to top → expand again
+        if (y < 20 && !expanded) {
+          setExpanded(true);
+          setUserToggled(false);
+        }
+
+        lastScrollY.current = y;
+        ticking = false;
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [expanded, userToggled]);
+
+  // Reset manual toggle after 5s so scroll auto-collapse resumes
+  useEffect(() => {
+    if (!userToggled) return;
+    const t = setTimeout(() => setUserToggled(false), 5000);
+    return () => clearTimeout(t);
+  }, [userToggled]);
+
+  const handleToggle = () => {
+    setExpanded(prev => !prev);
+    setUserToggled(true);
+  };
+
+  // ---- Auto-swipe cards ----
   const scrollRef = useRef<HTMLDivElement>(null);
   const cardIdx = useRef(0);
   const pausedRef = useRef(false);
   const touchTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const scrollToCard = useCallback((idx: number) => {
+  if (data.totalAor === 0) return null;
+
+  const hasWeekActivity = data.weekAors.length > 0;
+  const hasTodayAors = data.todayAors.length > 0;
+
+  const cards = hasTodayAors
+    ? [
+        { label: "Today", entries: data.todayAors },
+        { label: "This Week", entries: data.weekAors },
+        { label: "Last Week", entries: data.lastWeekAors },
+      ]
+    : [
+        { label: "This Week", entries: data.weekAors },
+        { label: "Last Week", entries: data.lastWeekAors },
+        { label: "Today", entries: data.todayAors },
+      ];
+
+  const scrollToCard = (idx: number) => {
     const el = scrollRef.current;
     if (!el) return;
     const cardEl = el.children[idx] as HTMLElement | undefined;
@@ -104,49 +149,52 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
       if (p < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
-  }, []);
+  };
 
-  // Dwell time per card — let names scroll through before swiping
-  const getDwellTime = useCallback((idx: number): number => {
+  const getDwellTime = (idx: number): number => {
     const count = Math.min(cards[idx]?.entries.length || 0, 8);
     if (count === 0) return 3000;
     if (count <= 3) return 5000;
     return count * 2500;
-  }, [cards]);
+  };
 
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    const scheduleNext = () => {
-      const dwell = getDwellTime(cardIdx.current);
-      timeout = setTimeout(() => {
-        if (!pausedRef.current) {
-          cardIdx.current = (cardIdx.current + 1) % 3;
-          scrollToCard(cardIdx.current);
-        }
-        scheduleNext();
-      }, dwell);
-    };
-    scheduleNext();
-    return () => clearTimeout(timeout);
-  }, [scrollToCard, getDwellTime]);
+  // Auto-swipe sub-component (only active when expanded)
+  const AutoSwipe = () => {
+    useEffect(() => {
+      let timeout: ReturnType<typeof setTimeout>;
+      const scheduleNext = () => {
+        const dwell = getDwellTime(cardIdx.current);
+        timeout = setTimeout(() => {
+          if (!pausedRef.current) {
+            cardIdx.current = (cardIdx.current + 1) % 3;
+            scrollToCard(cardIdx.current);
+          }
+          scheduleNext();
+        }, dwell);
+      };
+      scheduleNext();
+      return () => clearTimeout(timeout);
+    }, []);
+    return null;
+  };
 
-  const handleTouchStart = useCallback(() => { pausedRef.current = true; }, []);
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchStart = () => { pausedRef.current = true; };
+  const handleTouchEnd = () => {
     clearTimeout(touchTimer.current);
     touchTimer.current = setTimeout(() => { pausedRef.current = false; }, 10000);
-  }, []);
-
-  const [expanded, setExpanded] = useState(false);
+  };
 
   return (
-    <div className={`rounded-xl mb-4 border transition-all ${
-      hasWeekActivity
-        ? "bg-gradient-to-r from-brand-50 to-brand-100 border-brand-200"
-        : "bg-white border-sand-200"
-    }`}>
+    <div
+      className={`rounded-xl mb-4 border transition-all duration-300 ${
+        hasWeekActivity
+          ? "bg-gradient-to-r from-brand-50 to-brand-100 border-brand-200"
+          : "bg-white border-sand-200"
+      } ${!expanded ? "shadow-sm" : ""}`}
+    >
       {/* Tappable header — always visible */}
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleToggle}
         className="w-full flex items-center gap-3 px-4 py-3 text-left"
       >
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${hasWeekActivity ? "bg-brand-500 animate-pulse" : "bg-sand-400"}`} />
@@ -180,81 +228,79 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
         </div>
       </button>
 
-      {/* Expandable cards section */}
-      {expanded && (
-        <div className="px-4 pb-4 animate-in">
-          {/* Three swipeable cards */}
+      {/* Expandable cards — smooth height transition */}
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ maxHeight: expanded ? "240px" : "0px", opacity: expanded ? 1 : 0 }}
+      >
+        <div className="px-4 pb-4">
+          {expanded && <AutoSwipe />}
           <div
             ref={scrollRef}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             className="flex gap-3 overflow-x-auto hide-scrollbar pb-1"
           >
-        {cards.map((card) => (
-          <div
-            key={card.label}
-            className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden perf-card"
-          >
-            {/* Card header */}
-            <div className="px-3 py-2 border-b border-sand-100 flex items-center justify-between">
-              <span className="text-[11px] font-bold text-sand-900">{card.label}</span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                card.entries.length > 0 ? "bg-brand-100 text-brand-700" : "bg-sand-100 text-sand-400"
-              }`}>{card.entries.length}</span>
-            </div>
-
-            {/* Card body — scrolling names */}
-            {card.entries.length === 0 ? (
-              <div className="px-3 py-5 text-center">
-                <div className="text-[11px] text-sand-400">No AORs {card.label.toLowerCase()}</div>
-              </div>
-            ) : (
-              <div className="overflow-hidden h-[120px] relative">
-                {/* Fade edges */}
-                <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-white/90 to-transparent z-10 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-white/90 to-transparent z-10 pointer-events-none" />
-
-                {/* Vertically scrolling entries — max 8 shown, duplicated for seamless loop */}
-                <div
-                  className={card.entries.length > 3 ? "aor-vertical-scroll" : ""}
-                  style={card.entries.length > 3 ? { animationDuration: `${Math.min(card.entries.length, 8) * 2.5}s` } : { paddingTop: 4 }}
-                >
-                  {(card.entries.length > 3
-                    ? [...card.entries.slice(0, 8), ...card.entries.slice(0, 8)]
-                    : card.entries
-                  ).map((a, i) => (
-                    <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
-                      <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
-                        a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
-                      }`}>
-                        {a.initials.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[11px] font-semibold text-sand-900 truncate">{a.initials}</span>
-                          <span className={`px-1 py-px rounded text-[7px] font-semibold flex-shrink-0 ${
-                            a.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
-                          }`}>{a.stream}</span>
-                        </div>
-                        <div className="text-[9px] text-sand-400">{a.country} · Sub {fmtDate(a.subDate)}</div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-[11px] font-bold text-brand-600">{a.days}d</div>
-                        <div className="text-[8px] text-sand-400">{fmtDate(a.aorDate)}</div>
-                      </div>
-                    </div>
-                  ))}
-                  {card.entries.length > 8 && (
-                    <div className="text-center text-[9px] text-sand-400 py-1">+{card.entries.length - 8} more</div>
-                  )}
+            {cards.map((card) => (
+              <div
+                key={card.label}
+                className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden perf-card"
+              >
+                <div className="px-3 py-2 border-b border-sand-100 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-sand-900">{card.label}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    card.entries.length > 0 ? "bg-brand-100 text-brand-700" : "bg-sand-100 text-sand-400"
+                  }`}>{card.entries.length}</span>
                 </div>
+
+                {card.entries.length === 0 ? (
+                  <div className="px-3 py-5 text-center">
+                    <div className="text-[11px] text-sand-400">No AORs {card.label.toLowerCase()}</div>
+                  </div>
+                ) : (
+                  <div className="overflow-hidden h-[120px] relative">
+                    <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-white/90 to-transparent z-10 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-white/90 to-transparent z-10 pointer-events-none" />
+                    <div
+                      className={card.entries.length > 3 ? "aor-vertical-scroll" : ""}
+                      style={card.entries.length > 3 ? { animationDuration: `${Math.min(card.entries.length, 8) * 2.5}s` } : { paddingTop: 4 }}
+                    >
+                      {(card.entries.length > 3
+                        ? [...card.entries.slice(0, 8), ...card.entries.slice(0, 8)]
+                        : card.entries
+                      ).map((a, i) => (
+                        <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
+                          <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
+                            a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
+                          }`}>
+                            {a.initials.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] font-semibold text-sand-900 truncate">{a.initials}</span>
+                              <span className={`px-1 py-px rounded text-[7px] font-semibold flex-shrink-0 ${
+                                a.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
+                              }`}>{a.stream}</span>
+                            </div>
+                            <div className="text-[9px] text-sand-400">{a.country} · Sub {fmtDate(a.subDate)}</div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-[11px] font-bold text-brand-600">{a.days}d</div>
+                            <div className="text-[8px] text-sand-400">{fmtDate(a.aorDate)}</div>
+                          </div>
+                        </div>
+                      ))}
+                      {card.entries.length > 8 && (
+                        <div className="text-center text-[9px] text-sand-400 py-1">+{card.entries.length - 8} more</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
