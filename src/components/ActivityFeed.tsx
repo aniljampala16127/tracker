@@ -7,6 +7,11 @@ import { STEPS } from "@/lib/constants";
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const LAST_READ_KEY = "sponsortrack-notif-read";
 
+function fmt(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+
 function getLastReadTime(): number {
   if (typeof window === "undefined") return 0;
   return parseInt(localStorage.getItem(LAST_READ_KEY) || "0", 10);
@@ -215,7 +220,7 @@ export function ActivityPanel() {
                             <span className={`font-semibold ${isUnread ? "text-brand-600" : "text-sand-700"}`}>{stepLabel(a.step_id)}</span>
                           </div>
                           <div className="text-[10px] text-sand-400">
-                            {a.app_country} · {timeAgo(a.created_at)}
+                            {a.app_country} · {a.event_date ? fmt(a.event_date) : ""}{a.event_date ? " · " : ""}{timeAgo(a.created_at)}
                           </div>
                         </div>
                         {isUnread && (
