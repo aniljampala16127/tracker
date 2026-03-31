@@ -99,10 +99,15 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   const [stepDate, setStepDate] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [undoing, setUndoing] = useState(false);
   const supabase = createClient();
 
   // What's the next step to complete?
   const nextStepId = currentIdx < STEPS.length - 1 ? STEPS[currentIdx + 1].id : null;
+
+  // Latest completed step (for undo button)
+  const completedStepIds = STEPS.filter(s => stepsMap[s.id]).map(s => s.id);
+  const latestCompletedId = completedStepIds.length > 0 ? completedStepIds[completedStepIds.length - 1] : null;
 
   const handleSaveStep = async (stepId: string, date: string) => {
     setSaving(true);
@@ -114,6 +119,15 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
     setActiveStep(null);
     setStepDate("");
     setSaving(false);
+    onRefresh();
+  };
+
+  const handleUndoStep = async (stepId: string) => {
+    if (!confirm("Remove this step? This will revert your progress.")) return;
+    setUndoing(true);
+    const pinHash = getSavedPinHash(app.id);
+    await fetch(`/api/steps?application_id=${app.id}&step_id=${stepId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
+    setUndoing(false);
     onRefresh();
   };
 
@@ -258,9 +272,16 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
                   {isDone && (
                     <div className="flex items-center gap-1 flex-shrink-0 check-draw">
                       <Reactions applicationId={app.id} stepId={step.id} compact />
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6L9 17L4 12" />
-                      </svg>
+                      {step.id !== "submitted" && step.id === latestCompletedId ? (
+                        <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
+                          className="text-[9px] px-1.5 py-0.5 rounded bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50">
+                          {undoing ? "..." : "Undo"}
+                        </button>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6L9 17L4 12" />
+                        </svg>
+                      )}
                     </div>
                   )}
                 </div>

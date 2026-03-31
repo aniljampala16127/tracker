@@ -6,14 +6,13 @@ import { Application } from "@/lib/types";
 import { formatDate, buildStepsMap } from "@/lib/utils";
 import { Button, Modal, Input } from "@/components/ui";
 
-const MASTER_PASSWORD = "SponsorTrack2026!";
-
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
   const [search, setSearch] = useState("");
   const [resetting, setResetting] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -33,14 +32,25 @@ export default function AdminPage() {
     if (authed) fetchApps();
   }, [authed, fetchApps]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === MASTER_PASSWORD) {
-      setAuthed(true);
-      setError("");
-    } else {
-      setError("Wrong password");
+    setLoggingIn(true);
+    try {
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        setAuthed(true);
+        setError("");
+      } else {
+        setError("Wrong password");
+      }
+    } catch {
+      setError("Connection error");
     }
+    setLoggingIn(false);
   };
 
   const handleResetPin = async (appId: string) => {
@@ -73,7 +83,7 @@ export default function AdminPage() {
               error={error}
               required
             />
-            <Button type="submit" className="w-full">Login</Button>
+            <Button type="submit" className="w-full" disabled={loggingIn}>{loggingIn ? "Checking..." : "Login"}</Button>
           </form>
         </div>
       </div>

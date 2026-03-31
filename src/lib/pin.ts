@@ -60,7 +60,19 @@ export function hasValidPin(appId: string, expectedHash: string): boolean {
   return getSavedPinHash(appId) === expectedHash;
 }
 
-/** Validate PIN format: exactly 4 digits. */
+/** Commonly guessed PINs — blocked to protect entries. */
+const WEAK_PINS = new Set([
+  "0000", "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999",
+  "1234", "4321", "1122", "1212", "0123", "3210", "9876", "6789",
+  "0007", "2580", "1004", "2023", "2024", "2025", "2026",
+]);
+
+/** Validate PIN format: exactly 4 digits and not a common weak PIN. */
 export function isValidPin(pin: string): boolean {
-  return /^\d{4}$/.test(pin);
+  return /^\d{4}$/.test(pin) && !WEAK_PINS.has(pin);
+}
+
+/** Check if a PIN is weak (for showing warnings). */
+export function isWeakPin(pin: string): boolean {
+  return /^\d{4}$/.test(pin) && WEAK_PINS.has(pin);
 }

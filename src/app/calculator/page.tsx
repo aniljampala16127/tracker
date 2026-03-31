@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Application } from "@/lib/types";
+import { Application, StepId } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
@@ -32,6 +32,12 @@ function percentile(arr: number[], p: number): number {
   return sorted[Math.max(0, idx)];
 }
 
+function getTodayStr(): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
 export default function CalculatorPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +45,7 @@ export default function CalculatorPage() {
   const [stream, setStream] = useState("Outland");
   const [country, setCountry] = useState("");
   const [autoDetected, setAutoDetected] = useState(false);
+  const [myStepsMap, setMyStepsMap] = useState<Record<StepId, string | null> | null>(null);
   const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
@@ -52,7 +59,7 @@ export default function CalculatorPage() {
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
-  // Auto-detect user's entry
+  // Auto-detect user's entry and their completed steps
   useEffect(() => {
     if (apps.length === 0 || autoDetected) return;
     const myEntry = apps.find(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
@@ -62,17 +69,33 @@ export default function CalculatorPage() {
         setSubmittedDate(s.submitted);
         setStream(myEntry.stream);
         setCountry(myEntry.country_origin);
+        setMyStepsMap(s);
         setAutoDetected(true);
       }
     }
   }, [apps, autoDetected]);
 
-  // Compute AOR days for the selected stream
+  // Figure out which steps the user completed and what comes next
+  const myProgress = useMemo(() => {
+    if (!myStepsMap) return null;
+    let latestCompletedIdx = -1;
+    for (let i = STEPS.length - 1; i >= 0; i--) {
+      if (myStepsMap[STEPS[i].id]) { latestCompletedIdx = i; break; }
+    }
+    const nextStepIdx = latestCompletedIdx + 1 < STEPS.length ? latestCompletedIdx + 1 : null;
+    const nextStep = nextStepIdx !== null ? STEPS[nextStepIdx] : null;
+    const latestStep = latestCompletedIdx >= 0 ? STEPS[latestCompletedIdx] : null;
+    const latestStepDate = latestStep ? myStepsMap[latestStep.id] : null;
+    const hasAor = !!myStepsMap.aor;
+    const isComplete = latestCompletedIdx === STEPS.length - 1;
+    return { latestCompletedIdx, nextStep, nextStepIdx, latestStep, latestStepDate, hasAor, isComplete };
+  }, [myStepsMap]);
+
+  // AOR community data
   const aorData = useMemo(() => {
     const streamApps = apps.filter(a => a.stream === stream);
     const allAorDays: number[] = [];
     const countryAorDays: number[] = [];
-
     streamApps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
       if (s.submitted && s.aor) {
@@ -83,27 +106,36 @@ export default function CalculatorPage() {
         }
       }
     });
-
     allAorDays.sort((a, b) => a - b);
     countryAorDays.sort((a, b) => a - b);
-
-    const avg = allAorDays.length >= 2
-      ? Math.round(allAorDays.reduce((a, b) => a + b, 0) / allAorDays.length) : null;
+    const avg = allAorDays.length >= 2 ? Math.round(allAorDays.reduce((a, b) => a + b, 0) / allAorDays.length) : null;
     const p25 = allAorDays.length >= 4 ? percentile(allAorDays, 25) : null;
     const p75 = allAorDays.length >= 4 ? percentile(allAorDays, 75) : null;
-    const median = allAorDays.length >= 2 ? percentile(allAorDays, 50) : null;
-    const min = allAorDays.length >= 2 ? allAorDays[0] : null;
-    const max = allAorDays.length >= 2 ? allAorDays[allAorDays.length - 1] : null;
-
-    const countryAvg = countryAorDays.length >= 2
-      ? Math.round(countryAorDays.reduce((a, b) => a + b, 0) / countryAorDays.length) : null;
-
-    return { allAorDays, avg, p25, p75, median, min, max, countryAvg, countryCount: countryAorDays.length, totalReports: allAorDays.length };
+    const countryAvg = countryAorDays.length >= 2 ? Math.round(countryAorDays.reduce((a, b) => a + b, 0) / countryAorDays.length) : null;
+    return { allAorDays, avg, p25, p75, countryAvg, countryCount: countryAorDays.length, totalReports: allAorDays.length };
   }, [apps, stream, country]);
 
-  // Queue position
+  // Next-step community data (for users past AOR)
+  const nextStepData = useMemo(() => {
+    if (!myProgress?.nextStep || !myProgress.latestStep || !myProgress.latestStepDate) return null;
+    const prevId = myProgress.latestStep.id;
+    const nextId = myProgress.nextStep.id;
+    const streamApps = apps.filter(a => a.stream === stream);
+    const durations: number[] = [];
+    streamApps.forEach(a => {
+      const s = buildStepsMap(a.step_events || []);
+      if (s[prevId] && s[nextId]) durations.push(daysBetween(s[prevId]!, s[nextId]!));
+    });
+    durations.sort((a, b) => a - b);
+    const avg = durations.length >= 2 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+    const p25 = durations.length >= 4 ? percentile(durations, 25) : null;
+    const p75 = durations.length >= 4 ? percentile(durations, 75) : null;
+    return { avg, p25, p75, reports: durations.length };
+  }, [apps, stream, myProgress]);
+
+  // Queue position (only when AOR pending)
   const queueData = useMemo(() => {
-    if (!submittedDate) return null;
+    if (!submittedDate || myProgress?.hasAor) return null;
     const waiting = apps.filter(a => {
       if (a.stream !== stream) return false;
       const s = buildStepsMap(a.step_events || []);
@@ -114,32 +146,26 @@ export default function CalculatorPage() {
       return s.submitted! < submittedDate;
     });
     return { total: waiting.length, ahead: aheadOfMe.length, position: aheadOfMe.length + 1 };
-  }, [apps, stream, submittedDate]);
+  }, [apps, stream, submittedDate, myProgress]);
 
-  // Cohort stats (same submission week)
+  // Cohort stats (only when AOR pending)
   const cohortData = useMemo(() => {
-    if (!submittedDate) return null;
+    if (!submittedDate || myProgress?.hasAor) return null;
     const d = new Date(submittedDate + "T00:00:00");
     const day = d.getDay();
     const start = new Date(d); start.setDate(start.getDate() - day);
     const end = new Date(start); end.setDate(end.getDate() + 6);
-
     const cohort = apps.filter(a => {
       const s = buildStepsMap(a.step_events || []);
       if (!s.submitted) return false;
       const sd = new Date(s.submitted + "T00:00:00");
       return sd >= start && sd <= end;
     });
-
-    const gotAor = cohort.filter(a => {
-      const s = buildStepsMap(a.step_events || []);
-      return !!s.aor;
-    });
-
+    const gotAor = cohort.filter(a => { const s = buildStepsMap(a.step_events || []); return !!s.aor; });
     return { total: cohort.length, gotAor: gotAor.length, pct: cohort.length > 0 ? Math.round((gotAor.length / cohort.length) * 100) : 0 };
-  }, [apps, submittedDate]);
+  }, [apps, submittedDate, myProgress]);
 
-  // Step-by-step timeline estimates
+  // Step-by-step estimates
   const stepEstimates = useMemo(() => {
     const streamApps = apps.filter(a => a.stream === stream);
     return STEPS.slice(1).map((step) => {
@@ -149,49 +175,63 @@ export default function CalculatorPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) durations.push(daysBetween(s[prev.id]!, s[step.id]!));
       });
-      const avg = durations.length >= 2
-        ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+      const avg = durations.length >= 2 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
       return { step, avg, reports: durations.length };
     });
   }, [apps, stream]);
 
-  // Timeline from step estimates
+  // Timeline with actual dates for completed steps
   const timeline = useMemo(() => {
     if (!submittedDate) return null;
     let cumDays = 0;
-    const steps = stepEstimates.map(({ step, avg }) => {
+    return stepEstimates.map(({ step, avg }) => {
+      const actualDate = myStepsMap ? myStepsMap[step.id] : null;
       if (avg != null) cumDays += avg;
       return {
-        label: step.label, shortLabel: step.shortLabel,
+        id: step.id, label: step.label, shortLabel: step.shortLabel,
         estDate: avg != null ? addDays(submittedDate, cumDays) : null,
-        avgDays: avg, cumDays,
+        actualDate, avgDays: avg, cumDays,
       };
     });
-    return steps;
-  }, [submittedDate, stepEstimates]);
+  }, [submittedDate, stepEstimates, myStepsMap]);
 
-  // Predicted AOR date + countdown
-  const prediction = useMemo(() => {
-    if (!submittedDate || aorData.avg == null) return null;
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    const daysSoFar = daysBetween(submittedDate, todayStr);
-
+  // AOR prediction (only when AOR NOT completed)
+  const aorPrediction = useMemo(() => {
+    if (!submittedDate || aorData.avg == null || myProgress?.hasAor) return null;
+    const today = getTodayStr();
+    const daysSoFar = daysBetween(submittedDate, today);
     const predicted = addDays(submittedDate, aorData.avg);
     const daysRemaining = Math.max(0, aorData.avg - daysSoFar);
-
     const optimistic = aorData.p25 != null ? addDays(submittedDate, aorData.p25) : null;
     const pessimistic = aorData.p75 != null ? addDays(submittedDate, aorData.p75) : null;
     const countryPredicted = aorData.countryAvg != null ? addDays(submittedDate, aorData.countryAvg) : null;
     const progressPct = aorData.avg > 0 ? Math.min(Math.round((daysSoFar / aorData.avg) * 100), 100) : 0;
-
     return { predicted, daysRemaining, daysSoFar, optimistic, pessimistic, countryPredicted, progressPct };
-  }, [submittedDate, aorData]);
+  }, [submittedDate, aorData, myProgress]);
 
+  // Next-step prediction (when AOR is done)
+  const nextPrediction = useMemo(() => {
+    if (!myProgress?.nextStep || !myProgress.latestStepDate || !nextStepData?.avg || !myProgress.hasAor) return null;
+    const prevDate = myProgress.latestStepDate;
+    const today = getTodayStr();
+    const daysSincePrev = daysBetween(prevDate, today);
+    const predicted = addDays(prevDate, nextStepData.avg);
+    const daysRemaining = Math.max(0, nextStepData.avg - daysSincePrev);
+    const progressPct = nextStepData.avg > 0 ? Math.min(Math.round((daysSincePrev / nextStepData.avg) * 100), 100) : 0;
+    const optimistic = nextStepData.p25 != null ? addDays(prevDate, nextStepData.p25) : null;
+    const pessimistic = nextStepData.p75 != null ? addDays(prevDate, nextStepData.p75) : null;
+    return {
+      stepLabel: myProgress.nextStep.label, fromStepLabel: myProgress.latestStep!.label,
+      predicted, daysRemaining, daysSincePrev, progressPct, optimistic, pessimistic,
+      avgDays: nextStepData.avg, reports: nextStepData.reports,
+    };
+  }, [myProgress, nextStepData]);
+
+  const prediction = aorPrediction;
   const irccDays = stream === "Outland" ? 456 : 639;
   const irccMonths = stream === "Outland" ? 15 : 21;
   const hasInput = submittedDate.length > 0;
+  const isComplete = myProgress?.isComplete ?? false;
 
   if (loading) {
     return (
@@ -251,13 +291,22 @@ export default function CalculatorPage() {
         )}
       </div>
 
-      {hasInput && prediction && (
+      {/* COMPLETE STATE */}
+      {hasInput && isComplete && (
+        <div className="bg-gradient-to-br from-brand-500 to-brand-600 text-white rounded-xl p-6 mb-4 text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="text-3xl mb-2">🎉</div>
+          <div className="text-xl font-bold mb-1">eCoPR Received!</div>
+          <p className="text-sm text-white/80">Congratulations — your sponsorship journey is complete.</p>
+        </div>
+      )}
+
+      {/* AOR PREDICTION (only when AOR is still pending) */}
+      {hasInput && !isComplete && prediction && (
         <>
-          {/* BIG PREDICTION CARD */}
           <div className="bg-gradient-to-br from-brand-500 to-brand-600 text-white rounded-xl p-5 mb-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-
             <div className="text-[10px] font-semibold uppercase tracking-wider text-white/60 mb-1">Predicted AOR Date</div>
             <div className="text-3xl font-bold mb-1">{fmtDate(prediction.predicted)}</div>
             <div className="text-sm text-white/80 mb-4">
@@ -265,13 +314,8 @@ export default function CalculatorPage() {
                 ? `~${prediction.daysRemaining} days remaining`
                 : "Your AOR could arrive any day now! 🎉"}
             </div>
-
-            {/* Progress bar */}
             <div className="bg-white/20 rounded-full h-2.5 overflow-hidden mb-2">
-              <div
-                className="h-full bg-white rounded-full transition-all duration-1000"
-                style={{ width: `${Math.max(prediction.progressPct, 3)}%` }}
-              />
+              <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${Math.max(prediction.progressPct, 3)}%` }} />
             </div>
             <div className="flex justify-between text-[9px] text-white/50">
               <span>Day {prediction.daysSoFar}</span>
@@ -279,9 +323,7 @@ export default function CalculatorPage() {
             </div>
           </div>
 
-          {/* Confidence range + Queue position */}
           <div className="grid grid-cols-2 gap-3 mb-4">
-            {/* Confidence range */}
             <div className="bg-white border border-sand-200 rounded-xl p-3.5">
               <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Confidence Range</div>
               {prediction.optimistic && prediction.pessimistic ? (
@@ -300,14 +342,12 @@ export default function CalculatorPage() {
                       <span className="text-[11px] font-bold text-warn-dark">{fmtShort(prediction.pessimistic)}</span>
                     </div>
                   </div>
-                  <div className="text-[8px] text-sand-400 mt-2">25th–75th percentile</div>
+                  <div className="text-[8px] text-sand-400 mt-2">25th-75th percentile</div>
                 </>
               ) : (
                 <div className="text-[11px] text-sand-400">Need more data</div>
               )}
             </div>
-
-            {/* Queue position */}
             {queueData && (
               <div className="bg-white border border-sand-200 rounded-xl p-3.5">
                 <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Queue Position</div>
@@ -318,7 +358,6 @@ export default function CalculatorPage() {
             )}
           </div>
 
-          {/* Cohort + Country */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             {cohortData && (
               <div className="bg-white border border-sand-200 rounded-xl p-3.5">
@@ -328,7 +367,6 @@ export default function CalculatorPage() {
                 <div className="text-[10px] text-sand-400 mt-1">{cohortData.gotAor} of {cohortData.total} in your week</div>
               </div>
             )}
-
             <div className="bg-white border border-sand-200 rounded-xl p-3.5">
               <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2">
                 {country ? `${country} Avg` : "Community Stats"}
@@ -348,49 +386,133 @@ export default function CalculatorPage() {
               )}
             </div>
           </div>
+        </>
+      )}
 
-          {/* Step-by-step timeline */}
-          {timeline && (
-            <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
-              <h2 className="text-sm font-bold text-sand-900 mb-1">Step-by-Step Timeline</h2>
-              <p className="text-[10px] text-sand-400 mb-3">Based on {apps.filter(a => a.stream === stream).length} {stream} applications</p>
+      {/* NEXT STEP PREDICTION (AOR done, predicting next milestone) */}
+      {hasInput && !isComplete && !prediction && nextPrediction && (
+        <>
+          <div className="bg-gradient-to-br from-brand-500 to-brand-600 text-white rounded-xl p-5 mb-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-white/60 mb-1">
+              Predicted {nextPrediction.stepLabel}
+            </div>
+            <div className="text-3xl font-bold mb-1">{fmtDate(nextPrediction.predicted)}</div>
+            <div className="text-sm text-white/80 mb-4">
+              {nextPrediction.daysRemaining > 0
+                ? `~${nextPrediction.daysRemaining} days from ${nextPrediction.fromStepLabel}`
+                : `${nextPrediction.stepLabel} could arrive any day now! 🎉`}
+            </div>
+            <div className="bg-white/20 rounded-full h-2.5 overflow-hidden mb-2">
+              <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${Math.max(nextPrediction.progressPct, 3)}%` }} />
+            </div>
+            <div className="flex justify-between text-[9px] text-white/50">
+              <span>{nextPrediction.daysSincePrev}d since {nextPrediction.fromStepLabel}</span>
+              <span>Avg {nextPrediction.avgDays}d</span>
+            </div>
+          </div>
 
-              <div className="space-y-1.5">
-                {/* Submitted */}
-                <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-brand-500 text-white">
-                  <div className="w-2.5 h-2.5 rounded-full bg-white flex-shrink-0" />
-                  <div className="flex-1 text-xs font-medium">Submitted</div>
-                  <div className="text-[11px] font-semibold">{fmtDate(submittedDate)}</div>
-                </div>
-
-                {timeline.map((s) => {
-                  const isPast = s.estDate && new Date(s.estDate + "T00:00:00") <= new Date();
-                  return (
-                    <div key={s.shortLabel} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
-                      isPast ? "bg-brand-50/70" : s.estDate ? "bg-white border border-sand-100" : "bg-sand-50/50"
-                    }`}>
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isPast ? "bg-brand-500" : s.estDate ? "bg-sand-300" : "bg-sand-200"}`} />
-                      <div className="flex-1">
-                        <div className="text-xs font-medium text-sand-900">{s.label}</div>
-                        {s.avgDays != null && (
-                          <div className="text-[9px] text-sand-400">~{s.avgDays}d from previous</div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        {s.estDate ? (
-                          <div className={`text-[11px] font-semibold ${isPast ? "text-brand-600" : "text-sand-700"}`}>{fmtDate(s.estDate)}</div>
-                        ) : (
-                          <div className="text-[9px] text-sand-400">Awaiting data</div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+          {(nextPrediction.optimistic || nextPrediction.pessimistic) && (
+            <div className="bg-white border border-sand-200 rounded-xl p-3.5 mb-4">
+              <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2">
+                {nextPrediction.stepLabel} Confidence Range
               </div>
+              <div className="space-y-1.5">
+                {nextPrediction.optimistic && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-brand-600 font-medium">Best case</span>
+                    <span className="text-[11px] font-bold text-brand-600">{fmtShort(nextPrediction.optimistic)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-sand-600 font-medium">Average</span>
+                  <span className="text-[11px] font-bold text-sand-800">{fmtShort(nextPrediction.predicted)}</span>
+                </div>
+                {nextPrediction.pessimistic && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-warn-dark font-medium">Conservative</span>
+                    <span className="text-[11px] font-bold text-warn-dark">{fmtShort(nextPrediction.pessimistic)}</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-[8px] text-sand-400 mt-2">Based on {nextPrediction.reports} reports</div>
             </div>
           )}
+        </>
+      )}
 
-          {/* IRCC comparison */}
+      {/* STEP-BY-STEP TIMELINE */}
+      {hasInput && !isComplete && timeline && (
+        <>
+          <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
+            <h2 className="text-sm font-bold text-sand-900 mb-1">Step-by-Step Timeline</h2>
+            <p className="text-[10px] text-sand-400 mb-3">Based on {apps.filter(a => a.stream === stream).length} {stream} applications</p>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-brand-500 text-white">
+                <div className="w-2.5 h-2.5 rounded-full bg-white flex-shrink-0" />
+                <div className="flex-1 text-xs font-medium">Submitted</div>
+                <div className="text-[11px] font-semibold">{fmtDate(submittedDate)}</div>
+              </div>
+
+              {timeline.map((s) => {
+                const isCompleted = !!s.actualDate;
+                const isNextStep = myProgress && myProgress.nextStep && s.id === myProgress.nextStep.id;
+                const isPastEstimate = !isCompleted && s.estDate && new Date(s.estDate + "T00:00:00") <= new Date();
+
+                let daysFromPrev: number | null = null;
+                if (isCompleted && s.actualDate) {
+                  const prevIdx = STEPS.findIndex(st => st.id === s.id) - 1;
+                  if (prevIdx >= 0 && myStepsMap) {
+                    const prevDate = myStepsMap[STEPS[prevIdx].id];
+                    if (prevDate) daysFromPrev = daysBetween(prevDate, s.actualDate);
+                  }
+                }
+
+                return (
+                  <div key={s.shortLabel} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
+                    isCompleted ? "bg-brand-500 text-white"
+                    : isNextStep ? "bg-warn-light border border-warn/30"
+                    : isPastEstimate ? "bg-brand-50/70"
+                    : s.estDate ? "bg-white border border-sand-100"
+                    : "bg-sand-50/50"
+                  }`}>
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      isCompleted ? "bg-white"
+                      : isNextStep ? "bg-warn"
+                      : isPastEstimate ? "bg-brand-500"
+                      : s.estDate ? "bg-sand-300" : "bg-sand-200"
+                    }`} />
+                    <div className="flex-1">
+                      <div className={`text-xs font-medium ${isCompleted ? "text-white" : "text-sand-900"}`}>
+                        {s.label}
+                        {isCompleted && <span className="ml-1.5 text-[9px] text-white/70">Done</span>}
+                      </div>
+                      {isCompleted && daysFromPrev != null && (
+                        <div className="text-[9px] text-white/60">{daysFromPrev}d from previous</div>
+                      )}
+                      {!isCompleted && s.avgDays != null && (
+                        <div className="text-[9px] text-sand-400">~{s.avgDays}d from previous</div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      {isCompleted && s.actualDate ? (
+                        <div className="text-[11px] font-semibold text-white">{fmtDate(s.actualDate)}</div>
+                      ) : s.estDate ? (
+                        <div className={`text-[11px] font-semibold ${
+                          isNextStep ? "text-warn-dark" : isPastEstimate ? "text-brand-600" : "text-sand-700"
+                        }`}>{isNextStep ? "~" : ""}{fmtDate(s.estDate)}</div>
+                      ) : (
+                        <div className="text-[9px] text-sand-400">Awaiting data</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
             <h2 className="text-sm font-bold text-sand-900 mb-3">IRCC vs Community</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -401,8 +523,10 @@ export default function CalculatorPage() {
               </div>
               <div className="bg-brand-50 rounded-xl p-3.5 text-center border border-brand-200">
                 <div className="text-[9px] font-semibold text-brand-700 uppercase tracking-wider">Community</div>
-                <div className="text-lg font-bold text-brand-600 mt-1">{fmtShort(prediction.predicted)}</div>
-                <div className="text-[9px] text-brand-500 mt-0.5">{aorData.avg}d avg</div>
+                <div className="text-lg font-bold text-brand-600 mt-1">
+                  {aorData.avg != null ? fmtShort(addDays(submittedDate, aorData.avg)) : "\u2014"}
+                </div>
+                <div className="text-[9px] text-brand-500 mt-0.5">{aorData.avg ?? "\u2014"}d avg to AOR</div>
               </div>
             </div>
           </div>

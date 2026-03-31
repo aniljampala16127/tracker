@@ -643,7 +643,7 @@ export default function DashboardPage() {
       </p>
 
       <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} existingApps={apps} />
-      {editApp && <EditModal app={editApp} allApps={apps} onClose={() => setEditApp(null)} onMarkStep={handleMarkStep} onDelete={handleDelete} isOwner={!!editApp.pin_hash && getSavedPinHash(editApp.id) === editApp.pin_hash} />}
+      {editApp && <EditModal app={editApp} allApps={apps} onClose={() => { setEditApp(null); fetchApps(); }} onMarkStep={handleMarkStep} onDelete={handleDelete} isOwner={!!editApp.pin_hash && getSavedPinHash(editApp.id) === editApp.pin_hash} />}
 
       {/* PIN verification */}
       {pinTarget && pinTarget.pin_hash && (
@@ -700,6 +700,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [undoing, setUndoing] = useState(false);
   const [editForm, setEditForm] = useState({
     initials: app.initials,
     country_origin: app.country_origin,
@@ -748,6 +749,19 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
     setShowEdit(false);
     onClose();
   };
+
+  const handleUndoStep = async (stepId: StepId) => {
+    if (!confirm("Remove this step? This will revert your progress.")) return;
+    setUndoing(true);
+    const pinHash = getSavedPinHash(app.id);
+    await fetch(`/api/steps?application_id=${app.id}&step_id=${stepId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
+    setUndoing(false);
+    onClose();
+  };
+
+  // Find the latest completed step index for showing undo button
+  const completedStepIds = STEPS.filter(s => stepsMap[s.id]).map(s => s.id);
+  const latestCompletedId = completedStepIds.length > 0 ? completedStepIds[completedStepIds.length - 1] : null;
 
   return (
     <Modal open={true} onClose={onClose} title={`${app.initials} - ${app.country_origin}`}>
@@ -855,7 +869,14 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
               {isDone && (
                 <div className="flex items-center gap-1">
                   <Reactions applicationId={app.id} stepId={step.id} compact />
-                  <span className="text-brand-500 text-xs">✓</span>
+                  {isOwner && step.id !== "submitted" && step.id === latestCompletedId ? (
+                    <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
+                      className="text-[9px] px-1.5 py-0.5 rounded bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50">
+                      {undoing ? "..." : "Undo"}
+                    </button>
+                  ) : (
+                    <span className="text-brand-500 text-xs">✓</span>
+                  )}
                 </div>
               )}
             </div>

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Modal } from "./ui";
-import { hashPin, isValidPin, savePinForApp } from "@/lib/pin";
+import { hashPin, isValidPin, isWeakPin, savePinForApp } from "@/lib/pin";
 
 // ============================================
 // PIN verification modal (for editing protected entries)
@@ -169,6 +169,9 @@ export function PinInput({ value, onChange, label = "Set a 4-digit PIN *" }: Pin
         ))}
       </div>
       <p className="text-[10px] text-sand-400">You&apos;ll need this PIN to edit or delete your entry</p>
+      {isWeakPin(value) && (
+        <p className="text-[10px] text-error font-medium">Too easy to guess — try a less common PIN</p>
+      )}
     </div>
   );
 }
