@@ -262,49 +262,27 @@ export default function DashboardPage() {
   return (
     <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
     <div className="page-enter">
-      {/* CTA for new users — compact single section with live stats */}
+      {/* CTA for new users — compact with live stats */}
       {!hasMyEntry && (
         <div className="mb-4 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 rounded-2xl p-4 text-white relative overflow-hidden">
-          {/* Decorative circles */}
-          <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="relative z-10">
-            <h3 className="text-sm font-bold mb-0.5">Track your spousal sponsorship</h3>
-            <p className="text-[11px] text-white/60 mb-3">Join {apps.length}+ applicants · Get your predicted AOR date</p>
-
-            {/* Live stats row */}
-            <div className="flex gap-2 mb-3">
-              <div className="flex-1 bg-white/10 rounded-lg px-2.5 py-2 text-center backdrop-blur-sm">
-                <div className="text-lg font-bold">{avgAorAll || "—"}</div>
-                <div className="text-[8px] text-white/60 uppercase font-medium">Avg days to AOR</div>
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex-1">
+                <h3 className="text-sm font-bold mb-0.5">Track your spousal sponsorship</h3>
+                <p className="text-[10px] text-white/60">Join {apps.length}+ applicants · Get your predicted AOR date</p>
               </div>
-              <div className="flex-1 bg-white/10 rounded-lg px-2.5 py-2 text-center backdrop-blur-sm">
-                <div className="text-lg font-bold">{waitingForAor}</div>
-                <div className="text-[8px] text-white/60 uppercase font-medium">Waiting for AOR</div>
-              </div>
-              <div className="flex-1 bg-white/10 rounded-lg px-2.5 py-2 text-center backdrop-blur-sm">
-                <div className="text-lg font-bold">{apps.length}</div>
-                <div className="text-[8px] text-white/60 uppercase font-medium">Tracking</div>
+              <div className="flex gap-1.5 flex-shrink-0">
+                <div className="bg-white/10 rounded-lg px-2 py-1.5 text-center">
+                  <div className="text-sm font-bold">{avgAorAll || "—"}d</div>
+                  <div className="text-[7px] text-white/50 uppercase">Avg AOR</div>
+                </div>
+                <div className="bg-white/10 rounded-lg px-2 py-1.5 text-center">
+                  <div className="text-sm font-bold">{apps.length}</div>
+                  <div className="text-[7px] text-white/50 uppercase">Tracking</div>
+                </div>
               </div>
             </div>
-
-            {/* What you unlock */}
-            <div className="flex gap-3 mb-3 text-[10px] text-white/70">
-              <div className="flex items-center gap-1">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6V12L16 14"/></svg>
-                AOR prediction
-              </div>
-              <div className="flex items-center gap-1">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21"/><circle cx="9" cy="7" r="4"/></svg>
-                Cohort tracking
-              </div>
-              <div className="flex items-center gap-1">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20V14"/></svg>
-                Queue position
-              </div>
-            </div>
-
             <button
               onClick={() => setShowAdd(true)}
               className="w-full px-4 py-2.5 bg-white text-brand-600 text-xs font-bold rounded-xl hover:bg-sand-50 transition-all active:scale-[0.98] shadow-lg"
@@ -314,14 +292,11 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-      {/* Celebration Wall — eCoPR completions */}
-      <CelebrationWall apps={apps} />
 
-      {/* New since last visit */}
-      {apps.length > 0 && <NewSinceLastVisit apps={apps} />}
-
-      {/* Cohort AOR Alert — someone in your week got AOR! */}
-      {apps.length > 0 && <CohortAORAlert apps={apps} />}
+      {/* Community widgets — only for returning users who have context */}
+      {hasMyEntry && <CelebrationWall apps={apps} />}
+      {hasMyEntry && apps.length > 0 && <NewSinceLastVisit apps={apps} />}
+      {hasMyEntry && apps.length > 0 && <CohortAORAlert apps={apps} />}
 
       {/* AOR Wave Tracker — sticky below header */}
       {apps.length > 0 && (
