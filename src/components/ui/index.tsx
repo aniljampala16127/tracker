@@ -350,8 +350,13 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   // Force scroll to top when modal opens
   React.useEffect(() => {
-    if (visible && !closing && contentRef.current) {
-      contentRef.current.scrollTop = 0;
+    if (visible && !closing) {
+      // Double rAF ensures content is painted before we reset scroll
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (contentRef.current) contentRef.current.scrollTop = 0;
+        });
+      });
     }
   }, [visible, closing]);
 

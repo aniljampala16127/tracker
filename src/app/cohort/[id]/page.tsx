@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
-import { STEPS } from "@/lib/constants";
+import { STEPS, getNextStep } from "@/lib/constants";
 import { buildStepsMap, daysBetween, formatDate } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
 import { Modal } from "@/components/ui";
@@ -28,6 +28,15 @@ function getWeekRange(dateStr: string): { start: Date; end: Date; label: string 
   return { start, end, label };
 }
 
+function stepLabel(id: string): string {
+  return STEPS.find(s => s.id === id)?.label || id;
+}
+
+function nextStepLabel(currentStep: string): string {
+  const next = getNextStep(currentStep as any);
+  return next ? stepLabel(next) : "Complete";
+}
+
 interface CohortPerson {
   id: string;
   initials: string;
@@ -37,8 +46,11 @@ interface CohortPerson {
   submitted: string;
   aorDate: string | null;
   currentStep: string;
+  nextStep: string | null;
+  completedCount: number;
   daysWaiting: number;
   isMe: boolean;
+  isComplete: boolean;
   app: Application;
 }
 
@@ -79,6 +91,8 @@ export default function CohortPage() {
       .map(a => {
         const s = buildStepsMap(a.step_events || []);
         const today = new Date().toISOString().split("T")[0];
+        const completedCount = STEPS.filter(st => s[st.id]).length;
+        const next = getNextStep(a.current_step as any);
         return {
           id: a.id,
           initials: a.initials,
@@ -88,8 +102,11 @@ export default function CohortPage() {
           submitted: s.submitted!,
           aorDate: s.aor || null,
           currentStep: a.current_step,
+          nextStep: next,
+          completedCount,
           daysWaiting: s.submitted ? daysBetween(s.submitted, s.aor || today) : 0,
           isMe: a.id === id,
+          isComplete: a.is_complete || a.current_step === "ecopr",
           app: a,
         };
       })
@@ -99,21 +116,38 @@ export default function CohortPage() {
   const gotAor = cohort.filter(c => c.aorDate);
   const waiting = cohort.filter(c => !c.aorDate);
 
-  // Stage distribution
-  const stageDistribution = useMemo(() => {
+  // Stage distribution — what step people are WAITING for
+  const waitingForDistribution = useMemo(() => {
     const counts: Record<string, number> = {};
-    STEPS.forEach(s => { counts[s.id] = 0; });
     cohort.forEach(p => {
-      if (p.currentStep && counts[p.currentStep] !== undefined) {
-        counts[p.currentStep]++;
+      if (p.isComplete) {
+        counts["complete"] = (counts["complete"] || 0) + 1;
+      } else {
+        const waitingFor = p.nextStep || "aor";
+        counts[waitingFor] = (counts[waitingFor] || 0) + 1;
       }
     });
-    return STEPS.map(s => ({
-      id: s.id,
-      label: s.label,
-      count: counts[s.id],
-      pct: cohort.length > 0 ? Math.round((counts[s.id] / cohort.length) * 100) : 0,
-    })).filter(s => s.count > 0);
+    // Build ordered list
+    const result: { id: string; label: string; count: number; pct: number }[] = [];
+    STEPS.forEach(s => {
+      if (counts[s.id]) {
+        result.push({
+          id: s.id,
+          label: `Waiting for ${s.label}`,
+          count: counts[s.id],
+          pct: cohort.length > 0 ? Math.round((counts[s.id] / cohort.length) * 100) : 0,
+        });
+      }
+    });
+    if (counts["complete"]) {
+      result.push({
+        id: "complete",
+        label: "Journey Complete",
+        count: counts["complete"],
+        pct: cohort.length > 0 ? Math.round((counts["complete"] / cohort.length) * 100) : 0,
+      });
+    }
+    return result;
   }, [cohort]);
 
   if (loading) return <MeSkeleton />;
@@ -159,20 +193,22 @@ export default function CohortPage() {
         </div>
       </div>
 
-      {/* Stage Distribution */}
-      {stageDistribution.length > 0 && (
+      {/* Stage Distribution — what step people are waiting for */}
+      {waitingForDistribution.length > 0 && (
         <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
           <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-3">Where Everyone Is</div>
           <div className="space-y-2">
-            {stageDistribution.map(stage => (
+            {waitingForDistribution.map(stage => (
               <div key={stage.id} className="flex items-center gap-2">
-                <div className="w-[72px] text-[10px] text-sand-600 font-medium truncate flex-shrink-0">{stage.label}</div>
+                <div className="w-[88px] text-[10px] text-sand-600 font-medium truncate flex-shrink-0">{stage.label}</div>
                 <div className="flex-1 h-5 bg-sand-100 rounded-full overflow-hidden relative">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
                       width: `${Math.max(stage.pct, 8)}%`,
-                      backgroundColor: stage.id === "ecopr" ? "#1B4331" : stage.id === "submitted" ? "#D4A843" : "#52B788",
+                      backgroundColor: stage.id === "complete" ? "#1B4331"
+                        : stage.id === "aor" ? "#D4A843"
+                        : "#52B788",
                     }}
                   />
                   <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-sand-700">
@@ -230,58 +266,75 @@ export default function CohortPage() {
 }
 
 function PersonCard({ person, onTap }: { person: CohortPerson; onTap: () => void }) {
+  const totalSteps = STEPS.length;
+  const progressPct = Math.round((person.completedCount / totalSteps) * 100);
+
   return (
     <div
       onClick={onTap}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all active:scale-[0.98] ${
+      className={`px-3 py-2.5 rounded-xl cursor-pointer transition-all active:scale-[0.98] ${
         person.isMe
           ? "bg-brand-50 border-2 border-brand-300"
           : "bg-white border border-sand-200 active:bg-sand-50"
       }`}
     >
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-        person.isMe ? "bg-brand-500 text-white" : "bg-sand-100 text-sand-600"
-      }`}>
-        {person.initials.slice(0, 2).toUpperCase()}
+      <div className="flex items-center gap-3">
+        {/* Avatar */}
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+          person.isMe ? "bg-brand-500 text-white" : "bg-sand-100 text-sand-600"
+        }`}>
+          {person.initials.slice(0, 2).toUpperCase()}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold text-sand-900">{person.initials}</span>
+            {person.isMe && (
+              <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-brand-500 text-white font-bold">YOU</span>
+            )}
+            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${
+              person.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
+            }`}>
+              {person.stream}
+            </span>
+          </div>
+          <div className="text-[11px] text-sand-500">
+            {person.country} · Sub {fmt(person.submitted)}
+          </div>
+        </div>
+
+        {/* Current step status */}
+        <div className="text-right flex-shrink-0 flex items-center gap-2">
+          <div>
+            {person.isComplete ? (
+              <div className="text-xs font-semibold text-brand-600">Complete \u2713</div>
+            ) : (
+              <>
+                <div className={`text-[10px] font-semibold ${person.aorDate ? "text-brand-600" : "text-warn-dark"}`}>
+                  {person.nextStep ? nextStepLabel(person.currentStep).replace("Complete", "Done") : "AOR"}
+                </div>
+                <div className="text-[9px] text-sand-400">
+                  {person.completedCount}/{STEPS.length} · Day {person.daysWaiting}
+                </div>
+              </>
+            )}
+          </div>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round">
+            <path d="M9 18L15 12L9 6" />
+          </svg>
+        </div>
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm font-semibold text-sand-900">{person.initials}</span>
-          {person.isMe && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-brand-500 text-white font-bold">YOU</span>
-          )}
-          <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${
-            person.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
-          }`}>
-            {person.stream}
-          </span>
-        </div>
-        <div className="text-[11px] text-sand-500">
-          {person.country} · Sub {fmt(person.submitted)}
-        </div>
-      </div>
-
-      <div className="text-right flex-shrink-0 flex items-center gap-2">
-        <div>
-          {person.aorDate ? (
-            <>
-              <div className="flex items-center gap-1 justify-end">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
-                <span className="text-xs font-semibold text-brand-600">AOR</span>
-              </div>
-              <div className="text-[10px] text-sand-400">{fmt(person.aorDate)} · {person.daysWaiting}d</div>
-            </>
-          ) : (
-            <>
-              <div className="text-xs font-semibold text-warn-dark">Waiting</div>
-              <div className="text-[10px] text-sand-400">Day {person.daysWaiting}</div>
-            </>
-          )}
-        </div>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round">
-          <path d="M9 18L15 12L9 6" />
-        </svg>
+      {/* Mini progress bar */}
+      <div className="mt-2 h-1 bg-sand-100 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-300"
+          style={{
+            width: `${progressPct}%`,
+            backgroundColor: person.isComplete ? "#1B4331" : person.aorDate ? "#52B788" : "#D4A843",
+          }}
+        />
       </div>
     </div>
   );
@@ -296,10 +349,6 @@ function TimelineModal({ person, onClose, onGoToTracker }: {
   const completedSteps = STEPS.filter(s => stepsMap[s.id]);
   const totalSteps = STEPS.length;
   const progressPct = Math.round((completedSteps.length / totalSteps) * 100);
-
-  const getCurrentLabel = (stepId: string): string => {
-    return STEPS.find(s => s.id === stepId)?.label || stepId;
-  };
 
   return (
     <Modal open={true} onClose={onClose} title={`${person.initials} \u2014 Timeline`}>
@@ -332,7 +381,7 @@ function TimelineModal({ person, onClose, onGoToTracker }: {
         <div className="h-full bg-brand-500 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
       </div>
 
-      {/* Timeline — read-only */}
+      {/* Timeline */}
       <div className="space-y-0.5">
         {STEPS.map((step, i) => {
           const date = stepsMap[step.id];
@@ -395,9 +444,9 @@ function TimelineModal({ person, onClose, onGoToTracker }: {
           </button>
         ) : (
           <div className="text-center text-[10px] text-sand-400">
-            {stepsMap.ecopr
+            {person.isComplete
               ? "Completed their journey! \uD83C\uDF89"
-              : `Currently at: ${getCurrentLabel(person.currentStep)}`
+              : `Currently waiting for: ${nextStepLabel(person.currentStep)}`
             }
           </div>
         )}
