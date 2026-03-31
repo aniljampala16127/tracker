@@ -40,19 +40,8 @@ function AutoSwipeController({ scrollRef, cards, pausedRef, expanded }: {
     if (!el) return;
     const cardEl = el.children[idx] as HTMLElement | undefined;
     if (!cardEl) return;
-    const targetScroll = cardEl.offsetLeft - el.offsetLeft - 8;
-    const startScroll = el.scrollLeft;
-    const diff = targetScroll - startScroll;
-    if (Math.abs(diff) < 2) return;
-    let start: number | null = null;
-    const ease = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    const step = (ts: number) => {
-      if (!start) start = ts;
-      const p = Math.min((ts - start) / 1000, 1);
-      el.scrollLeft = startScroll + diff * ease(p);
-      if (p < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
+    const targetScroll = cardEl.offsetLeft - el.offsetLeft;
+    el.scrollTo({ left: targetScroll, behavior: "smooth" });
   }, [scrollRef]);
 
   useEffect(() => {
@@ -283,12 +272,13 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
             ref={scrollRef}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
-            className="flex gap-3 overflow-x-auto hide-scrollbar pb-1"
+            className="flex gap-3 overflow-x-auto hide-scrollbar pb-1 snap-x snap-mandatory scroll-smooth"
+            style={{ WebkitOverflowScrolling: "touch" }}
           >
             {cards.map((card) => (
               <div
                 key={card.label}
-                className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden"
+                className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden snap-start"
               >
                 <div className="px-3 py-2 border-b border-sand-100 flex items-center justify-between">
                   <span className="text-[11px] font-bold text-sand-900">{card.label}</span>
