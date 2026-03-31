@@ -348,29 +348,18 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     if (open) { setVisible(true); setClosing(false); }
   }, [open]);
 
-  // Force scroll to top + lock body when modal opens
+  // Scroll modal content to top when opening
   React.useEffect(() => {
     if (visible && !closing) {
-      // Lock body scroll
-      document.body.style.overflow = 'hidden';
-      // Aggressive scroll reset — setTimeout ensures content is laid out
       const t = setTimeout(() => {
         if (contentRef.current) contentRef.current.scrollTop = 0;
       }, 80);
-      return () => { clearTimeout(t); };
-    } else if (!visible) {
-      document.body.style.overflow = '';
+      return () => clearTimeout(t);
     }
   }, [visible, closing]);
 
-  // Cleanup body lock on unmount
-  React.useEffect(() => {
-    return () => { document.body.style.overflow = ''; };
-  }, []);
-
   const handleClose = React.useCallback(() => {
     setClosing(true);
-    document.body.style.overflow = '';
     setTimeout(() => { setVisible(false); setClosing(false); onClose(); }, 220);
   }, [onClose]);
 
@@ -382,7 +371,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     >
       <div
         ref={contentRef}
-        className={`bg-white rounded-t-2xl sm:rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-auto ${closing ? "modal-content-out" : "modal-content"}`}
+        className={`bg-white rounded-t-2xl sm:rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-auto overscroll-contain ${closing ? "modal-content-out" : "modal-content"}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Bottom sheet handle — mobile only */}

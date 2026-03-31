@@ -60,7 +60,7 @@ export default function CohortPage() {
   const supabase = createClient();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewPerson, setViewPerson] = useState<CohortPerson | null>(null);
+  const [viewPersonId, setViewPersonId] = useState<string | null>(null);
 
   const fetchApps = useCallback(async () => {
     const { data } = await supabase
@@ -115,6 +115,7 @@ export default function CohortPage() {
 
   const gotAor = cohort.filter(c => c.aorDate);
   const waiting = cohort.filter(c => !c.aorDate);
+  const viewPerson = viewPersonId ? cohort.find(c => c.id === viewPersonId) || null : null;
 
   // Stage distribution — what step people are WAITING for
   const waitingForDistribution = useMemo(() => {
@@ -229,7 +230,7 @@ export default function CohortPage() {
           </div>
           <div className="space-y-1.5 entries-stagger">
             {gotAor.map(person => (
-              <PersonCard key={person.id} person={person} onTap={() => setViewPerson(person)} />
+              <PersonCard key={person.id} person={person} onTap={() => setViewPersonId(person.id)} />
             ))}
           </div>
         </div>
@@ -243,7 +244,7 @@ export default function CohortPage() {
           </div>
           <div className="space-y-1.5 entries-stagger">
             {waiting.map(person => (
-              <PersonCard key={person.id} person={person} onTap={() => setViewPerson(person)} />
+              <PersonCard key={person.id} person={person} onTap={() => setViewPersonId(person.id)} />
             ))}
           </div>
         </div>
@@ -257,7 +258,7 @@ export default function CohortPage() {
       {viewPerson && (
         <TimelineModal
           person={viewPerson}
-          onClose={() => setViewPerson(null)}
+          onClose={() => setViewPersonId(null)}
           onGoToTracker={viewPerson.isMe ? () => router.push("/dashboard") : undefined}
         />
       )}
