@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
-import { buildStepsMap, daysBetween } from "@/lib/utils";
+import { STEPS } from "@/lib/constants";
+import { buildStepsMap, daysBetween, formatDate } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
+import { Modal } from "@/components/ui";
 import { MeSkeleton } from "@/components/Skeletons";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -15,11 +17,6 @@ function fmt(dateStr: string): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
-function fmtFull(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-}
-
 function getWeekRange(dateStr: string): { start: Date; end: Date; label: string } {
   const d = new Date(dateStr + "T00:00:00");
   const day = d.getDay();
@@ -27,8 +24,22 @@ function getWeekRange(dateStr: string): { start: Date; end: Date; label: string 
   start.setDate(start.getDate() - day);
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
-  const label = `${fmt(start.toISOString().split("T")[0])} – ${fmt(end.toISOString().split("T")[0])}, ${end.getFullYear()}`;
+  const label = `${fmt(start.toISOString().split("T")[0])} \u2013 ${fmt(end.toISOString().split("T")[0])}, ${end.getFullYear()}`;
   return { start, end, label };
+}
+
+interface CohortPerson {
+  id: string;
+  initials: string;
+  country: string;
+  stream: string;
+  sponsor_status: string;
+  submitted: string;
+  aorDate: string | null;
+  currentStep: string;
+  daysWaiting: number;
+  isMe: boolean;
+  app: Application;
 }
 
 export default function CohortPage() {
@@ -37,6 +48,7 @@ export default function CohortPage() {
   const supabase = createClient();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewPerson, setViewPerson] = useState<CohortPerson | null>(null);
 
   const fetchApps = useCallback(async () => {
     const { data } = await supabase
@@ -52,11 +64,10 @@ export default function CohortPage() {
   const myApp = apps.find(a => a.id === id);
   const mySteps = myApp ? buildStepsMap(myApp.step_events || []) : null;
   const mySubmitted = mySteps?.submitted;
-  const isMyEntry = myApp?.pin_hash && getSavedPinHash(myApp.id) === myApp.pin_hash;
 
   const week = mySubmitted ? getWeekRange(mySubmitted) : null;
 
-  const cohort = useMemo(() => {
+  const cohort: CohortPerson[] = useMemo(() => {
     if (!week || !mySubmitted) return [];
     return apps
       .filter(a => {
@@ -73,11 +84,13 @@ export default function CohortPage() {
           initials: a.initials,
           country: a.country_origin,
           stream: a.stream,
+          sponsor_status: a.sponsor_status,
           submitted: s.submitted!,
           aorDate: s.aor || null,
           currentStep: a.current_step,
           daysWaiting: s.submitted ? daysBetween(s.submitted, s.aor || today) : 0,
           isMe: a.id === id,
+          app: a,
         };
       })
       .sort((a, b) => a.submitted.localeCompare(b.submitted));
@@ -85,6 +98,23 @@ export default function CohortPage() {
 
   const gotAor = cohort.filter(c => c.aorDate);
   const waiting = cohort.filter(c => !c.aorDate);
+
+  // Stage distribution
+  const stageDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    STEPS.forEach(s => { counts[s.id] = 0; });
+    cohort.forEach(p => {
+      if (p.currentStep && counts[p.currentStep] !== undefined) {
+        counts[p.currentStep]++;
+      }
+    });
+    return STEPS.map(s => ({
+      id: s.id,
+      label: s.label,
+      count: counts[s.id],
+      pct: cohort.length > 0 ? Math.round((counts[s.id] / cohort.length) * 100) : 0,
+    })).filter(s => s.count > 0);
+  }, [cohort]);
 
   if (loading) return <MeSkeleton />;
 
@@ -98,7 +128,7 @@ export default function CohortPage() {
   }
 
   return (
-    <div>
+    <div className="page-enter">
       <button onClick={() => router.push("/me")}
         className="flex items-center gap-1.5 text-sm text-sand-500 hover:text-sand-800 transition-colors mb-4">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19L5 12L12 5"/></svg>
@@ -113,7 +143,6 @@ export default function CohortPage() {
           {cohort.length} {cohort.length === 1 ? "person" : "people"} submitted this week
         </p>
 
-        {/* Summary cards */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-brand-50 rounded-lg p-2.5 text-center">
             <div className="text-lg font-bold text-brand-600">{gotAor.length}</div>
@@ -130,15 +159,41 @@ export default function CohortPage() {
         </div>
       </div>
 
+      {/* Stage Distribution */}
+      {stageDistribution.length > 0 && (
+        <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
+          <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-3">Where Everyone Is</div>
+          <div className="space-y-2">
+            {stageDistribution.map(stage => (
+              <div key={stage.id} className="flex items-center gap-2">
+                <div className="w-[72px] text-[10px] text-sand-600 font-medium truncate flex-shrink-0">{stage.label}</div>
+                <div className="flex-1 h-5 bg-sand-100 rounded-full overflow-hidden relative">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.max(stage.pct, 8)}%`,
+                      backgroundColor: stage.id === "ecopr" ? "#1B4331" : stage.id === "submitted" ? "#D4A843" : "#52B788",
+                    }}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-sand-700">
+                    {stage.count} ({stage.pct}%)
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Got AOR */}
       {gotAor.length > 0 && (
         <div className="mb-4">
           <div className="text-[10px] font-semibold text-brand-600 uppercase tracking-wider mb-2 px-1">
             Got AOR ({gotAor.length})
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 entries-stagger">
             {gotAor.map(person => (
-              <PersonCard key={person.id} person={person} />
+              <PersonCard key={person.id} person={person} onTap={() => setViewPerson(person)} />
             ))}
           </div>
         </div>
@@ -150,35 +205,46 @@ export default function CohortPage() {
           <div className="text-[10px] font-semibold text-warn-dark uppercase tracking-wider mb-2 px-1">
             Waiting for AOR ({waiting.length})
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 entries-stagger">
             {waiting.map(person => (
-              <PersonCard key={person.id} person={person} />
+              <PersonCard key={person.id} person={person} onTap={() => setViewPerson(person)} />
             ))}
           </div>
         </div>
+      )}
+
+      <p className="text-[9px] text-sand-400 mt-3 text-center">
+        Tap any card to view their timeline
+      </p>
+
+      {/* Read-only timeline modal */}
+      {viewPerson && (
+        <TimelineModal
+          person={viewPerson}
+          onClose={() => setViewPerson(null)}
+          onGoToTracker={viewPerson.isMe ? () => router.push("/dashboard") : undefined}
+        />
       )}
     </div>
   );
 }
 
-function PersonCard({ person }: { person: {
-  id: string; initials: string; country: string; stream: string;
-  submitted: string; aorDate: string | null; daysWaiting: number; isMe: boolean;
-}}) {
+function PersonCard({ person, onTap }: { person: CohortPerson; onTap: () => void }) {
   return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-      person.isMe
-        ? "bg-brand-50 border-2 border-brand-300"
-        : "bg-white border border-sand-200"
-    }`}>
-      {/* Avatar */}
+    <div
+      onClick={onTap}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all active:scale-[0.98] ${
+        person.isMe
+          ? "bg-brand-50 border-2 border-brand-300"
+          : "bg-white border border-sand-200 active:bg-sand-50"
+      }`}
+    >
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
         person.isMe ? "bg-brand-500 text-white" : "bg-sand-100 text-sand-600"
       }`}>
         {person.initials.slice(0, 2).toUpperCase()}
       </div>
 
-      {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-semibold text-sand-900">{person.initials}</span>
@@ -196,23 +262,146 @@ function PersonCard({ person }: { person: {
         </div>
       </div>
 
-      {/* Status */}
-      <div className="text-right flex-shrink-0">
-        {person.aorDate ? (
-          <>
-            <div className="flex items-center gap-1 justify-end">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
-              <span className="text-xs font-semibold text-brand-600">AOR</span>
-            </div>
-            <div className="text-[10px] text-sand-400">{fmt(person.aorDate)} · {person.daysWaiting}d</div>
-          </>
-        ) : (
-          <>
-            <div className="text-xs font-semibold text-warn-dark">Waiting</div>
-            <div className="text-[10px] text-sand-400">Day {person.daysWaiting}</div>
-          </>
-        )}
+      <div className="text-right flex-shrink-0 flex items-center gap-2">
+        <div>
+          {person.aorDate ? (
+            <>
+              <div className="flex items-center gap-1 justify-end">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
+                <span className="text-xs font-semibold text-brand-600">AOR</span>
+              </div>
+              <div className="text-[10px] text-sand-400">{fmt(person.aorDate)} · {person.daysWaiting}d</div>
+            </>
+          ) : (
+            <>
+              <div className="text-xs font-semibold text-warn-dark">Waiting</div>
+              <div className="text-[10px] text-sand-400">Day {person.daysWaiting}</div>
+            </>
+          )}
+        </div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round">
+          <path d="M9 18L15 12L9 6" />
+        </svg>
       </div>
     </div>
+  );
+}
+
+function TimelineModal({ person, onClose, onGoToTracker }: {
+  person: CohortPerson;
+  onClose: () => void;
+  onGoToTracker?: () => void;
+}) {
+  const stepsMap = buildStepsMap(person.app.step_events || []);
+  const completedSteps = STEPS.filter(s => stepsMap[s.id]);
+  const totalSteps = STEPS.length;
+  const progressPct = Math.round((completedSteps.length / totalSteps) * 100);
+
+  const getCurrentLabel = (stepId: string): string => {
+    return STEPS.find(s => s.id === stepId)?.label || stepId;
+  };
+
+  return (
+    <Modal open={true} onClose={onClose} title={`${person.initials} \u2014 Timeline`}>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+          person.isMe ? "bg-brand-500 text-white" : "bg-sand-100 text-sand-600"
+        }`}>
+          {person.initials.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold text-sand-900">{person.initials}</span>
+            {person.isMe && (
+              <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-brand-500 text-white font-bold">YOU</span>
+            )}
+          </div>
+          <div className="text-[11px] text-sand-500">
+            {person.country} · {person.stream} · {person.sponsor_status}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-sm font-bold text-brand-600">{progressPct}%</div>
+          <div className="text-[9px] text-sand-400">{completedSteps.length}/{totalSteps} steps</div>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-1.5 bg-sand-100 rounded-full overflow-hidden mb-5">
+        <div className="h-full bg-brand-500 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+      </div>
+
+      {/* Timeline — read-only */}
+      <div className="space-y-0.5">
+        {STEPS.map((step, i) => {
+          const date = stepsMap[step.id];
+          const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
+          const days = date && prevDate ? daysBetween(prevDate, date) : null;
+          const isDone = !!date;
+          const isCurrent = !isDone && i > 0 && !!stepsMap[STEPS[i - 1].id];
+
+          return (
+            <div
+              key={step.id}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${
+                isDone ? "bg-brand-50/50" : isCurrent ? "bg-warn-light/30" : "opacity-35"
+              }`}
+            >
+              <div className="relative flex-shrink-0">
+                <div className={`w-3 h-3 rounded-full ${
+                  isDone ? "bg-brand-500" : isCurrent ? "bg-warn animate-pulse" : "bg-sand-200"
+                }`} />
+                {i < STEPS.length - 1 && (
+                  <div className={`absolute top-3.5 left-[5px] w-px h-3 ${isDone ? "bg-brand-300" : "bg-sand-200"}`} />
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className={`text-sm font-medium ${isDone ? "text-sand-900" : isCurrent ? "text-warn-dark" : "text-sand-500"}`}>
+                  {step.label}
+                </div>
+                {isDone && (
+                  <div className="text-xs text-sand-500">
+                    {formatDate(date)}
+                    {days != null && i > 0 && (
+                      <span className="text-brand-500 font-semibold ml-1">({days}d)</span>
+                    )}
+                  </div>
+                )}
+                {isCurrent && (
+                  <div className="text-[10px] text-warn-dark font-medium">Waiting...</div>
+                )}
+              </div>
+
+              {isDone && (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                  <path d="M20 6L9 17L4 12"/>
+                </svg>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="mt-4 pt-3 border-t border-sand-100">
+        {person.isMe && onGoToTracker ? (
+          <button
+            onClick={onGoToTracker}
+            className="w-full px-4 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98]"
+          >
+            Edit on Tracker
+          </button>
+        ) : (
+          <div className="text-center text-[10px] text-sand-400">
+            {stepsMap.ecopr
+              ? "Completed their journey! \uD83C\uDF89"
+              : `Currently at: ${getCurrentLabel(person.currentStep)}`
+            }
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
