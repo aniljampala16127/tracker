@@ -478,20 +478,18 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Status */}
+                    {/* Status — shows what step they're waiting for */}
                     <div className="text-right flex-shrink-0">
-                      {hasAor ? (
-                        <>
-                          <div className="flex items-center gap-1 justify-end">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
-                            <span className="text-xs font-semibold text-brand-600">AOR</span>
-                          </div>
-                          {daysWaiting != null && <div className="text-[10px] text-sand-400">Day {daysWaiting}</div>}
-                        </>
+                      {statusDone ? (
+                        <div className="text-xs font-semibold text-brand-600">eCoPR ✓</div>
                       ) : (
                         <>
-                          <div className="text-[10px] font-semibold text-warn-dark">Waiting</div>
-                          {daysWaiting != null && <div className="text-[10px] text-sand-400">Day {daysWaiting}</div>}
+                          <div className={`text-[10px] font-semibold ${hasAor ? "text-brand-600" : "text-warn-dark"}`}>
+                            {statusLabel}
+                          </div>
+                          <div className="text-[9px] text-sand-400">
+                            {completedSteps.length}/{STEPS.length}{daysWaiting != null ? ` · Day ${daysWaiting}` : ""}
+                          </div>
                         </>
                       )}
                     </div>
