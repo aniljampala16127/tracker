@@ -216,11 +216,14 @@ export function ActivityPanel() {
                         <div className="flex-1 min-w-0">
                           <div className="text-xs text-sand-900">
                             <span className="font-semibold">{a.app_initials}</span>
-                            <span className="text-sand-500"> reached </span>
+                            <span className="text-sand-500"> received </span>
                             <span className={`font-semibold ${isUnread ? "text-brand-600" : "text-sand-700"}`}>{stepLabel(a.step_id)}</span>
+                            {a.event_date && (
+                              <span className="text-sand-500"> on {fmt(a.event_date)}</span>
+                            )}
                           </div>
                           <div className="text-[10px] text-sand-400">
-                            {a.app_country} · {a.event_date ? fmt(a.event_date) : ""}{a.event_date ? " · " : ""}{timeAgo(a.created_at)}
+                            {a.app_country} · {timeAgo(a.created_at)}
                           </div>
                         </div>
                         {isUnread && (

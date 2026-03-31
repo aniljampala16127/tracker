@@ -308,11 +308,11 @@ function PersonCard({ person, onTap }: { person: CohortPerson; onTap: () => void
         <div className="text-right flex-shrink-0 flex items-center gap-2">
           <div>
             {person.isComplete ? (
-              <div className="text-xs font-semibold text-brand-600">Complete \u2713</div>
+              <div className="text-xs font-semibold text-brand-600">Complete ✓</div>
             ) : (
               <>
                 <div className={`text-[10px] font-semibold ${person.aorDate ? "text-brand-600" : "text-warn-dark"}`}>
-                  {person.nextStep ? nextStepLabel(person.currentStep).replace("Complete", "Done") : "AOR"}
+                  Waiting for {person.nextStep ? stepLabel(person.nextStep) : "AOR"}
                 </div>
                 <div className="text-[9px] text-sand-400">
                   {person.completedCount}/{STEPS.length} · Day {person.daysWaiting}
