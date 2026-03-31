@@ -30,6 +30,12 @@ import { playMilestoneSound } from "@/lib/sounds";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+// Local timezone today — prevents UTC date mismatch after 8 PM EDT
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 // Buttery smooth scroll for any element or window — works on iOS Safari
 function smoothScroll(target: HTMLElement | Window, to: number, duration = 600) {
   const isWindow = target === window;
@@ -97,6 +103,11 @@ export default function DashboardPage() {
   const availableCountries = useMemo(() => Array.from(new Set(apps.map(a => a.country_origin))).sort(), [apps]);
 
   const handleAdd = async (form: ApplicationFormData & { pin: string }) => {
+    // Block future dates
+    if (form.submitted_date > localToday()) {
+      alert("Submission date cannot be in the future");
+      return;
+    }
     setSubmitting(true);
     const pinHash = await hashPin(form.pin);
     const { data: app } = await supabase
@@ -806,7 +817,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date</label>
             <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
-              value={editForm.submitted_date} onChange={(e) => eu("submitted_date", e.target.value)} max={new Date().toISOString().split("T")[0]} />
+              value={editForm.submitted_date} onChange={(e) => eu("submitted_date", e.target.value)} max={localToday()} />
           </div>
           <Input label="Notes" value={editForm.notes} onChange={(e: React.ChangeEvent<HTMLInputElement>) => eu("notes", e.target.value)} />
           <div className="flex gap-2 pt-1">
@@ -862,7 +873,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
                 <div className="flex items-center gap-2">
                   {activeStep === step.id ? (
                     <input type="date" autoFocus className="text-xs px-2 py-1 border border-sand-200 rounded-md bg-white step-input-enter"
-                      max={new Date().toISOString().split("T")[0]} value={stepDate}
+                      max={localToday()} value={stepDate}
                       onChange={(e) => setStepDate(e.target.value)}
                       onBlur={() => { if (!stepDate) setActiveStep(null); }}
                       onKeyDown={(e) => { if (e.key === "Enter" && stepDate) { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}} />
@@ -978,7 +989,7 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date *</label>
           <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
-            value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} max={new Date().toISOString().split("T")[0]} required />
+            value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} max={localToday()} required />
         </div>
         <PinInput value={form.pin} onChange={(v) => u("pin", v)} />
         <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
