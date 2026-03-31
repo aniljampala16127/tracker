@@ -348,20 +348,29 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     if (open) { setVisible(true); setClosing(false); }
   }, [open]);
 
-  // Force scroll to top when modal opens
+  // Force scroll to top + lock body when modal opens
   React.useEffect(() => {
     if (visible && !closing) {
-      // Double rAF ensures content is painted before we reset scroll
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (contentRef.current) contentRef.current.scrollTop = 0;
-        });
-      });
+      // Lock body scroll
+      document.body.style.overflow = 'hidden';
+      // Aggressive scroll reset — setTimeout ensures content is laid out
+      const t = setTimeout(() => {
+        if (contentRef.current) contentRef.current.scrollTop = 0;
+      }, 80);
+      return () => { clearTimeout(t); };
+    } else if (!visible) {
+      document.body.style.overflow = '';
     }
   }, [visible, closing]);
 
+  // Cleanup body lock on unmount
+  React.useEffect(() => {
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   const handleClose = React.useCallback(() => {
     setClosing(true);
+    document.body.style.overflow = '';
     setTimeout(() => { setVisible(false); setClosing(false); onClose(); }, 220);
   }, [onClose]);
 
