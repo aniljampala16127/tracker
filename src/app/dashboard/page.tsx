@@ -260,6 +260,7 @@ export default function DashboardPage() {
   const selectedMonthLabel = selectedMonthParts.length === 2 ? `${MO[parseInt(selectedMonthParts[1]) - 1]} ${selectedMonthParts[0]}` : "";
 
   return (
+    <>
     <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
     <div className="page-enter">
       {/* CTA for new users — compact with live stats */}
@@ -659,6 +660,20 @@ export default function DashboardPage() {
       )}
     </div>
     </PullToRefresh>
+
+    {/* Sticky floating CTA for new users — above bottom nav */}
+    {!hasMyEntry && (
+      <div className="sm:hidden fixed bottom-[72px] left-4 right-4 z-40">
+        <button
+          onClick={() => setShowAdd(true)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-500 text-white text-sm font-bold rounded-2xl shadow-[0_4px_20px_rgba(45,106,79,0.4)] active:scale-[0.97] transition-transform"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5V19M5 12H19"/></svg>
+          Add Your Application
+        </button>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -931,25 +946,40 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
   return (
     <Modal open={open} onClose={onClose} title="Add Entry">
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <Input label="Name *" maxLength={20} value={form.initials} onChange={(e) => u("initials", e.target.value)} required />
-        <div className="grid grid-cols-2 gap-3">
-          <Select label="Sponsor Status" value={form.sponsor_status} onChange={(e) => u("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map((s) => ({ value: s, label: s }))} />
-          <Select label="Stream" value={form.stream} onChange={(e) => u("stream", e.target.value)} options={STREAMS.map((s) => ({ value: s, label: s }))} />
-        </div>
+        {/* Essential fields */}
+        <Input label="Name / Initials *" maxLength={20} placeholder="e.g. AN or Anil" value={form.initials} onChange={(e) => u("initials", e.target.value)} required />
         <SearchableSelect label="PA Country *" value={form.country_origin} onChange={(v) => u("country_origin", v)} options={COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))} />
-        <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
-        <Select label="Province" value={form.province} onChange={(e) => u("province", e.target.value)} options={PROVINCES.map((p) => ({ value: p, label: p }))} />
-        <div className="grid grid-cols-2 gap-3">
-          <Select label="PA Visa Country" value={form.visa_country} onChange={(e) => u("visa_country", e.target.value)} options={VISA_COUNTRIES.map((v) => ({ value: v, label: v || "Select..." }))} />
-          <Select label="MEI Type" value={form.mei_type} onChange={(e) => u("mei_type", e.target.value)} options={MEI_TYPES.map((m) => ({ value: m, label: m || "Select..." }))} />
-        </div>
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date *</label>
           <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
             value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} max={localToday()} required />
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Select label="Sponsor Status" value={form.sponsor_status} onChange={(e) => u("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map((s) => ({ value: s, label: s }))} />
+          <Select label="Stream *" value={form.stream} onChange={(e) => u("stream", e.target.value)} options={STREAMS.map((s) => ({ value: s, label: s }))} />
+        </div>
         <PinInput value={form.pin} onChange={(v) => u("pin", v)} />
-        <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
+
+        {/* Optional fields — collapsible */}
+        <details className="group">
+          <summary className="flex items-center gap-2 text-[11px] font-semibold text-brand-600 cursor-pointer select-none py-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+              className="transition-transform group-open:rotate-90">
+              <path d="M9 18L15 12L9 6" />
+            </svg>
+            More details (optional)
+          </summary>
+          <div className="flex flex-col gap-3 pt-2">
+            <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
+            <Select label="Province" value={form.province} onChange={(e) => u("province", e.target.value)} options={PROVINCES.map((p) => ({ value: p, label: p }))} />
+            <div className="grid grid-cols-2 gap-3">
+              <Select label="PA Visa Country" value={form.visa_country} onChange={(e) => u("visa_country", e.target.value)} options={VISA_COUNTRIES.map((v) => ({ value: v, label: v || "Select..." }))} />
+              <Select label="MEI Type" value={form.mei_type} onChange={(e) => u("mei_type", e.target.value)} options={MEI_TYPES.map((m) => ({ value: m, label: m || "Select..." }))} />
+            </div>
+            <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
+          </div>
+        </details>
+
         {duplicate && (
           <div className="bg-warn-light border border-warn/30 rounded-lg px-3 py-2.5">
             <div className="flex items-start gap-2">
@@ -965,7 +995,7 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
             </div>
           </div>
         )}
-        <Button type="submit" disabled={loading || !isValidPin(form.pin)} className="w-full mt-1">{loading ? "Adding..." : "Add"}</Button>
+        <Button type="submit" disabled={loading || !isValidPin(form.pin)} className="w-full mt-1">{loading ? "Adding..." : "Add Entry"}</Button>
       </form>
     </Modal>
   );
