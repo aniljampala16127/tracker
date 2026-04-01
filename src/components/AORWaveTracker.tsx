@@ -55,7 +55,7 @@ function SmoothScroll({ children, count }: { children: React.ReactNode; count: n
 
   return (
     <div ref={ref} className="h-full overflow-y-auto hide-scrollbar overscroll-contain"
-      style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+      style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" } as React.CSSProperties}
       onTouchStart={() => { paused.current = true; acc.current = 0; clearTimeout(resume.current); }}
       onTouchEnd={() => { resume.current = setTimeout(() => { paused.current = false; }, 4000); }}>
       {children}
