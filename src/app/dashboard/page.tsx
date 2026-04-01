@@ -711,6 +711,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
     country_origin: app.country_origin,
     stream: app.stream as string,
     sponsor_status: app.sponsor_status as string,
+    province: app.province || "Outside Quebec",
     visa_country: app.visa_country || "",
     notes: app.notes || "",
     submitted_date: stepsMap.submitted || "",
@@ -739,6 +740,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
       country_origin: editForm.country_origin,
       stream: editForm.stream,
       sponsor_status: editForm.sponsor_status,
+      province: editForm.province,
       visa_country: editForm.visa_country || null,
       notes: editForm.notes || null,
     }).eq("id", app.id);
@@ -774,6 +776,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
 
       <div className="flex flex-wrap gap-2 text-xs text-sand-500 mb-3">
         <span>{app.sponsor_status}</span><span>·</span><span>{app.stream}</span>
+        <span>·</span><span>{app.province === "Quebec" ? "Inside Quebec" : "Outside Quebec"}</span>
         {app.visa_country && <><span>·</span><span>{app.visa_country}</span></>}
         {app.subcategory && <><span>·</span><span>{app.subcategory}</span></>}
         {app.notes && <><span>·</span><span className="italic">{app.notes}</span></>}
@@ -797,7 +800,10 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
             <Select label="Stream" value={editForm.stream} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("stream", e.target.value)} options={STREAMS.map(s => ({ value: s, label: s }))} />
           </div>
           <SearchableSelect label="PA Country" value={editForm.country_origin} onChange={(v: string) => eu("country_origin", v)} options={COMMON_COUNTRIES.map(c => ({ value: c, label: c }))} />
-          <Select label="PA Visa Country" value={editForm.visa_country} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("visa_country", e.target.value)} options={VISA_COUNTRIES.map(v => ({ value: v, label: v || "None" }))} />
+          <div className="grid grid-cols-2 gap-2">
+            <Select label="Quebec *" value={editForm.province} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("province", e.target.value)} options={[{ value: "Outside Quebec", label: "Outside Quebec" }, { value: "Quebec", label: "Inside Quebec" }]} />
+            <Select label="PA Visa Country" value={editForm.visa_country} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("visa_country", e.target.value)} options={VISA_COUNTRIES.map(v => ({ value: v, label: v || "None" }))} />
+          </div>
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date</label>
             <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
