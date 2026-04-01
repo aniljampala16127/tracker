@@ -81,8 +81,6 @@ export default function MyAppPage() {
   return (
     <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
     <div className="page-enter">
-      <h1 className="text-xl font-bold text-sand-900 mb-1">My Application</h1>
-      <p className="text-xs text-sand-500 mb-5">Your personal timeline and predictions</p>
 
       {myApps.map((app) => (
         <MyAppCard key={app.id} app={app} allApps={apps} onRefresh={fetchApps} />
@@ -146,6 +144,25 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   const today = new Date().toISOString().split("T")[0];
   const daysSoFar = submittedDate ? daysBetween(submittedDate, today) : 0;
 
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    initials: app.initials, country_origin: app.country_origin,
+    stream: app.stream as string, sponsor_status: app.sponsor_status as string,
+    province: app.province || "Outside Quebec",
+  });
+
+  const handleEditSave = async () => {
+    setSaving(true);
+    await supabase.from("applications").update({
+      initials: editForm.initials.trim(), country_origin: editForm.country_origin,
+      stream: editForm.stream, sponsor_status: editForm.sponsor_status,
+      province: editForm.province,
+    }).eq("id", app.id);
+    setSaving(false);
+    setEditing(false);
+    onRefresh();
+  };
+
   return (
     <div className="bg-white border border-sand-200 rounded-2xl p-5 mb-5">
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
@@ -158,7 +175,10 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-sand-900">{app.initials}</h2>
-            <a href="/dashboard" className="text-[10px] text-brand-500 font-medium px-2 py-0.5 rounded-full border border-brand-200 hover:bg-brand-50 transition-colors">Edit</a>
+            <button onClick={() => setEditing(!editing)}
+              className="text-[10px] text-brand-500 font-medium px-2 py-0.5 rounded-full border border-brand-200 hover:bg-brand-50 transition-colors">
+              {editing ? "Cancel" : "Edit"}
+            </button>
           </div>
           <p className="text-xs text-sand-500">
             {app.country_origin} · {app.sponsor_status} · {app.stream}
@@ -170,6 +190,34 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           <div className="text-[9px] text-sand-400">{submittedDate ? formatNice(submittedDate) : "—"}</div>
         </div>
       </div>
+
+      {/* Inline Edit Form */}
+      {editing && (
+        <div className="bg-sand-50 rounded-xl p-3 mb-3 space-y-2 border border-sand-200">
+          <input className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white" placeholder="Name"
+            value={editForm.initials} onChange={(e) => setEditForm(p => ({ ...p, initials: e.target.value }))} />
+          <input className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white" placeholder="PA Country"
+            value={editForm.country_origin} onChange={(e) => setEditForm(p => ({ ...p, country_origin: e.target.value }))} />
+          <div className="grid grid-cols-3 gap-2">
+            <select className="px-2 py-2 rounded-lg border border-sand-200 text-xs bg-white"
+              value={editForm.sponsor_status} onChange={(e) => setEditForm(p => ({ ...p, sponsor_status: e.target.value }))}>
+              <option value="PR">PR</option><option value="Citizen">Citizen</option>
+            </select>
+            <select className="px-2 py-2 rounded-lg border border-sand-200 text-xs bg-white"
+              value={editForm.stream} onChange={(e) => setEditForm(p => ({ ...p, stream: e.target.value }))}>
+              <option value="Outland">Outland</option><option value="Inland">Inland</option>
+            </select>
+            <select className="px-2 py-2 rounded-lg border border-sand-200 text-xs bg-white"
+              value={editForm.province} onChange={(e) => setEditForm(p => ({ ...p, province: e.target.value }))}>
+              <option value="Outside Quebec">Outside QC</option><option value="Quebec">Inside QC</option>
+            </select>
+          </div>
+          <button onClick={handleEditSave} disabled={saving || !editForm.initials.trim() || !editForm.country_origin}
+            className="w-full py-2 rounded-lg bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 transition-colors disabled:opacity-50">
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      )}
 
       {/* 2. Timeline — RIGHT after name, most important section */}
       <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
