@@ -159,12 +159,13 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           <h2 className="text-lg font-bold text-sand-900">{app.initials}</h2>
           <p className="text-xs text-sand-500">
             {app.country_origin} · {app.sponsor_status} · {app.stream}
-            {app.visa_country && ` · ${app.visa_country}`}
+            {app.province === "Quebec" ? " · Quebec" : ""}
           </p>
         </div>
         <div className="text-right">
           <div className="text-xs font-bold text-brand-600">Day {daysSoFar}</div>
           <div className="text-[9px] text-sand-400">{submittedDate ? formatNice(submittedDate) : "—"}</div>
+          <a href="/dashboard" className="text-[9px] text-brand-500 font-medium mt-0.5 inline-block">Edit</a>
         </div>
       </div>
 
@@ -234,6 +235,109 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         <div>
           <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Share Timeline</div>
           <ShareButtons app={app} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// GCKey inline step with expandable setup guide
+function GCKeyInlineStep({ appId, gckeyDone, toggleGckey }: {
+  appId: string; gckeyDone: boolean; toggleGckey: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const GCKEY_STEPS = [
+    { text: "Go to IRCC account page → \"Sign in with GCKey\"", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/account.html" },
+    { text: "Create an account with your email" },
+    { text: "Complete all security questions" },
+    { text: "Click \"Link Application\" in the table" },
+    { text: "Select \"Application number and family name\"" },
+    { text: "Enter family name with a space in front", highlight: true },
+    { text: "Enter application number and other details" },
+    { text: "Enter 2 for \"number of people\"" },
+    { text: "Submit → should show \"account found\" → Link" },
+  ];
+
+  const TRACKER_STEPS = [
+    { text: "Go to IRCC Tracker registration", link: "https://ircc-tracker-suivi.apps.cic.gc.ca/en/register" },
+    { text: "Enter UCI (from your GCKey account)" },
+    { text: "Enter Application Number" },
+    { text: "Enter names and Date of Birth exactly as in application" },
+    { text: "Submit → application linked to tracker" },
+  ];
+
+  if (gckeyDone) {
+    return (
+      <div className="flex items-center gap-3 px-3 py-2 rounded-lg mx-1 mt-1 mb-1 bg-brand-50">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17L4 12" /></svg>
+        <span className="text-xs text-brand-600 flex-1">GCKey & IRCC Tracker set up</span>
+        <button onClick={toggleGckey} className="text-[9px] text-sand-400">Undo</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-1 mt-1 mb-1 rounded-lg border border-blue-100 bg-blue-50/50 overflow-hidden">
+      {/* Header — tap to expand */}
+      <button onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
+        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16V12M12 8H12.01"/></svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold text-blue-700">Set up GCKey & IRCC Tracker</div>
+          <div className="text-[9px] text-blue-500">Tap to see setup steps</div>
+        </div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" strokeWidth="2" strokeLinecap="round"
+          style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M6 9L12 15L18 9" />
+        </svg>
+      </button>
+
+      {/* Expandable content */}
+      <div style={{
+        maxHeight: expanded ? "600px" : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div className="px-3 pb-3" style={{ opacity: expanded ? 1 : 0, transition: "opacity 0.2s ease", transitionDelay: expanded ? "0.1s" : "0s" }}>
+          {/* GCKey steps */}
+          <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1.5">1. GCKey Setup</div>
+          <div className="space-y-1 mb-3">
+            {GCKEY_STEPS.map((s, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-[9px] text-blue-400 mt-0.5 flex-shrink-0">{i + 1}.</span>
+                <div className="text-[10px] text-blue-800 leading-relaxed">
+                  {s.link ? (
+                    <a href={s.link} target="_blank" rel="noopener noreferrer" className="underline">{s.text}</a>
+                  ) : s.text}
+                  {s.highlight && <span className="text-[8px] bg-yellow-200 text-yellow-800 px-1 rounded ml-1">Important</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* IRCC Tracker steps */}
+          <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1.5">2. IRCC Tracker</div>
+          <div className="space-y-1 mb-3">
+            {TRACKER_STEPS.map((s, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-[9px] text-blue-400 mt-0.5 flex-shrink-0">{i + 1}.</span>
+                <div className="text-[10px] text-blue-800 leading-relaxed">
+                  {s.link ? (
+                    <a href={s.link} target="_blank" rel="noopener noreferrer" className="underline">{s.text}</a>
+                  ) : s.text}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mark done button */}
+          <button onClick={toggleGckey}
+            className="w-full text-center text-xs font-semibold text-white bg-blue-500 rounded-lg py-2 hover:bg-blue-600 transition-colors active:scale-[0.98]">
+            Mark as Done
+          </button>
         </div>
       </div>
     </div>
@@ -373,29 +477,7 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
 
                   {/* GCKey inline step — after AOR */}
                   {step.id === "aor" && hasAor && (
-                    <button onClick={toggleGckey}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg mx-1 mt-1 mb-1 w-[calc(100%-8px)] text-left transition-all ${
-                        gckeyDone ? "bg-brand-50" : "bg-blue-50 border border-blue-100"
-                      }`}>
-                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                        gckeyDone ? "bg-brand-500 border-brand-500" : "border-blue-300 bg-white"
-                      }`}>
-                        {gckeyDone && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17L4 12" /></svg>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-xs font-medium ${gckeyDone ? "text-brand-600 line-through" : "text-blue-700"}`}>
-                          Set up GCKey & IRCC Tracker
-                        </div>
-                        {!gckeyDone && (
-                          <div className="text-[9px] text-blue-500">Link your application to track progress on IRCC</div>
-                        )}
-                      </div>
-                      {gckeyDone && (
-                        <span className="text-[9px] text-brand-500 font-medium">Done</span>
-                      )}
-                    </button>
+                    <GCKeyInlineStep appId={app.id} gckeyDone={gckeyDone} toggleGckey={toggleGckey} />
                   )}
                 </div>
               );
