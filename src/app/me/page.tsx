@@ -156,7 +156,10 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           {app.initials.slice(0, 2).toUpperCase()}
         </div>
         <div className="flex-1">
-          <h2 className="text-lg font-bold text-sand-900">{app.initials}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-sand-900">{app.initials}</h2>
+            <a href="/dashboard" className="text-[10px] text-brand-500 font-medium px-2 py-0.5 rounded-full border border-brand-200 hover:bg-brand-50 transition-colors">Edit</a>
+          </div>
           <p className="text-xs text-sand-500">
             {app.country_origin} · {app.sponsor_status} · {app.stream}
             {app.province === "Quebec" ? " · Quebec" : ""}
@@ -277,18 +280,18 @@ function GCKeyInlineStep({ appId, gckeyDone, toggleGckey }: {
   }
 
   return (
-    <div className="mx-1 mt-1 mb-1 rounded-lg border border-blue-100 bg-blue-50/50 overflow-hidden">
+    <div className="mx-1 mt-1 mb-1 rounded-lg border border-brand-200 bg-brand-50/50 overflow-hidden">
       {/* Header — tap to expand */}
       <button onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
-        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16V12M12 8H12.01"/></svg>
+        <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16V12M12 8H12.01"/></svg>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-blue-700">Set up GCKey & IRCC Tracker</div>
-          <div className="text-[9px] text-blue-500">Tap to see setup steps</div>
+          <div className="text-xs font-semibold text-brand-700">Set up GCKey & IRCC Tracker</div>
+          <div className="text-[9px] text-brand-500">Tap to see setup steps</div>
         </div>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" strokeWidth="2" strokeLinecap="round"
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
           style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
           <path d="M6 9L12 15L18 9" />
         </svg>
@@ -302,28 +305,28 @@ function GCKeyInlineStep({ appId, gckeyDone, toggleGckey }: {
       }}>
         <div className="px-3 pb-3" style={{ opacity: expanded ? 1 : 0, transition: "opacity 0.2s ease", transitionDelay: expanded ? "0.1s" : "0s" }}>
           {/* GCKey steps */}
-          <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1.5">1. GCKey Setup</div>
+          <div className="text-[10px] font-bold text-brand-700 uppercase tracking-wider mb-1.5">1. GCKey Setup</div>
           <div className="space-y-1 mb-3">
             {GCKEY_STEPS.map((s, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="text-[9px] text-blue-400 mt-0.5 flex-shrink-0">{i + 1}.</span>
-                <div className="text-[10px] text-blue-800 leading-relaxed">
+                <span className="text-[9px] text-brand-400 mt-0.5 flex-shrink-0">{i + 1}.</span>
+                <div className="text-[10px] text-sand-800 leading-relaxed">
                   {s.link ? (
                     <a href={s.link} target="_blank" rel="noopener noreferrer" className="underline">{s.text}</a>
                   ) : s.text}
-                  {s.highlight && <span className="text-[8px] bg-yellow-200 text-yellow-800 px-1 rounded ml-1">Important</span>}
+                  {s.highlight && <span className="text-[8px] bg-warn-light text-warn-dark px-1 rounded ml-1">Important</span>}
                 </div>
               </div>
             ))}
           </div>
 
           {/* IRCC Tracker steps */}
-          <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1.5">2. IRCC Tracker</div>
+          <div className="text-[10px] font-bold text-brand-700 uppercase tracking-wider mb-1.5">2. IRCC Tracker</div>
           <div className="space-y-1 mb-3">
             {TRACKER_STEPS.map((s, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="text-[9px] text-blue-400 mt-0.5 flex-shrink-0">{i + 1}.</span>
-                <div className="text-[10px] text-blue-800 leading-relaxed">
+                <span className="text-[9px] text-brand-400 mt-0.5 flex-shrink-0">{i + 1}.</span>
+                <div className="text-[10px] text-sand-800 leading-relaxed">
                   {s.link ? (
                     <a href={s.link} target="_blank" rel="noopener noreferrer" className="underline">{s.text}</a>
                   ) : s.text}
@@ -334,7 +337,7 @@ function GCKeyInlineStep({ appId, gckeyDone, toggleGckey }: {
 
           {/* Mark done button */}
           <button onClick={toggleGckey}
-            className="w-full text-center text-xs font-semibold text-white bg-blue-500 rounded-lg py-2 hover:bg-blue-600 transition-colors active:scale-[0.98]">
+            className="w-full text-center text-xs font-semibold text-white bg-brand-500 rounded-lg py-2 hover:bg-brand-600 transition-colors active:scale-[0.98]">
             Mark as Done
           </button>
         </div>

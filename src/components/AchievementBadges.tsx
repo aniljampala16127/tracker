@@ -14,7 +14,7 @@ interface Badge {
 }
 
 export function AchievementBadges({ app }: { app: Application }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [userToggled, setUserToggled] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
