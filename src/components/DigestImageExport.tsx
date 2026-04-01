@@ -14,41 +14,26 @@ function fmt(d: string): string {
   return `${MO[dt.getMonth()]} ${dt.getDate()}`;
 }
 
-interface StreamWeekData {
-  entries: number;
-  avgDays: number | null;
-  totalWithAor: number;
-  weekAorCount: number;
-  weekEarlyAor: string;
-  weekLateAor: string;
+const STEP_COLORS: Record<string, string> = {
+  aor: "#2D6A4F", bil: "#40916C", sponsor_eligibility: "#10B981",
+  medical: "#3B82F6", pa_eligibility: "#6366F1", pre_arrival: "#8B5CF6",
+  background: "#64748B", portal1: "#14B8A6", portal2: "#06B6D4", ecopr: "#CA8A04",
+};
+
+interface DateGroup {
+  date: string;
+  count: number;
+  subDates: string[];
+  outland: number;
+  inland: number;
 }
 
-function getStreamWeekData(apps: Application[], stream: string, cutoff: number): StreamWeekData {
-  const sa = apps.filter(a => a.stream === stream);
-  const allDays: number[] = [];
-  let weekCount = 0;
-  let wEarlyAor = "9999", wLateAor = "";
-
-  sa.forEach(a => {
-    const s = buildStepsMap(a.step_events || []);
-    if (!s.submitted || !s.aor) return;
-    allDays.push(daysBetween(s.submitted, s.aor));
-    const aorEv = (a.step_events || []).find(e => e.step_id === "aor");
-    if (aorEv && new Date(aorEv.created_at).getTime() > cutoff) {
-      weekCount++;
-      if (s.aor < wEarlyAor) wEarlyAor = s.aor;
-      if (s.aor > wLateAor) wLateAor = s.aor;
-    }
-  });
-
-  return {
-    entries: sa.length,
-    avgDays: allDays.length ? Math.round(allDays.reduce((a, b) => a + b, 0) / allDays.length) : null,
-    totalWithAor: allDays.length,
-    weekAorCount: weekCount,
-    weekEarlyAor: wEarlyAor === "9999" ? "" : wEarlyAor,
-    weekLateAor: wLateAor,
-  };
+interface StepData {
+  stepId: string;
+  label: string;
+  entries: number;
+  avgDays: number;
+  dates: DateGroup[];
 }
 
 export function DigestImageExport({ apps }: { apps: Application[] }) {
@@ -61,31 +46,60 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
     const pad = 24;
     const inner = W - pad * 2;
 
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const outland = getStreamWeekData(apps, "Outland", cutoff);
-    const inland = getStreamWeekData(apps, "Inland", cutoff);
+    const now = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    const ld = (d: Date) => `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    const todayStr = ld(now);
+    const dow = now.getDay();
+    const daysToMon = dow === 0 ? 6 : dow - 1;
+    const wkStart = ld(new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToMon));
 
-    const milestones: Record<string, number> = {};
+    // Collect this week's milestones
+    const byStep: Record<string, { stepDate: string; subDate: string; stream: string; days: number }[]> = {};
     apps.forEach(a => {
-      (a.step_events || []).forEach(e => {
-        if (e.step_id === "submitted") return;
-        if (new Date(e.created_at).getTime() > cutoff) {
-          const label = STEPS.find(s => s.id === e.step_id)?.label || e.step_id;
-          milestones[label] = (milestones[label] || 0) + 1;
-        }
+      const s = buildStepsMap(a.step_events || []);
+      (a.step_events || []).forEach(ev => {
+        if (ev.step_id === "submitted") return;
+        if (ev.event_date > todayStr || ev.event_date < wkStart) return;
+        const pi = STEPS.findIndex(st => st.id === ev.step_id) - 1;
+        const pd = pi >= 0 ? s[STEPS[pi].id] : s.submitted;
+        const days = pd ? daysBetween(pd, ev.event_date) : 0;
+        if (days < 0 || days > 100) return;
+        if (!byStep[ev.step_id]) byStep[ev.step_id] = [];
+        byStep[ev.step_id].push({ stepDate: ev.event_date, subDate: s.submitted || "", stream: a.stream, days });
       });
     });
-    const aorCount = milestones["AOR"] || 0;
-    const nonAor = Object.entries(milestones).filter(([k]) => k !== "AOR").sort((a, b) => b[1] - a[1]).slice(0, 4);
-    const totalWithAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
-    const totalWaiting = apps.length - totalWithAor;
-    const periodLabel = "This Week";
-    const today = new Date();
-    const dateStr = `${MO[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
 
-    // Dynamic height based on content
-    const milestoneRows = Math.ceil(nonAor.length / 2);
-    const H = 36 + 110 + 50 + 98 * 2 + 16 + (nonAor.length > 0 ? 24 + milestoneRows * 32 : 0) + 50;
+    // Build step data
+    const steps: StepData[] = [];
+    STEPS.forEach(step => {
+      if (step.id === "submitted") return;
+      const entries = byStep[step.id];
+      if (!entries || entries.length === 0) return;
+
+      const byDate: Record<string, DateGroup> = {};
+      entries.forEach(e => {
+        if (!byDate[e.stepDate]) byDate[e.stepDate] = { date: e.stepDate, count: 0, subDates: [], outland: 0, inland: 0 };
+        byDate[e.stepDate].count++;
+        if (e.subDate && !byDate[e.stepDate].subDates.includes(e.subDate)) byDate[e.stepDate].subDates.push(e.subDate);
+        if (e.stream === "Outland") byDate[e.stepDate].outland++;
+        else byDate[e.stepDate].inland++;
+      });
+
+      const dates = Object.values(byDate).sort((a, b) => b.date.localeCompare(a.date));
+      dates.forEach(d => d.subDates.sort());
+      const avgDays = Math.round(entries.reduce((s, e) => s + e.days, 0) / entries.length);
+
+      steps.push({ stepId: step.id, label: step.label, entries: entries.length, avgDays, dates });
+    });
+
+    const totalUpdates = steps.reduce((s, st) => s + st.entries, 0);
+    const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
+
+    // Calculate dynamic height
+    let totalDateRows = 0;
+    steps.forEach(st => { totalDateRows += st.dates.length; });
+    const H = 120 + steps.length * 44 + totalDateRows * 28 + 60;
 
     const canvas = document.createElement("canvas");
     canvas.width = W * dpr;
@@ -93,130 +107,117 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
     const ctx = canvas.getContext("2d")!;
     ctx.scale(dpr, dpr);
 
-    // ── Mesh gradient background ──
+    // Background
     const bgGrad = ctx.createLinearGradient(0, 0, W, H);
-    bgGrad.addColorStop(0, "#EAF4EF");
-    bgGrad.addColorStop(0.35, "#F2F8F5");
-    bgGrad.addColorStop(0.65, "#FBF7EE");
-    bgGrad.addColorStop(1, "#F5EFE0");
+    bgGrad.addColorStop(0, "#F5F8F6");
+    bgGrad.addColorStop(0.5, "#FAFBFA");
+    bgGrad.addColorStop(1, "#F8F7F4");
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // Subtle blobs
-    drawBlob(ctx, 70, 80, 110, "rgba(45,106,79,0.06)");
-    drawBlob(ctx, W - 50, 280, 90, "rgba(212,160,60,0.05)");
-
-    // ── Header ──
-    let y = 28;
+    // Header
+    let y = 30;
     ctx.fillStyle = BRAND;
-    ctx.font = "bold 13px -apple-system, system-ui, sans-serif";
+    ctx.font = "bold 14px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText("SponsorTrack", pad, y);
     ctx.fillStyle = "#A8A69E";
     ctx.font = "400 10px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(`${periodLabel} · ${dateStr}`, W - pad, y);
+    ctx.fillText(`${fmt(wkStart)} – ${fmt(todayStr)}`, W - pad, y);
 
-    // ── Hero card ──
-    y += 16;
-    const heroH = 96;
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
-    roundRect(ctx, pad, y, inner, heroH, 18);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(45,106,79,0.08)";
-    ctx.lineWidth = 1;
-    roundRect(ctx, pad, y, inner, heroH, 18);
-    ctx.stroke();
-
+    // Summary line
+    y += 22;
+    ctx.textAlign = "left";
     ctx.fillStyle = "#1C1B19";
-    ctx.font = "bold 44px -apple-system, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(`${aorCount}`, W / 2, y + 46);
+    ctx.font = "bold 22px -apple-system, system-ui, sans-serif";
+    ctx.fillText(`${totalUpdates}`, pad, y);
     ctx.fillStyle = "#65635D";
-    ctx.font = "300 12px -apple-system, system-ui, sans-serif";
-    ctx.fillText("acknowledgements received", W / 2, y + 64);
+    ctx.font = "400 13px -apple-system, system-ui, sans-serif";
+    const numW = ctx.measureText(`${totalUpdates}`).width;
+    ctx.fillText(` milestones this week`, pad + numW, y);
+
+    y += 18;
     ctx.fillStyle = "#A8A69E";
-    ctx.font = "300 9px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`from ${apps.length} tracked applications`, W / 2, y + 80);
+    ctx.font = "400 10px -apple-system, system-ui, sans-serif";
+    ctx.fillText(`${apps.length} tracked · ${waiting} waiting for AOR`, pad, y);
 
-    // ── Stat pills ──
-    y += heroH + 12;
-    const pillW = (inner - 10) / 3;
-    const pills = [
-      { v: `${apps.length}`, l: "Tracked", bg: "rgba(45,106,79,0.08)" },
-      { v: `${totalWithAor}`, l: "Got AOR", bg: "rgba(45,106,79,0.08)" },
-      { v: `${totalWaiting}`, l: "Waiting", bg: "rgba(155,116,32,0.08)" },
-    ];
-    pills.forEach((p, i) => {
-      const px = pad + i * (pillW + 5);
-      ctx.fillStyle = p.bg;
-      roundRect(ctx, px, y, pillW, 36, 10);
+    // Divider
+    y += 16;
+    ctx.fillStyle = "#E8E6E1";
+    ctx.fillRect(pad, y, inner, 1);
+    y += 12;
+
+    // Each milestone
+    steps.forEach(step => {
+      const color = STEP_COLORS[step.stepId] || "#65635D";
+
+      // Step header
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(pad + 5, y + 4, 4, 0, Math.PI * 2);
       ctx.fill();
+
       ctx.fillStyle = "#1C1B19";
-      ctx.font = "bold 16px -apple-system, system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(p.v, px + pillW / 2, y + 18);
-      ctx.fillStyle = "#A8A69E";
-      ctx.font = "600 7px -apple-system, system-ui, sans-serif";
-      ctx.fillText(p.l, px + pillW / 2, y + 30);
-    });
-
-    // ── Stream cards ──
-    y += 48;
-    y = drawStreamCard(ctx, pad, y, inner, BRAND, "Outland", outland);
-    y += 8;
-    y = drawStreamCard(ctx, pad, y, inner, GOLD, "Inland", inland);
-
-    // ── Milestones ──
-    if (nonAor.length > 0) {
-      y += 12;
-      ctx.fillStyle = "#A8A69E";
-      ctx.font = "600 8px -apple-system, system-ui, sans-serif";
+      ctx.font = "bold 13px -apple-system, system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText("MILESTONES", pad, y);
-      y += 8;
+      ctx.fillText(step.label, pad + 16, y + 8);
 
-      const mColW = (inner - 8) / 2;
-      nonAor.forEach(([step, count], i) => {
-        const col = i % 2;
-        const row = Math.floor(i / 2);
-        const mx = pad + col * (mColW + 8);
-        const my = y + row * 30;
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
-        roundRect(ctx, mx, my, mColW, 24, 8);
+      ctx.fillStyle = "#A8A69E";
+      ctx.font = "400 10px -apple-system, system-ui, sans-serif";
+      const labelW = ctx.measureText(step.label).width;
+      ctx.fillText(` — ${step.entries} received · avg ${step.avgDays}d`, pad + 16 + labelW, y + 8);
+
+      y += 22;
+
+      // Date rows
+      step.dates.forEach(d => {
+        const subList = d.subDates.map(s => fmt(s)).join(", ");
+        const streamInfo = d.inland > 0 && d.outland > 0 ? ` (${d.outland}O/${d.inland}I)` : d.inland > 0 ? " (Inland)" : "";
+
+        // Date pill
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        roundRect(ctx, pad + 8, y - 4, inner - 16, 22, 6);
         ctx.fill();
         ctx.strokeStyle = "rgba(0,0,0,0.04)";
         ctx.lineWidth = 0.5;
-        roundRect(ctx, mx, my, mColW, 24, 8);
+        roundRect(ctx, pad + 8, y - 4, inner - 16, 22, 6);
         ctx.stroke();
-        ctx.fillStyle = BRAND;
-        ctx.font = "bold 12px -apple-system, system-ui, sans-serif";
+
+        ctx.fillStyle = "#1C1B19";
+        ctx.font = "600 10px -apple-system, system-ui, sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(`${count}`, mx + 10, my + 16);
+        ctx.fillText(`${fmt(d.date)}`, pad + 16, y + 9);
+
         ctx.fillStyle = "#65635D";
-        ctx.font = "11px -apple-system, system-ui, sans-serif";
-        const nw = ctx.measureText(`${count}`).width;
-        ctx.fillText(step, mx + 10 + nw + 5, my + 16);
+        ctx.font = "400 9px -apple-system, system-ui, sans-serif";
+        const dateW = ctx.measureText(fmt(d.date)).width;
+        ctx.fillText(` — ${d.count}${streamInfo} · sub ${subList}`, pad + 16 + dateW, y + 9);
+
+        y += 24;
       });
-    }
 
-    // ── Footer ──
+      y += 8;
+    });
+
+    // Footer
+    y += 4;
     ctx.fillStyle = "#C4C2BB";
-    ctx.font = "8px -apple-system, system-ui, sans-serif";
+    ctx.font = "9px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("tracker-lime-five.vercel.app", W / 2, H - 12);
+    ctx.fillText("tracker-lime-five.vercel.app", W / 2, y);
 
-    // ── Export ──
+    // Export
     canvas.toBlob((blob) => {
       if (!blob) { setExporting(false); return; }
-      const file = new File([blob], "sponsortrack-digest.png", { type: "image/png" });
+      const file = new File([blob], "sponsortrack-weekly.png", { type: "image/png" });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         navigator.share({ files: [file], title: "SponsorTrack Weekly" }).catch(() => {}).finally(() => setExporting(false));
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "sponsortrack-digest.png";
+        a.download = "sponsortrack-weekly.png";
         a.click();
         URL.revokeObjectURL(url);
         setExporting(false);
@@ -228,104 +229,14 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
     <button
       onClick={handleExport}
       disabled={exporting}
-      className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-sand-100 text-sand-600 text-xs font-medium hover:bg-sand-200 transition-colors active:scale-[0.98] disabled:opacity-50"
+      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-500/10 text-brand-600 text-xs font-medium hover:bg-brand-500/20 transition-colors active:scale-[0.98] disabled:opacity-50"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15V19C21 20.1 19.9 21 19 21H5C3.9 21 3 20.1 3 19V15"/>
-        <path d="M7 10L12 15L17 10"/>
-        <path d="M12 15V3"/>
+        <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15L16 10L5 21" />
       </svg>
       {exporting ? "..." : "Share as Image"}
     </button>
   );
-}
-
-function drawStreamCard(
-  ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number,
-  color: string, label: string, sd: StreamWeekData
-): number {
-  const h = 88;
-
-  // Frosted card
-  ctx.fillStyle = "rgba(255,255,255,0.6)";
-  roundRect(ctx, x, y, w, h, 14);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,0.04)";
-  ctx.lineWidth = 1;
-  roundRect(ctx, x, y, w, h, 14);
-  ctx.stroke();
-
-  // Color dot + label
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(x + 16, y + 18, 4, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#1C1B19";
-  ctx.font = "600 12px -apple-system, system-ui, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(label, x + 26, y + 22);
-
-  // Entries
-  ctx.fillStyle = "#A8A69E";
-  ctx.font = "400 10px -apple-system, system-ui, sans-serif";
-  const lw = ctx.measureText(label).width;
-  ctx.fillText(`${sd.entries} entries`, x + 26 + lw + 8, y + 22);
-
-  // Two big numbers row
-  const halfW = w / 2;
-  const numY = y + 56;
-
-  // Avg days (left)
-  if (sd.avgDays) {
-    ctx.fillStyle = color;
-    ctx.font = "bold 28px -apple-system, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(`${sd.avgDays}`, x + halfW / 2, numY);
-    ctx.fillStyle = "#A8A69E";
-    ctx.font = "9px -apple-system, system-ui, sans-serif";
-    ctx.fillText("days avg", x + halfW / 2, numY + 14);
-  }
-
-  // Divider
-  ctx.beginPath();
-  ctx.moveTo(x + halfW, y + 36);
-  ctx.lineTo(x + halfW, y + 74);
-  ctx.strokeStyle = "rgba(0,0,0,0.06)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // With AOR (right)
-  ctx.fillStyle = color;
-  ctx.font = "bold 28px -apple-system, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(`${sd.totalWithAor}`, x + halfW + halfW / 2, numY);
-  ctx.fillStyle = "#A8A69E";
-  ctx.font = "9px -apple-system, system-ui, sans-serif";
-  ctx.fillText("with AOR", x + halfW + halfW / 2, numY + 14);
-
-  // AOR date range (bottom of card)
-  if (sd.weekAorCount > 0 && sd.weekEarlyAor) {
-    ctx.fillStyle = "#A8A69E";
-    ctx.font = "400 8px -apple-system, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    const range = sd.weekEarlyAor === sd.weekLateAor
-      ? `AOR received ${fmt(sd.weekEarlyAor)}`
-      : `AOR received ${fmt(sd.weekEarlyAor)} – ${fmt(sd.weekLateAor)}`;
-    ctx.fillText(range, x + w / 2, y + h - 6);
-  }
-
-  ctx.textAlign = "left";
-  return y + h;
-}
-
-function drawBlob(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
-  const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-  grad.addColorStop(0, color);
-  grad.addColorStop(1, "transparent");
-  ctx.fillStyle = grad;
-  ctx.fillRect(x - r, y - r, r * 2, r * 2);
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
