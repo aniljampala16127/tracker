@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Application } from "@/lib/types";
+import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -11,108 +12,89 @@ function fmtDate(d: string) {
   return `${MO[dt.getMonth()]} ${dt.getDate()}`;
 }
 
-interface AorEntry {
+function stepLabel(id: string): string {
+  return STEPS.find(s => s.id === id)?.label || id;
+}
+
+const STEP_COLORS: Record<string, string> = {
+  aor: "bg-brand-500",
+  bil: "bg-brand-400",
+  sponsor_eligibility: "bg-emerald-500",
+  medical: "bg-blue-500",
+  pa_eligibility: "bg-indigo-500",
+  pre_arrival: "bg-purple-500",
+  background: "bg-slate-500",
+  portal1: "bg-teal-500",
+  portal2: "bg-cyan-500",
+  ecopr: "bg-yellow-600",
+};
+
+interface MilestoneEntry {
   initials: string;
-  aorDate: string;
+  stepId: string;
+  stepDate: string;
   subDate: string;
   stream: string;
-  days: number;
   country: string;
 }
 
-function AutoSwipeController({ scrollRef, cards, pausedRef, expanded }: {
-  scrollRef: React.RefObject<HTMLDivElement | null>;
-  cards: { entries: { initials: string }[] }[];
-  pausedRef: React.MutableRefObject<boolean>;
-  expanded: boolean;
-}) {
-  const cardIdx = useRef(0);
-
-  const getDwellTime = useCallback((idx: number): number => {
-    const count = Math.min(cards[idx]?.entries.length || 0, 8);
-    if (count === 0) return 3000;
-    if (count <= 3) return 5000;
-    return count * 2500;
-  }, [cards]);
-
-  const scrollToCard = useCallback((idx: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const cardEl = el.children[idx] as HTMLElement | undefined;
-    if (!cardEl) return;
-    const targetScroll = cardEl.offsetLeft - el.offsetLeft;
-    el.scrollTo({ left: targetScroll, behavior: "smooth" });
-  }, [scrollRef]);
-
-  useEffect(() => {
-    if (!expanded) return;
-    let timeout: ReturnType<typeof setTimeout>;
-    const scheduleNext = () => {
-      const dwell = getDwellTime(cardIdx.current);
-      timeout = setTimeout(() => {
-        if (!pausedRef.current) {
-          cardIdx.current = (cardIdx.current + 1) % 3;
-          scrollToCard(cardIdx.current);
-        }
-        scheduleNext();
-      }, dwell);
-    };
-    scheduleNext();
-    return () => clearTimeout(timeout);
-  }, [expanded, getDwellTime, scrollToCard, pausedRef]);
-
-  return null;
-}
-
-function AutoScrollList({ children, entryCount }: {
-  children: React.ReactNode;
-  entryCount: number;
-}) {
-  const listRef = useRef<HTMLDivElement>(null);
+// Auto-scrolling list using native scrollTop
+function AutoScrollList({ children, count }: { children: React.ReactNode; count: number }) {
+  const ref = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
-  const touchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const resumeTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    if (entryCount <= 3) return;
+    if (count <= 3) return;
+    const el = ref.current;
+    if (!el) return;
 
-    // Use setInterval — more reliable than rAF for slow continuous scroll
-    const interval = setInterval(() => {
-      const el = listRef.current;
-      if (!el || paused.current) return;
-      if (el.scrollHeight <= el.clientHeight) return; // nothing to scroll
-
-      el.scrollTop += 0.5;
-
-      // Loop back to top
+    const id = setInterval(() => {
+      if (paused.current || el.scrollHeight <= el.clientHeight) return;
+      el.scrollTop += 1;
       if (el.scrollTop >= el.scrollHeight - el.clientHeight - 1) {
         el.scrollTop = 0;
       }
-    }, 30); // ~33fps, 0.5px each = ~16px/sec
+    }, 50); // 1px every 50ms = 20px/sec
 
-    return () => clearInterval(interval);
-  }, [entryCount]);
-
-  const handleTouchStart = () => {
-    paused.current = true;
-    clearTimeout(touchTimer.current);
-  };
-
-  const handleTouchEnd = () => {
-    clearTimeout(touchTimer.current);
-    touchTimer.current = setTimeout(() => { paused.current = false; }, 5000);
-  };
+    return () => clearInterval(id);
+  }, [count]);
 
   return (
     <div
-      ref={listRef}
-      className="h-full overflow-y-auto hide-scrollbar overscroll-contain pt-1"
+      ref={ref}
+      className="h-full overflow-y-auto hide-scrollbar overscroll-contain"
       style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      onTouchStart={() => { paused.current = true; clearTimeout(resumeTimer.current); }}
+      onTouchEnd={() => { resumeTimer.current = setTimeout(() => { paused.current = false; }, 5000); }}
     >
       {children}
     </div>
   );
+}
+
+// Horizontal auto-swipe controller
+function AutoSwipeController({ scrollRef, cardCount, pausedRef }: {
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  cardCount: number;
+  pausedRef: React.MutableRefObject<boolean>;
+}) {
+  const idx = useRef(0);
+
+  useEffect(() => {
+    if (cardCount <= 1) return;
+    const interval = setInterval(() => {
+      if (pausedRef.current) return;
+      const el = scrollRef.current;
+      if (!el) return;
+      idx.current = (idx.current + 1) % cardCount;
+      const card = el.children[idx.current] as HTMLElement | undefined;
+      if (card) el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [cardCount, scrollRef, pausedRef]);
+
+  return null;
 }
 
 export function AORWaveTracker({ apps }: { apps: Application[] }) {
@@ -125,162 +107,126 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     const dayOfWeek = now.getDay();
     const thisWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
     const thisWeekStartStr = localDate(thisWeekStart);
-
     const lastWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek - 7);
     const lastWeekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek - 1);
     const lastWeekStartStr = localDate(lastWeekStart);
     const lastWeekEndStr = localDate(lastWeekEnd);
 
-    const allAors: AorEntry[] = [];
+    // Collect ALL milestones (not just AOR)
+    const allMilestones: MilestoneEntry[] = [];
     apps.forEach(a => {
-      const ev = (a.step_events || []).find(e => e.step_id === "aor");
-      if (!ev) return;
       const s = buildStepsMap(a.step_events || []);
-      const days = s.submitted && s.aor ? daysBetween(s.submitted, s.aor) : 0;
-      allAors.push({
-        initials: a.initials, aorDate: ev.event_date, subDate: s.submitted || "",
-        stream: a.stream, days, country: a.country_origin,
+      (a.step_events || []).forEach(ev => {
+        if (ev.step_id === "submitted") return; // skip submitted
+        allMilestones.push({
+          initials: a.initials,
+          stepId: ev.step_id,
+          stepDate: ev.event_date,
+          subDate: s.submitted || "",
+          stream: a.stream,
+          country: a.country_origin,
+        });
       });
     });
 
-    allAors.sort((a, b) => b.aorDate.localeCompare(a.aorDate));
+    // Sort all by date descending (most recent first)
+    allMilestones.sort((a, b) => b.stepDate.localeCompare(a.stepDate));
 
-    const todayAors = allAors.filter(e => e.aorDate === todayStr);
-    const lastWeekAors = allAors.filter(e => e.aorDate >= lastWeekStartStr && e.aorDate <= lastWeekEndStr);
-    const weekAors = allAors.filter(e => e.aorDate >= thisWeekStartStr);
+    const todayAll = allMilestones.filter(e => e.stepDate === todayStr);
+    const weekAll = allMilestones.filter(e => e.stepDate >= thisWeekStartStr && e.stepDate <= todayStr);
+    const lastWeekAll = allMilestones.filter(e => e.stepDate >= lastWeekStartStr && e.stepDate <= lastWeekEndStr);
+
+    // AOR-specific stats for header
+    const aorCount = allMilestones.filter(e => e.stepId === "aor").length;
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
-    const latestAorDate = allAors.length > 0 ? allAors[0].aorDate : "";
-    const daysSinceLast = latestAorDate ? daysBetween(latestAorDate, todayStr) : 0;
 
-    return { todayAors, lastWeekAors, weekAors, waiting, totalAor: allAors.length, daysSinceLast, latestAorDate };
+    return { todayAll, weekAll, lastWeekAll, totalMilestones: allMilestones.length, aorCount, waiting, todayStr };
   }, [apps]);
 
   const [expanded, setExpanded] = useState(true);
   const [userToggled, setUserToggled] = useState(false);
-  const [contentHeight, setContentHeight] = useState(0);
   const lastScrollY = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
   const touchTimer = useRef<ReturnType<typeof setTimeout>>();
-
-  // Measure content height on mount and resize
-  useEffect(() => {
-    const measure = () => {
-      if (contentRef.current) {
-        setContentHeight(contentRef.current.scrollHeight);
-      }
-    };
-    measure();
-    // Re-measure after a tick (fonts/images may load)
-    const t = setTimeout(measure, 100);
-    window.addEventListener("resize", measure);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("resize", measure);
-    };
-  }, [data]);
 
   // Scroll-to-collapse
   useEffect(() => {
     if (typeof window === "undefined") return;
     let rafId: number | null = null;
-
     const handleScroll = () => {
       if (rafId) return;
       rafId = requestAnimationFrame(() => {
         const y = window.scrollY;
-
-        if (!userToggled) {
-          if (y > 100 && y > lastScrollY.current && expanded) {
-            setExpanded(false);
-          }
-        }
-
-        if (y < 10 && !expanded) {
-          setExpanded(true);
-          setUserToggled(false);
-        }
-
+        if (!userToggled && y > 100 && y > lastScrollY.current && expanded) setExpanded(false);
+        if (y < 10 && !expanded) { setExpanded(true); setUserToggled(false); }
         lastScrollY.current = y;
         rafId = null;
       });
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (rafId) cancelAnimationFrame(rafId);
-    };
+    return () => { window.removeEventListener("scroll", handleScroll); if (rafId) cancelAnimationFrame(rafId); };
   }, [expanded, userToggled]);
 
-  // Reset manual toggle
   useEffect(() => {
     if (!userToggled) return;
     const t = setTimeout(() => setUserToggled(false), 5000);
     return () => clearTimeout(t);
   }, [userToggled]);
 
-  const handleToggle = () => {
-    // Re-measure before expanding
-    if (!expanded && contentRef.current) {
-      setContentHeight(contentRef.current.scrollHeight);
-    }
-    setExpanded(prev => !prev);
-    setUserToggled(true);
-  };
-
-  if (data.totalAor === 0) return null;
-
-  const hasWeekActivity = data.weekAors.length > 0;
-  const hasTodayAors = data.todayAors.length > 0;
-
-  const cards = hasTodayAors
-    ? [
-        { label: "Today", entries: data.todayAors },
-        { label: "This Week", entries: data.weekAors },
-        { label: "Last Week", entries: data.lastWeekAors },
-      ]
-    : [
-        { label: "This Week", entries: data.weekAors },
-        { label: "Last Week", entries: data.lastWeekAors },
-        { label: "Today", entries: data.todayAors },
-      ];
-
+  const handleToggle = () => { setExpanded(prev => !prev); setUserToggled(true); };
   const handleTouchStart = () => { pausedRef.current = true; };
   const handleTouchEnd = () => {
     clearTimeout(touchTimer.current);
     touchTimer.current = setTimeout(() => { pausedRef.current = false; }, 10000);
   };
 
+  if (data.totalMilestones === 0) return null;
+
+  const hasActivity = data.weekAll.length > 0;
+  const hasTodayActivity = data.todayAll.length > 0;
+
+  const cards = hasTodayActivity
+    ? [
+        { label: "Today", entries: data.todayAll },
+        { label: "This Week", entries: data.weekAll },
+        { label: "Last Week", entries: data.lastWeekAll },
+      ]
+    : [
+        { label: "This Week", entries: data.weekAll },
+        { label: "Last Week", entries: data.lastWeekAll },
+        { label: "Today", entries: data.todayAll },
+      ];
+
   return (
     <div
       className={`rounded-xl mb-4 border ${
-        hasWeekActivity
+        hasActivity
           ? "bg-gradient-to-r from-brand-50 to-brand-100 border-brand-200"
           : "bg-white border-sand-200"
-      }`}
+      } ${!expanded ? "shadow-sm" : ""}`}
+      style={{ transition: "box-shadow 0.3s ease" }}
     >
-      {/* Tappable header */}
+      {/* Header */}
       <button
         onClick={handleToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left active:scale-[0.99] transition-transform duration-150"
       >
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${hasWeekActivity ? "bg-brand-500 animate-pulse" : "bg-sand-400"}`} />
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${hasActivity ? "bg-brand-500 animate-pulse" : "bg-sand-400"}`} />
         <div className="flex-1 min-w-0">
           <div className="text-xs font-bold text-sand-900">
-            {hasTodayAors
-              ? `${data.todayAors.length} AOR${data.todayAors.length > 1 ? "s" : ""} today`
-              : hasWeekActivity
-              ? `${data.weekAors.length} AOR${data.weekAors.length > 1 ? "s" : ""} this week`
-              : `${data.daysSinceLast}d since last AOR`}
+            {hasTodayActivity
+              ? `${data.todayAll.length} update${data.todayAll.length > 1 ? "s" : ""} today`
+              : hasActivity
+              ? `${data.weekAll.length} update${data.weekAll.length > 1 ? "s" : ""} this week`
+              : "No updates this week"}
           </div>
-          <div className="text-[10px] text-sand-400">{data.totalAor} total · {data.waiting} waiting</div>
+          <div className="text-[10px] text-sand-400">{data.aorCount} AORs · {data.waiting} waiting</div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="flex gap-2 text-center">
             <div>
-              <div className="text-sm font-bold text-brand-600">{data.weekAors.length}</div>
+              <div className="text-sm font-bold text-brand-600">{data.weekAll.length}</div>
               <div className="text-[8px] text-sand-400">Week</div>
             </div>
             <div>
@@ -288,37 +234,25 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
               <div className="text-[8px] text-sand-400">Wait</div>
             </div>
           </div>
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round"
-            className="flex-shrink-0"
-            style={{
-              transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-            }}
-          >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B0ADA6" strokeWidth="2" strokeLinecap="round"
+            style={{ transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
             <path d="M6 9L12 15L18 9" />
           </svg>
         </div>
       </button>
 
-      {/* Collapsible body — measured height approach */}
-      <div
-        style={{
-          height: expanded ? `${contentHeight}px` : "0px",
-          overflow: "hidden",
-          transition: "height 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-        }}
-      >
-        <div
-          ref={contentRef}
-          className="px-4 pb-4"
-          style={{
-            opacity: expanded ? 1 : 0,
-            transition: "opacity 0.25s ease",
-            transitionDelay: expanded ? "0.08s" : "0s",
-          }}
-        >
-          <AutoSwipeController scrollRef={scrollRef} cards={cards} pausedRef={pausedRef} expanded={expanded} />
+      {/* Body */}
+      <div style={{
+        maxHeight: expanded ? "260px" : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div className="px-4 pb-4" style={{
+          opacity: expanded ? 1 : 0,
+          transition: "opacity 0.25s ease",
+          transitionDelay: expanded ? "0.1s" : "0s",
+        }}>
+          <AutoSwipeController scrollRef={scrollRef} cardCount={cards.length} pausedRef={pausedRef} />
           <div
             ref={scrollRef}
             onTouchStart={handleTouchStart}
@@ -327,10 +261,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             {cards.map((card) => (
-              <div
-                key={card.label}
-                className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden snap-start"
-              >
+              <div key={card.label} className="flex-shrink-0 w-[78vw] max-w-[300px] bg-white/80 rounded-xl border border-sand-100 overflow-hidden snap-start">
                 <div className="px-3 py-2 border-b border-sand-100 flex items-center justify-between">
                   <span className="text-[11px] font-bold text-sand-900">{card.label}</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -340,17 +271,17 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
 
                 {card.entries.length === 0 ? (
                   <div className="px-3 py-5 text-center">
-                    <div className="text-[11px] text-sand-400">No AORs {card.label.toLowerCase()}</div>
+                    <div className="text-[11px] text-sand-400">No updates {card.label.toLowerCase()}</div>
                   </div>
                 ) : (
-                  <div className="h-[120px] relative">
+                  <div className="h-[140px] relative">
                     <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-white/90 to-transparent z-10 pointer-events-none" />
                     <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-white/90 to-transparent z-10 pointer-events-none" />
-                    <AutoScrollList entryCount={card.entries.length}>
-                      {card.entries.slice(0, 15).map((a, i) => (
-                        <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
+                    <AutoScrollList count={card.entries.length}>
+                      {card.entries.slice(0, 20).map((a, i) => (
+                        <div key={`${a.initials}-${a.stepId}-${i}`} className="flex items-center gap-2 px-3 py-1.5">
                           <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
-                            a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
+                            STEP_COLORS[a.stepId] || "bg-sand-400"
                           }`}>
                             {a.initials.slice(0, 2).toUpperCase()}
                           </div>
@@ -358,20 +289,16 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                             <div className="flex items-center gap-1">
                               <span className="text-[11px] font-semibold text-sand-900 truncate">{a.initials}</span>
                               <span className={`px-1 py-px rounded text-[7px] font-semibold flex-shrink-0 ${
-                                a.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
-                              }`}>{a.stream}</span>
+                                STEP_COLORS[a.stepId] ? "bg-brand-100 text-brand-700" : "bg-sand-100 text-sand-500"
+                              }`}>{stepLabel(a.stepId)}</span>
                             </div>
-                            <div className="text-[9px] text-sand-400">{a.country} · Sub {fmtDate(a.subDate)}</div>
+                            <div className="text-[9px] text-sand-400">{a.country} · {a.stream}</div>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <div className="text-[11px] font-bold text-brand-600">{a.days}d</div>
-                            <div className="text-[8px] text-sand-400">{fmtDate(a.aorDate)}</div>
+                            <div className="text-[10px] font-bold text-sand-700">{fmtDate(a.stepDate)}</div>
                           </div>
                         </div>
                       ))}
-                      {card.entries.length > 15 && (
-                        <div className="text-center text-[9px] text-sand-400 py-1">+{card.entries.length - 15} more</div>
-                      )}
                     </AutoScrollList>
                   </div>
                 )}
