@@ -64,47 +64,33 @@ function AutoSwipeController({ scrollRef, cards, pausedRef, expanded }: {
   return null;
 }
 
-function AutoScrollList({ children, entryCount, expanded }: {
+function AutoScrollList({ children, entryCount }: {
   children: React.ReactNode;
   entryCount: number;
-  expanded: boolean;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
   const touchTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    if (!expanded || entryCount <= 3) return;
-    const el = listRef.current;
-    if (!el) return;
+    if (entryCount <= 3) return;
 
-    let rafId: number;
-    let lastTime = 0;
-    const speed = 0.3; // px per frame (~18px/sec at 60fps)
+    // Use setInterval — more reliable than rAF for slow continuous scroll
+    const interval = setInterval(() => {
+      const el = listRef.current;
+      if (!el || paused.current) return;
+      if (el.scrollHeight <= el.clientHeight) return; // nothing to scroll
 
-    const tick = (time: number) => {
-      if (!paused.current && el.scrollHeight > el.clientHeight) {
-        const dt = lastTime ? time - lastTime : 16;
-        el.scrollTop += speed * (dt / 16);
-        // Loop: when near bottom, jump to top
-        if (el.scrollTop >= el.scrollHeight - el.clientHeight - 2) {
-          el.scrollTop = 0;
-        }
+      el.scrollTop += 0.5;
+
+      // Loop back to top
+      if (el.scrollTop >= el.scrollHeight - el.clientHeight - 1) {
+        el.scrollTop = 0;
       }
-      lastTime = time;
-      rafId = requestAnimationFrame(tick);
-    };
+    }, 30); // ~33fps, 0.5px each = ~16px/sec
 
-    // Start after a small delay so content renders
-    const startTimer = setTimeout(() => {
-      rafId = requestAnimationFrame(tick);
-    }, 1000);
-
-    return () => {
-      clearTimeout(startTimer);
-      cancelAnimationFrame(rafId);
-    };
-  }, [expanded, entryCount]);
+    return () => clearInterval(interval);
+  }, [entryCount]);
 
   const handleTouchStart = () => {
     paused.current = true;
@@ -360,7 +346,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                   <div className="h-[120px] relative">
                     <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-white/90 to-transparent z-10 pointer-events-none" />
                     <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-white/90 to-transparent z-10 pointer-events-none" />
-                    <AutoScrollList entryCount={card.entries.length} expanded={expanded}>
+                    <AutoScrollList entryCount={card.entries.length}>
                       {card.entries.slice(0, 15).map((a, i) => (
                         <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
                           <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
