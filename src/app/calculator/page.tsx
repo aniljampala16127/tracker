@@ -127,7 +127,7 @@ export default function CalculatorPage() {
       if (s[prevId] && s[nextId]) durations.push(daysBetween(s[prevId]!, s[nextId]!));
     });
     durations.sort((a, b) => a - b);
-    const avg = durations.length >= 2 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+    const avg = durations.length >= 1 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
     const p25 = durations.length >= 4 ? percentile(durations, 25) : null;
     const p75 = durations.length >= 4 ? percentile(durations, 75) : null;
     return { avg, p25, p75, reports: durations.length };
@@ -175,7 +175,7 @@ export default function CalculatorPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) durations.push(daysBetween(s[prev.id]!, s[step.id]!));
       });
-      const communityAvg = durations.length >= 2 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+      const communityAvg = durations.length >= 1 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
       // Fallback: midpoint of IRCC published week ranges
       const weeksRange = stream === "Outland" ? step.avgWeeksOutland : step.avgWeeksInland;
       const irccFallback = weeksRange ? Math.round(((weeksRange[0] + weeksRange[1]) / 2) * 7) : null;
