@@ -229,10 +229,16 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
                 <option value="Outside Quebec">Outside Quebec</option><option value="Quebec">Inside Quebec</option>
               </select>
             </div>
-            <button onClick={handleEditSave} disabled={saving || !editForm.initials.trim() || !editForm.country_origin}
-              className="w-full py-2.5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors disabled:opacity-50 active:scale-[0.98]">
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
+            <div className="flex gap-2">
+              <button onClick={handleEditSave} disabled={saving || !editForm.initials.trim() || !editForm.country_origin}
+                className="flex-1 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors disabled:opacity-50 active:scale-[0.98]">
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+              <button onClick={() => setEditing(false)}
+                className="px-5 py-2.5 rounded-lg border border-sand-200 text-sm text-sand-500 font-medium hover:bg-sand-50 transition-colors">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
