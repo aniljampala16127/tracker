@@ -165,7 +165,7 @@ export default function CalculatorPage() {
     return { total: cohort.length, gotAor: gotAor.length, pct: cohort.length > 0 ? Math.round((gotAor.length / cohort.length) * 100) : 0 };
   }, [apps, submittedDate, myProgress]);
 
-  // Step-by-step estimates
+  // Step-by-step estimates — community data with IRCC fallback
   const stepEstimates = useMemo(() => {
     const streamApps = apps.filter(a => a.stream === stream);
     return STEPS.slice(1).map((step) => {
@@ -175,8 +175,13 @@ export default function CalculatorPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) durations.push(daysBetween(s[prev.id]!, s[step.id]!));
       });
-      const avg = durations.length >= 2 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
-      return { step, avg, reports: durations.length };
+      const communityAvg = durations.length >= 2 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+      // Fallback: midpoint of IRCC published week ranges
+      const weeksRange = stream === "Outland" ? step.avgWeeksOutland : step.avgWeeksInland;
+      const irccFallback = weeksRange ? Math.round(((weeksRange[0] + weeksRange[1]) / 2) * 7) : null;
+      const avg = communityAvg ?? irccFallback;
+      const isIrccFallback = communityAvg === null && irccFallback !== null;
+      return { step, avg, reports: durations.length, isIrccFallback };
     });
   }, [apps, stream]);
 
@@ -184,13 +189,13 @@ export default function CalculatorPage() {
   const timeline = useMemo(() => {
     if (!submittedDate) return null;
     let cumDays = 0;
-    return stepEstimates.map(({ step, avg }) => {
+    return stepEstimates.map(({ step, avg, isIrccFallback }) => {
       const actualDate = myStepsMap ? myStepsMap[step.id] : null;
       if (avg != null) cumDays += avg;
       return {
         id: step.id, label: step.label, shortLabel: step.shortLabel,
         estDate: avg != null ? addDays(submittedDate, cumDays) : null,
-        actualDate, avgDays: avg, cumDays,
+        actualDate, avgDays: avg, cumDays, isIrccFallback,
       };
     });
   }, [submittedDate, stepEstimates, myStepsMap]);
@@ -488,6 +493,7 @@ export default function CalculatorPage() {
                       <div className={`text-xs font-medium ${isCompleted ? "text-white" : "text-sand-900"}`}>
                         {s.label}
                         {isCompleted && <span className="ml-1.5 text-[9px] text-white/70">Done</span>}
+                        {!isCompleted && s.isIrccFallback && <span className="ml-1.5 text-[8px] text-sand-400 italic">IRCC est.</span>}
                       </div>
                       {isCompleted && daysFromPrev != null && (
                         <div className="text-[9px] text-white/60">{daysFromPrev}d from previous</div>
@@ -501,10 +507,12 @@ export default function CalculatorPage() {
                         <div className="text-[11px] font-semibold text-white">{fmtDate(s.actualDate)}</div>
                       ) : s.estDate ? (
                         <div className={`text-[11px] font-semibold ${
-                          isNextStep ? "text-warn-dark" : isPastEstimate ? "text-brand-600" : "text-sand-700"
-                        }`}>{isNextStep ? "~" : ""}{fmtDate(s.estDate)}</div>
+                          isNextStep ? "text-warn-dark"
+                          : isPastEstimate ? "text-brand-600"
+                          : s.isIrccFallback ? "text-sand-400" : "text-sand-700"
+                        }`}>~{fmtDate(s.estDate)}</div>
                       ) : (
-                        <div className="text-[9px] text-sand-400">Awaiting data</div>
+                        <div className="text-[9px] text-sand-300">—</div>
                       )}
                     </div>
                   </div>
@@ -514,21 +522,22 @@ export default function CalculatorPage() {
           </div>
 
           <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
-            <h2 className="text-sm font-bold text-sand-900 mb-3">IRCC vs Community</h2>
+            <h2 className="text-sm font-bold text-sand-900 mb-3">Processing Estimates</h2>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-sand-50 rounded-xl p-3.5 text-center">
-                <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider">IRCC ({irccMonths}mo)</div>
-                <div className="text-lg font-bold text-sand-700 mt-1">{fmtShort(addDays(submittedDate, irccDays))}</div>
-                <div className="text-[9px] text-sand-400 mt-0.5">{irccDays}d total</div>
+                <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider">IRCC Published</div>
+                <div className="text-lg font-bold text-sand-700 mt-1">{irccMonths} months</div>
+                <div className="text-[9px] text-sand-400 mt-0.5">Total to PR ({irccDays}d)</div>
               </div>
               <div className="bg-brand-50 rounded-xl p-3.5 text-center border border-brand-200">
-                <div className="text-[9px] font-semibold text-brand-700 uppercase tracking-wider">Community</div>
+                <div className="text-[9px] font-semibold text-brand-700 uppercase tracking-wider">Community Avg</div>
                 <div className="text-lg font-bold text-brand-600 mt-1">
-                  {aorData.avg != null ? fmtShort(addDays(submittedDate, aorData.avg)) : "\u2014"}
+                  {aorData.avg != null ? `${aorData.avg}d` : "\u2014"}
                 </div>
-                <div className="text-[9px] text-brand-500 mt-0.5">{aorData.avg ?? "\u2014"}d avg to AOR</div>
+                <div className="text-[9px] text-brand-500 mt-0.5">to AOR ({aorData.totalReports} reports)</div>
               </div>
             </div>
+            <div className="text-[8px] text-sand-400 mt-2 text-center">IRCC = total journey to PR · Community = days to AOR only</div>
           </div>
 
           <p className="text-[9px] text-sand-400 text-center mb-4">
