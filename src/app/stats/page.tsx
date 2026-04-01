@@ -427,6 +427,20 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     msg += `${fmtDate(wkStart)} to ${fmtDate(todayStr)}\n`;
     msg += `${totalUpdates} milestones · ${apps.length} tracked · ${waiting} waiting\n`;
 
+    // Currently Processing — what sub dates are being processed per milestone
+    msg += `\n*Currently Processing*\n`;
+    STEPS.forEach(step => {
+      if (step.id === "submitted") return;
+      const entries = byStep[step.id];
+      if (!entries || entries.length === 0) return;
+      const allSubs = Array.from(new Set(entries.map(e => e.subDate).filter(Boolean))).sort();
+      if (allSubs.length === 0) return;
+      const earliest = fmtDate(allSubs[0]);
+      const latest = fmtDate(allSubs[allSubs.length - 1]);
+      const subInfo = allSubs.length === 1 ? earliest : `${earliest} to ${latest}`;
+      msg += `  ${step.label}: submitted ${subInfo}\n`;
+    });
+
     STEPS.forEach(step => {
       if (step.id === "submitted") return;
       const entries = byStep[step.id];

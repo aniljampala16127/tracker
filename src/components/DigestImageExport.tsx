@@ -79,7 +79,7 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
     // Dynamic height
     let totalDateRows = 0;
     steps.forEach(st => { totalDateRows += st.dates.length; });
-    const H = 160 + steps.length * 56 + totalDateRows * 34 + 70;
+    const H = 160 + (steps.length * 18 + 60) + steps.length * 56 + totalDateRows * 34 + 70;
 
     const canvas = document.createElement("canvas");
     canvas.width = W * dpr;
@@ -133,7 +133,43 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
     ctx.fillRect(pad, y, inner, 1);
     y += 20;
 
-    // Each milestone
+    // Currently Processing section
+    ctx.fillStyle = "#1C1B19";
+    ctx.font = "bold 12px -apple-system, system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Currently Processing", pad, y);
+    y += 16;
+
+    steps.forEach(step => {
+      const allSubs = Array.from(new Set(step.dates.flatMap(d => d.subDates))).sort();
+      if (allSubs.length === 0) return;
+      const earliest = fmt(allSubs[0]);
+      const latest = fmt(allSubs[allSubs.length - 1]);
+      const subInfo = allSubs.length === 1 ? earliest : `${earliest} to ${latest}`;
+
+      const color = STEP_COLORS[step.stepId] || "#65635D";
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(pad + 10, y + 3, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#1C1B19";
+      ctx.font = "600 10px -apple-system, system-ui, sans-serif";
+      ctx.fillText(step.label, pad + 20, y + 7);
+      const lw = ctx.measureText(step.label).width;
+      ctx.fillStyle = "#65635D";
+      ctx.font = "400 10px -apple-system, system-ui, sans-serif";
+      ctx.fillText(`  submitted ${subInfo}`, pad + 20 + lw, y + 7);
+      y += 18;
+    });
+
+    // Divider before details
+    y += 6;
+    ctx.fillStyle = "#E8E6E1";
+    ctx.fillRect(pad, y, inner, 1);
+    y += 20;
+
+    // Each milestone detail
     steps.forEach(step => {
       const color = STEP_COLORS[step.stepId] || "#65635D";
 
