@@ -59,6 +59,8 @@ function DesktopTabs({ pathname }: { pathname: string }) {
           <Link
             key={item.href}
             href={item.href}
+            scroll={true}
+            onClick={() => window.scrollTo(0, 0)}
             data-tab
             className={cn(
               "relative z-10 flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors duration-200",
@@ -112,8 +114,9 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
             <Link
               key={item.href}
               href={item.href}
+              scroll={true}
               data-btab
-              onClick={() => handleTap(item.href)}
+              onClick={() => { handleTap(item.href); window.scrollTo(0, 0); }}
               className={cn(
                 "relative z-10 flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] transition-transform duration-150",
                 isTapped ? "scale-90" : "scale-100"
@@ -147,6 +150,12 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
 
 export function Nav() {
   const pathname = usePathname();
+
+  // Disable browser scroll restoration + scroll to top on every route change
+  useEffect(() => {
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
     <>
