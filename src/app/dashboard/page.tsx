@@ -88,13 +88,17 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
-  // Scroll to top on mount (so Wave Tracker is visible, not scrolled past)
+  // Scroll to top on mount
+  const topRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
-    // Double-tap: browser sometimes restores scroll AFTER first paint
-    const t = setTimeout(() => window.scrollTo(0, 0), 50);
-    return () => clearTimeout(t);
+    // Immediate
+    topRef.current?.scrollIntoView();
+    // After data loads and DOM settles
+    const t1 = setTimeout(() => topRef.current?.scrollIntoView(), 100);
+    const t2 = setTimeout(() => topRef.current?.scrollIntoView(), 300);
+    const t3 = setTimeout(() => topRef.current?.scrollIntoView(), 600);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []);
 
   // Filtered apps
@@ -270,6 +274,7 @@ export default function DashboardPage() {
 
   return (
     <>
+    <div ref={topRef} />
     <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
     <div className="page-enter">
       {/* CTA for new users — compact with live stats */}
