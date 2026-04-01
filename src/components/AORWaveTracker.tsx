@@ -146,6 +146,28 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
 
   useEffect(() => { if (!userToggled) return; const t = setTimeout(() => { setUserToggled(false); scrollDelta.current = 0; }, 6000); return () => clearTimeout(t); }, [userToggled]);
 
+  // Scroll to a specific card
+  const scrollToCard = useCallback((idx: number) => {
+    const el = cardsRef.current;
+    if (!el || !el.children[idx]) return;
+    const card = el.children[idx] as HTMLElement;
+    el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
+    setActiveCard(idx);
+  }, []);
+
+  // Dot drag handler — swipe across dots to navigate
+  const dotDragRef = useRef<HTMLDivElement>(null);
+  const handleDotTouch = useCallback((e: React.TouchEvent) => {
+    const container = dotDragRef.current;
+    if (!container) return;
+    const touch = e.touches[0];
+    const rect = container.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const fraction = Math.max(0, Math.min(1, x / rect.width));
+    const idx = Math.round(fraction * (data.cards.length - 1));
+    if (idx !== activeCard) scrollToCard(idx);
+  }, [data.cards.length, activeCard, scrollToCard]);
+
   // Track active card via scroll position for dot indicators
   const handleCardsScroll = useCallback(() => {
     const el = cardsRef.current;
@@ -262,18 +284,16 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
             ))}
           </div>
 
-          {/* Dot indicators — tappable to jump to card */}
+          {/* Dot indicators — tap or drag to navigate */}
           {data.cards.length > 1 && (
-            <div className="flex justify-center gap-1.5 mt-2">
+            <div ref={dotDragRef}
+              onTouchMove={handleDotTouch}
+              onTouchStart={handleDotTouch}
+              className="flex justify-center gap-1.5 mt-2 py-2"
+              style={{ touchAction: "none" }}>
               {data.cards.map((c, i) => (
                 <button key={c.stepId}
-                  onClick={() => {
-                    const el = cardsRef.current;
-                    if (!el || !el.children[i]) return;
-                    const card = el.children[i] as HTMLElement;
-                    el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
-                    setActiveCard(i);
-                  }}
+                  onClick={() => scrollToCard(i)}
                   className="rounded-full transition-all duration-300"
                   style={{
                     width: i === activeCard ? 16 : 6,

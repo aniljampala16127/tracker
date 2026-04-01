@@ -89,7 +89,13 @@ export default function DashboardPage() {
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
   // Scroll to top on mount (so Wave Tracker is visible, not scrolled past)
-  useEffect(() => { window.scrollTo(0, 0); }, []);
+  useEffect(() => {
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    // Double-tap: browser sometimes restores scroll AFTER first paint
+    const t = setTimeout(() => window.scrollTo(0, 0), 50);
+    return () => clearTimeout(t);
+  }, []);
 
   // Filtered apps
   const filteredApps = useMemo(() => {
