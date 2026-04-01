@@ -6,8 +6,6 @@ import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const BRAND = "#2D6A4F";
-const GOLD = "#9B7420";
 
 function fmt(d: string): string {
   const dt = new Date(d + "T00:00:00");
@@ -20,21 +18,8 @@ const STEP_COLORS: Record<string, string> = {
   background: "#64748B", portal1: "#14B8A6", portal2: "#06B6D4", ecopr: "#CA8A04",
 };
 
-interface DateGroup {
-  date: string;
-  count: number;
-  subDates: string[];
-  outland: number;
-  inland: number;
-}
-
-interface StepData {
-  stepId: string;
-  label: string;
-  entries: number;
-  avgDays: number;
-  dates: DateGroup[];
-}
+interface DateGroup { date: string; count: number; subDates: string[]; outland: number; inland: number; }
+interface StepData { stepId: string; label: string; entries: number; avgDays: number; dates: DateGroup[]; }
 
 export function DigestImageExport({ apps }: { apps: Application[] }) {
   const [exporting, setExporting] = useState(false);
@@ -42,8 +27,8 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
   const handleExport = useCallback(() => {
     setExporting(true);
     const dpr = Math.min(window.devicePixelRatio || 2, 3);
-    const W = 390;
-    const pad = 24;
+    const W = 420;
+    const pad = 28;
     const inner = W - pad * 2;
 
     const now = new Date();
@@ -70,36 +55,31 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
       });
     });
 
-    // Build step data
     const steps: StepData[] = [];
     STEPS.forEach(step => {
       if (step.id === "submitted") return;
       const entries = byStep[step.id];
       if (!entries || entries.length === 0) return;
-
       const byDate: Record<string, DateGroup> = {};
       entries.forEach(e => {
         if (!byDate[e.stepDate]) byDate[e.stepDate] = { date: e.stepDate, count: 0, subDates: [], outland: 0, inland: 0 };
         byDate[e.stepDate].count++;
         if (e.subDate && !byDate[e.stepDate].subDates.includes(e.subDate)) byDate[e.stepDate].subDates.push(e.subDate);
-        if (e.stream === "Outland") byDate[e.stepDate].outland++;
-        else byDate[e.stepDate].inland++;
+        if (e.stream === "Outland") byDate[e.stepDate].outland++; else byDate[e.stepDate].inland++;
       });
-
       const dates = Object.values(byDate).sort((a, b) => b.date.localeCompare(a.date));
       dates.forEach(d => d.subDates.sort());
       const avgDays = Math.round(entries.reduce((s, e) => s + e.days, 0) / entries.length);
-
       steps.push({ stepId: step.id, label: step.label, entries: entries.length, avgDays, dates });
     });
 
     const totalUpdates = steps.reduce((s, st) => s + st.entries, 0);
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
 
-    // Calculate dynamic height
+    // Dynamic height
     let totalDateRows = 0;
     steps.forEach(st => { totalDateRows += st.dates.length; });
-    const H = 120 + steps.length * 44 + totalDateRows * 28 + 60;
+    const H = 160 + steps.length * 56 + totalDateRows * 34 + 70;
 
     const canvas = document.createElement("canvas");
     canvas.width = W * dpr;
@@ -108,111 +88,118 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
     ctx.scale(dpr, dpr);
 
     // Background
-    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
-    bgGrad.addColorStop(0, "#F5F8F6");
-    bgGrad.addColorStop(0.5, "#FAFBFA");
-    bgGrad.addColorStop(1, "#F8F7F4");
-    ctx.fillStyle = bgGrad;
+    ctx.fillStyle = "#FAFBFA";
     ctx.fillRect(0, 0, W, H);
 
+    // Subtle top accent
+    const accent = ctx.createLinearGradient(0, 0, W, 0);
+    accent.addColorStop(0, "#2D6A4F");
+    accent.addColorStop(1, "#40916C");
+    ctx.fillStyle = accent;
+    ctx.fillRect(0, 0, W, 4);
+
     // Header
-    let y = 30;
-    ctx.fillStyle = BRAND;
-    ctx.font = "bold 14px -apple-system, system-ui, sans-serif";
+    let y = 32;
+    ctx.fillStyle = "#2D6A4F";
+    ctx.font = "bold 16px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText("SponsorTrack", pad, y);
+
     ctx.fillStyle = "#A8A69E";
-    ctx.font = "400 10px -apple-system, system-ui, sans-serif";
+    ctx.font = "400 11px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "right";
     ctx.fillText(`${fmt(wkStart)} – ${fmt(todayStr)}`, W - pad, y);
 
-    // Summary line
-    y += 22;
+    // Big number + label on separate lines
+    y += 32;
     ctx.textAlign = "left";
     ctx.fillStyle = "#1C1B19";
-    ctx.font = "bold 22px -apple-system, system-ui, sans-serif";
+    ctx.font = "bold 36px -apple-system, system-ui, sans-serif";
     ctx.fillText(`${totalUpdates}`, pad, y);
-    ctx.fillStyle = "#65635D";
-    ctx.font = "400 13px -apple-system, system-ui, sans-serif";
-    const numW = ctx.measureText(`${totalUpdates}`).width;
-    ctx.fillText(` milestones this week`, pad + numW, y);
 
-    y += 18;
+    y += 22;
+    ctx.fillStyle = "#65635D";
+    ctx.font = "400 14px -apple-system, system-ui, sans-serif";
+    ctx.fillText("milestones this week", pad, y);
+
+    y += 20;
     ctx.fillStyle = "#A8A69E";
-    ctx.font = "400 10px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`${apps.length} tracked · ${waiting} waiting for AOR`, pad, y);
+    ctx.font = "400 11px -apple-system, system-ui, sans-serif";
+    ctx.fillText(`${apps.length} tracked  ·  ${waiting} waiting for AOR`, pad, y);
 
     // Divider
-    y += 16;
+    y += 18;
     ctx.fillStyle = "#E8E6E1";
     ctx.fillRect(pad, y, inner, 1);
-    y += 12;
+    y += 20;
 
     // Each milestone
     steps.forEach(step => {
       const color = STEP_COLORS[step.stepId] || "#65635D";
 
-      // Step header
+      // Dot + label
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(pad + 5, y + 4, 4, 0, Math.PI * 2);
+      ctx.arc(pad + 6, y + 5, 5, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = "#1C1B19";
-      ctx.font = "bold 13px -apple-system, system-ui, sans-serif";
+      ctx.font = "bold 14px -apple-system, system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText(step.label, pad + 16, y + 8);
+      ctx.fillText(step.label, pad + 20, y + 10);
 
       ctx.fillStyle = "#A8A69E";
-      ctx.font = "400 10px -apple-system, system-ui, sans-serif";
-      const labelW = ctx.measureText(step.label).width;
-      ctx.fillText(` — ${step.entries} received · avg ${step.avgDays}d`, pad + 16 + labelW, y + 8);
+      ctx.font = "400 11px -apple-system, system-ui, sans-serif";
+      const lw = ctx.measureText(step.label).width;
+      ctx.fillText(`  ${step.entries} received  ·  avg ${step.avgDays}d`, pad + 20 + lw, y + 10);
 
-      y += 22;
+      y += 28;
 
       // Date rows
       step.dates.forEach(d => {
         const subList = d.subDates.map(s => fmt(s)).join(", ");
         const streamInfo = d.inland > 0 && d.outland > 0 ? ` (${d.outland}O/${d.inland}I)` : d.inland > 0 ? " (Inland)" : "";
 
-        // Date pill
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
-        roundRect(ctx, pad + 8, y - 4, inner - 16, 22, 6);
+        // Row background
+        ctx.fillStyle = "rgba(45,106,79,0.03)";
+        roundRect(ctx, pad + 12, y - 6, inner - 24, 26, 8);
         ctx.fill();
-        ctx.strokeStyle = "rgba(0,0,0,0.04)";
-        ctx.lineWidth = 0.5;
-        roundRect(ctx, pad + 8, y - 4, inner - 16, 22, 6);
-        ctx.stroke();
 
+        // Date bold
         ctx.fillStyle = "#1C1B19";
-        ctx.font = "600 10px -apple-system, system-ui, sans-serif";
+        ctx.font = "600 11px -apple-system, system-ui, sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(`${fmt(d.date)}`, pad + 16, y + 9);
+        ctx.fillText(fmt(d.date), pad + 22, y + 10);
 
+        // Details
         ctx.fillStyle = "#65635D";
-        ctx.font = "400 9px -apple-system, system-ui, sans-serif";
-        const dateW = ctx.measureText(fmt(d.date)).width;
-        ctx.fillText(` — ${d.count}${streamInfo} · sub ${subList}`, pad + 16 + dateW, y + 9);
+        ctx.font = "400 10px -apple-system, system-ui, sans-serif";
+        const dw = ctx.measureText(fmt(d.date)).width;
+        ctx.fillText(` — ${d.count}${streamInfo}  ·  sub ${subList}`, pad + 22 + dw, y + 10);
 
-        y += 24;
+        y += 30;
       });
 
-      y += 8;
+      y += 12;
     });
 
     // Footer
-    y += 4;
-    ctx.fillStyle = "#C4C2BB";
-    ctx.font = "9px -apple-system, system-ui, sans-serif";
+    y += 8;
+    ctx.fillStyle = "#E8E6E1";
+    ctx.fillRect(pad, y, inner, 1);
+    y += 16;
+    ctx.fillStyle = "#A8A69E";
+    ctx.font = "400 10px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("tracker-lime-five.vercel.app", W / 2, y);
+    ctx.fillText("https://tracker-lime-five.vercel.app/dashboard", W / 2, y);
 
-    // Export
+    // Export with URL text alongside image
     canvas.toBlob((blob) => {
       if (!blob) { setExporting(false); return; }
       const file = new File([blob], "sponsortrack-weekly.png", { type: "image/png" });
+      const shareText = "SponsorTrack — Weekly Update\nTrack yours: https://tracker-lime-five.vercel.app/dashboard";
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        navigator.share({ files: [file], title: "SponsorTrack Weekly" }).catch(() => {}).finally(() => setExporting(false));
+        navigator.share({ files: [file], text: shareText, title: "SponsorTrack Weekly" }).catch(() => {}).finally(() => setExporting(false));
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -241,14 +228,9 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
 }
