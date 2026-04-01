@@ -69,7 +69,10 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     const pad = (n: number) => String(n).padStart(2, "0");
     const ld = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     const todayStr = ld(now);
-    const wkStart = ld(new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()));
+    // Week = Monday to Saturday (getDay: 0=Sun,1=Mon..6=Sat)
+    const dow = now.getDay();
+    const daysToMon = dow === 0 ? 6 : dow - 1; // Sun→back 6, Mon→0, Tue→1...
+    const wkStart = ld(new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToMon));
     const byStep: Record<string, MilestoneEntry[]> = {};
     const wk: Record<string, number> = {};
 

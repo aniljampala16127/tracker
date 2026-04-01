@@ -151,10 +151,22 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
 export function Nav() {
   const pathname = usePathname();
 
-  // Disable browser scroll restoration + scroll to top on every route change
+  // Force scroll to top on every route change — aggressive approach
   useEffect(() => {
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
+    // Immediate
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    // Delayed — catches post-paint browser restoration
+    const t1 = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    });
+    const t2 = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+    }, 100);
+    return () => { cancelAnimationFrame(t1); clearTimeout(t2); };
   }, [pathname]);
 
   return (
