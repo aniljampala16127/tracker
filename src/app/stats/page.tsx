@@ -422,26 +422,42 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
 
     const totalUpdates = Object.values(byStep).reduce((s, arr) => s + arr.length, 0);
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
+    const totalTracked = apps.length;
 
-    // Build the message
-    let msg = `*SponsorTrack — This Week*\n`;
-    msg += `${totalUpdates} milestones · ${waiting} waiting for AOR\n\n`;
+    // Step emojis
+    const stepEmoji: Record<string, string> = {
+      aor: "📬", bil: "🖐️", sponsor_eligibility: "✅", medical: "🏥",
+      pa_eligibility: "📋", pre_arrival: "✈️", background: "🔍",
+      portal1: "🌐", portal2: "🌐", ecopr: "🎉",
+    };
 
-    // Show each milestone with individual entries
+    // Build premium WhatsApp message
+    let msg = `📊 *SponsorTrack — Weekly Update*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `🗓️ ${fmtDate(wkStart)} – ${fmtDate(todayStr)}\n`;
+    msg += `📈 *${totalUpdates}* milestones this week\n`;
+    msg += `👥 ${totalTracked} tracked · ${waiting} waiting\n\n`;
+
+    // Show each milestone
     STEPS.forEach(step => {
       if (step.id === "submitted") return;
       const entries = byStep[step.id];
       if (!entries || entries.length === 0) return;
 
-      msg += `*${step.label}* (${entries.length})\n`;
-      entries.slice(0, 10).forEach(e => {
-        msg += `  ${e.initials} · ${e.stream} · Sub ${fmtDate(e.subDate)} → ${fmtDate(e.stepDate)} (${e.days}d)\n`;
+      const emoji = stepEmoji[step.id] || "📌";
+      msg += `${emoji} *${step.label}* — ${entries.length} this week\n`;
+      entries.slice(0, 8).forEach(e => {
+        const flag = e.stream === "Outland" ? "🟢" : "🟡";
+        msg += `${flag} ${e.initials}\n`;
+        msg += `    _Sub ${fmtDate(e.subDate)} → ${fmtDate(e.stepDate)}_ · ${e.days}d\n`;
       });
-      if (entries.length > 10) msg += `  +${entries.length - 10} more\n`;
+      if (entries.length > 8) msg += `    _+${entries.length - 8} more_\n`;
       msg += `\n`;
     });
 
-    msg += `Track yours: https://tracker-lime-five.vercel.app/dashboard`;
+    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `🔗 Track yours:\n`;
+    msg += `tracker-lime-five.vercel.app`;
 
     return msg;
   }, [apps]);
