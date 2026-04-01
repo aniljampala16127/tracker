@@ -62,10 +62,10 @@ export function FilterBar({
 
         {/* Sponsor Status */}
         <FilterPill
-          label="Status"
+          label="Sponsor Status"
           value={filters.sponsor_status}
           options={["", ...SPONSOR_STATUSES]}
-          optionLabels={["All Statuses", ...SPONSOR_STATUSES]}
+          optionLabels={["All", ...SPONSOR_STATUSES]}
           onChange={(v) => update("sponsor_status", v)}
           active={!!filters.sponsor_status}
         />

@@ -793,7 +793,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
           <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Edit Details</div>
           <Input label="Name" value={editForm.initials} onChange={(e: React.ChangeEvent<HTMLInputElement>) => eu("initials", e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
-            <Select label="Status" value={editForm.sponsor_status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map(s => ({ value: s, label: s }))} />
+            <Select label="Sponsor Status" value={editForm.sponsor_status} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map(s => ({ value: s, label: s }))} />
             <Select label="Stream" value={editForm.stream} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => eu("stream", e.target.value)} options={STREAMS.map(s => ({ value: s, label: s }))} />
           </div>
           <SearchableSelect label="PA Country" value={editForm.country_origin} onChange={(v: string) => eu("country_origin", v)} options={COMMON_COUNTRIES.map(c => ({ value: c, label: c }))} />
