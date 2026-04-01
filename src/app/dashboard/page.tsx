@@ -921,7 +921,7 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
   const empty = {
     initials: "", sponsor_status: "PR" as const, stream: "Outland" as const,
     country_origin: "", subcategory: "", visa_country: "", mei_type: "",
-    province: "Ontario", submitted_date: "", notes: "", pin: "",
+    province: "Outside Quebec", submitted_date: "", notes: "", pin: "",
   };
   const [form, setForm] = useState(empty);
   useEffect(() => { if (open) setForm(empty); }, [open]);
@@ -965,7 +965,7 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
         </div>
         <SearchableSelect label="PA Country *" value={form.country_origin} onChange={(v) => u("country_origin", v)} options={COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))} />
         <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
-        <Select label="Province" value={form.province} onChange={(e) => u("province", e.target.value)} options={PROVINCES.map((p) => ({ value: p, label: p }))} />
+        <Select label="Quebec *" value={form.province} onChange={(e) => u("province", e.target.value)} options={[{ value: "Outside Quebec", label: "Outside Quebec" }, { value: "Quebec", label: "Inside Quebec" }]} />
         <div className="grid grid-cols-2 gap-3">
           <Select label="PA Visa Country" value={form.visa_country} onChange={(e) => u("visa_country", e.target.value)} options={VISA_COUNTRIES.map((v) => ({ value: v, label: v || "Select..." }))} />
           <Select label="MEI Type" value={form.mei_type} onChange={(e) => u("mei_type", e.target.value)} options={MEI_TYPES.map((m) => ({ value: m, label: m || "Select..." }))} />

@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
-import { buildStepsMap, daysBetween } from "@/lib/utils";
+import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmtDate(d: string) {

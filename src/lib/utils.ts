@@ -155,3 +155,8 @@ export function computeStepAverages(
 export function cn(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(" ");
 }
+
+// Quebec-aware outlier threshold: Quebec takes much longer (2+ years total)
+export function getOutlierMax(province?: string): number {
+  return province === "Quebec" ? 900 : 100;
+}

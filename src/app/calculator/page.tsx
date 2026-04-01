@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Application, StepId } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
-import { buildStepsMap, daysBetween } from "@/lib/utils";
+import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
 import { Select } from "@/components/ui";
 
@@ -100,7 +100,7 @@ export default function CalculatorPage() {
       const s = buildStepsMap(a.step_events || []);
       if (s.submitted && s.aor) {
         const d = daysBetween(s.submitted, s.aor);
-        if (d < 0 || d > 100) return; // skip outliers
+        if (d < 0 || d > getOutlierMax(a.province)) return;
         allAorDays.push(d);
         if (country && a.country_origin.toLowerCase() === country.toLowerCase()) {
           countryAorDays.push(d);
@@ -127,7 +127,7 @@ export default function CalculatorPage() {
       const s = buildStepsMap(a.step_events || []);
       if (s[prevId] && s[nextId]) {
         const d = daysBetween(s[prevId]!, s[nextId]!);
-        if (d >= 0 && d <= 100) durations.push(d);
+        const max = getOutlierMax(a.province); if (d >= 0 && d <= max) durations.push(d);
       }
     });
     durations.sort((a, b) => a - b);
@@ -179,11 +179,11 @@ export default function CalculatorPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) {
           const d = daysBetween(s[prev.id]!, s[step.id]!);
-          if (d >= 0 && d <= 100) durations.push(d);
+          const max = getOutlierMax(a.province); if (d >= 0 && d <= max) durations.push(d);
         }
       });
       const rawAvg = durations.length >= 1 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
-      const communityAvg = rawAvg !== null && rawAvg <= 100 ? rawAvg : null; // double safety
+      const communityAvg = rawAvg !== null && rawAvg <= 900 ? rawAvg : null; // double safety
       // Fallback: midpoint of IRCC published week ranges
       const weeksRange = stream === "Outland" ? step.avgWeeksOutland : step.avgWeeksInland;
       const irccFallback = weeksRange ? Math.round(((weeksRange[0] + weeksRange[1]) / 2) * 7) : null;

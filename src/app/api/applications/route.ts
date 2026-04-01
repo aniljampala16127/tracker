@@ -30,6 +30,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Block future dates
+  const today = new Date().toISOString().split("T")[0];
+  if (submitted_date > today) {
+    return NextResponse.json({ error: "Submission date cannot be in the future" }, { status: 400 });
+  }
+
   if (!pin_hash) {
     return NextResponse.json({ error: "PIN is required" }, { status: 400 });
   }
@@ -42,7 +48,7 @@ export async function POST(request: Request) {
       stream,
       country_origin,
       subcategory: subcategory || null,
-      province: province || "Ontario",
+      province: province || "Outside Quebec",
       current_step: "submitted",
       notes: notes || null,
       pin_hash,

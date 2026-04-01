@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
-import { buildStepsMap, daysBetween } from "@/lib/utils";
+import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -49,7 +49,7 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
         const pi = STEPS.findIndex(st => st.id === ev.step_id) - 1;
         const pd = pi >= 0 ? s[STEPS[pi].id] : s.submitted;
         const days = pd ? daysBetween(pd, ev.event_date) : 0;
-        if (days < 0 || days > 100) return;
+        if (days < 0 || days > getOutlierMax(a.province)) return;
         if (!byStep[ev.step_id]) byStep[ev.step_id] = [];
         byStep[ev.step_id].push({ stepDate: ev.event_date, subDate: s.submitted || "", stream: a.stream, days });
       });

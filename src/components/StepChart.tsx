@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Application, StepId } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
-import { buildStepsMap, daysBetween } from "@/lib/utils";
+import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
 
 interface StepChartProps {
   apps: Application[];
@@ -34,7 +34,7 @@ export function StepChart({ apps }: StepChartProps) {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) {
           const d = daysBetween(s[prev.id]!, s[step.id]!);
-          if (d < 0 || d > 100) return; // Skip bad data (negative or >100 days per step)
+          if (d < 0 || d > getOutlierMax(a.province)) return;
           if (a.stream === "Outland") outlandDurations.push(d);
           else inlandDurations.push(d);
         }

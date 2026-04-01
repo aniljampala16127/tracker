@@ -8,7 +8,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
-import { buildStepsMap, daysBetween } from "@/lib/utils";
+import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
 import { AORProgress } from "@/components/AORProgress";
 import { CountryBreakdown } from "@/components/CountryBreakdown";
 import { StatsSkeleton } from "@/components/Skeletons";
@@ -58,7 +58,7 @@ export default function StatsPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) {
           const d = daysBetween(s[prev.id]!, s[step.id]!);
-          if (d < 0 || d > 100) return; // skip bad data
+          if (d < 0 || d > getOutlierMax(a.province)) return;
           if (a.stream === "Outland") outlandDays.push(d);
           else inlandDays.push(d);
         }
@@ -89,7 +89,7 @@ export default function StatsPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s.submitted && s.aor) {
           const d = daysBetween(s.submitted, s.aor);
-          if (d < 0 || d > 100) return;
+          if (d < 0 || d > getOutlierMax(a.province)) return;
           if (a.stream === "Outland") outlandAor.push(d);
           else inlandAor.push(d);
         }
@@ -263,7 +263,7 @@ export default function StatsPage() {
             const s = buildStepsMap(a.step_events || []);
             if (s.submitted && s.aor) {
               const days = daysBetween(s.submitted, s.aor);
-              if (days < 0 || days > 100) return;
+              if (days < 0 || days > getOutlierMax(a.province)) return;
               const d = new Date(s.aor + "T00:00:00");
               points.push({
                 date: s.aor,
@@ -326,7 +326,7 @@ export default function StatsPage() {
             const s = buildStepsMap(a.step_events || []);
             if (s.submitted && s.aor) {
               const d = daysBetween(s.submitted, s.aor);
-              if (d >= 0 && d <= 100) aorDays.push(d);
+              if (d >= 0 && d <= getOutlierMax(a.province)) aorDays.push(d);
             }
           });
           const avg = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
@@ -403,7 +403,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
         const prevIdx = STEPS.findIndex(st => st.id === ev.step_id) - 1;
         const prevDate = prevIdx >= 0 ? s[STEPS[prevIdx].id] : s.submitted;
         const days = prevDate ? daysBetween(prevDate, ev.event_date) : 0;
-        if (days < 0 || days > 100) return; // skip outliers
+        if (days < 0 || days > getOutlierMax(a.province)) return; // skip outliers
 
         if (!byStep[ev.step_id]) byStep[ev.step_id] = [];
         byStep[ev.step_id].push({
