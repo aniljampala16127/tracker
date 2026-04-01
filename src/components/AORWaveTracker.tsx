@@ -264,7 +264,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
 
           {/* Dot indicators — tappable to jump to card */}
           {data.cards.length > 1 && (
-            <div className="flex justify-center gap-0 mt-2">
+            <div className="flex justify-center gap-1.5 mt-2">
               {data.cards.map((c, i) => (
                 <button key={c.stepId}
                   onClick={() => {
@@ -274,15 +274,13 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                     el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
                     setActiveCard(i);
                   }}
-                  className="flex items-center justify-center"
-                  style={{ width: 28, height: 28, WebkitTapHighlightColor: "transparent" }}>
-                  <div className="rounded-full transition-all duration-300"
-                    style={{
-                      width: i === activeCard ? 20 : 8,
-                      height: 8,
-                      backgroundColor: i === activeCard ? (STEP_DOT_COLORS[c.stepId] || "#8A8880") : "#D4D3CE",
-                    }} />
-                </button>
+                  className="rounded-full transition-all duration-300"
+                  style={{
+                    width: i === activeCard ? 16 : 6,
+                    height: 6,
+                    backgroundColor: i === activeCard ? (STEP_DOT_COLORS[c.stepId] || "#8A8880") : "#D4D3CE",
+                    WebkitTapHighlightColor: "transparent",
+                  }} />
               ))}
             </div>
           )}

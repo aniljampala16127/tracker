@@ -88,6 +88,9 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
+  // Scroll to top on mount (so Wave Tracker is visible, not scrolled past)
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
   // Filtered apps
   const filteredApps = useMemo(() => {
     return apps.filter((a) => {
