@@ -58,6 +58,7 @@ export default function StatsPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) {
           const d = daysBetween(s[prev.id]!, s[step.id]!);
+          if (d < 0 || d > 500) return; // skip bad data
           if (a.stream === "Outland") outlandDays.push(d);
           else inlandDays.push(d);
         }
@@ -88,6 +89,7 @@ export default function StatsPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s.submitted && s.aor) {
           const d = daysBetween(s.submitted, s.aor);
+          if (d < 0 || d > 500) return;
           if (a.stream === "Outland") outlandAor.push(d);
           else inlandAor.push(d);
         }
@@ -261,6 +263,7 @@ export default function StatsPage() {
             const s = buildStepsMap(a.step_events || []);
             if (s.submitted && s.aor) {
               const days = daysBetween(s.submitted, s.aor);
+              if (days < 0 || days > 500) return;
               const d = new Date(s.aor + "T00:00:00");
               points.push({
                 date: s.aor,
@@ -321,7 +324,10 @@ export default function StatsPage() {
           const aorDays: number[] = [];
           group.forEach((a) => {
             const s = buildStepsMap(a.step_events || []);
-            if (s.submitted && s.aor) aorDays.push(daysBetween(s.submitted, s.aor));
+            if (s.submitted && s.aor) {
+              const d = daysBetween(s.submitted, s.aor);
+              if (d >= 0 && d <= 500) aorDays.push(d);
+            }
           });
           const avg = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
           const outland = group.filter(a => a.stream === "Outland").length;
@@ -393,14 +399,20 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     const outlandAorDays: number[] = [];
     outlandApps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
-      if (s.submitted && s.aor) outlandAorDays.push(daysBetween(s.submitted, s.aor));
+      if (s.submitted && s.aor) {
+        const d = daysBetween(s.submitted, s.aor);
+        if (d >= 0 && d <= 500) outlandAorDays.push(d);
+      }
     });
     const avgOutlandAor = outlandAorDays.length ? Math.round(outlandAorDays.reduce((a, b) => a + b, 0) / outlandAorDays.length) : null;
 
     const inlandAorDays: number[] = [];
     inlandApps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
-      if (s.submitted && s.aor) inlandAorDays.push(daysBetween(s.submitted, s.aor));
+      if (s.submitted && s.aor) {
+        const d = daysBetween(s.submitted, s.aor);
+        if (d >= 0 && d <= 500) inlandAorDays.push(d);
+      }
     });
     const avgInlandAor = inlandAorDays.length ? Math.round(inlandAorDays.reduce((a, b) => a + b, 0) / inlandAorDays.length) : null;
 
