@@ -374,133 +374,77 @@ export default function StatsPage() {
 // ============================================
 function WeeklyDigest({ apps }: { apps: Application[] }) {
   const [copied, setCopied] = useState(false);
-  const [period, setPeriod] = useState<"7" | "14" | "30">("7");
 
   const digest = useMemo(() => {
-    const now = Date.now();
-    const cutoff = now - parseInt(period) * 24 * 60 * 60 * 1000;
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const ld = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const todayStr = ld(now);
 
-    // Step milestones in period (non-submitted)
-    const milestones: Record<string, number> = {};
-    apps.forEach(a => {
-      (a.step_events || []).forEach(e => {
-        if (e.step_id === "submitted") return;
-        if (new Date(e.created_at).getTime() > cutoff) {
-          const label = STEPS.find(s => s.id === e.step_id)?.label || e.step_id;
-          milestones[label] = (milestones[label] || 0) + 1;
-        }
-      });
-    });
-
-    // AOR stats split by stream
-    const outlandApps = apps.filter(a => a.stream === "Outland");
-    const inlandApps = apps.filter(a => a.stream === "Inland");
-
-    const outlandAorDays: number[] = [];
-    outlandApps.forEach(a => {
-      const s = buildStepsMap(a.step_events || []);
-      if (s.submitted && s.aor) {
-        const d = daysBetween(s.submitted, s.aor);
-        if (d >= 0 && d <= 100) outlandAorDays.push(d);
-      }
-    });
-    const avgOutlandAor = outlandAorDays.length ? Math.round(outlandAorDays.reduce((a, b) => a + b, 0) / outlandAorDays.length) : null;
-
-    const inlandAorDays: number[] = [];
-    inlandApps.forEach(a => {
-      const s = buildStepsMap(a.step_events || []);
-      if (s.submitted && s.aor) {
-        const d = daysBetween(s.submitted, s.aor);
-        if (d >= 0 && d <= 100) inlandAorDays.push(d);
-      }
-    });
-    const avgInlandAor = inlandAorDays.length ? Math.round(inlandAorDays.reduce((a, b) => a + b, 0) / inlandAorDays.length) : null;
-
-    // Latest AOR date per stream — collect all submission dates that got AOR on that date
-    let latestOutlandAor = "";
-    let outlandSubDates: string[] = [];
-    let latestInlandAor = "";
-    let inlandSubDates: string[] = [];
-    apps.forEach(a => {
-      const s = buildStepsMap(a.step_events || []);
-      if (!s.aor || !s.submitted) return;
-      if (a.stream === "Outland") {
-        if (!latestOutlandAor || s.aor > latestOutlandAor) {
-          latestOutlandAor = s.aor;
-          outlandSubDates = [s.submitted];
-        } else if (s.aor === latestOutlandAor) {
-          if (!outlandSubDates.includes(s.submitted)) outlandSubDates.push(s.submitted);
-        }
-      }
-      if (a.stream === "Inland") {
-        if (!latestInlandAor || s.aor > latestInlandAor) {
-          latestInlandAor = s.aor;
-          inlandSubDates = [s.submitted];
-        } else if (s.aor === latestInlandAor) {
-          if (!inlandSubDates.includes(s.submitted)) inlandSubDates.push(s.submitted);
-        }
-      }
-    });
-    outlandSubDates.sort();
-    inlandSubDates.sort();
+    // Week = Monday to today
+    const dow = now.getDay();
+    const daysToMon = dow === 0 ? 6 : dow - 1;
+    const wkStart = ld(new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToMon));
 
     const fmtDate = (dateStr: string) => {
-      const d = new Date(dateStr + "T00:00:00");
-      return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-    };
-
-    const fmtShort = (dateStr: string) => {
       const d = new Date(dateStr + "T00:00:00");
       return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
     };
 
-    const fmtSubDates = (dates: string[]) => {
-      if (dates.length === 0) return "";
-      if (dates.length === 1) return ` (submitted ${fmtDate(dates[0])})`;
-      return ` (submitted: ${dates.map(fmtShort).join(", ")})`;
-    };
+    // Collect this week's milestones by step, with individual entries
+    const byStep: Record<string, { initials: string; subDate: string; stepDate: string; stream: string; days: number }[]> = {};
 
-    const periodLabel = period === "7" ? "This Week" : period === "14" ? "Last 2 Weeks" : "This Month";
+    apps.forEach(a => {
+      const s = buildStepsMap(a.step_events || []);
+      (a.step_events || []).forEach(ev => {
+        if (ev.step_id === "submitted") return;
+        if (ev.event_date > todayStr) return; // skip future dates
+        if (ev.event_date < wkStart) return; // only this week
+
+        const prevIdx = STEPS.findIndex(st => st.id === ev.step_id) - 1;
+        const prevDate = prevIdx >= 0 ? s[STEPS[prevIdx].id] : s.submitted;
+        const days = prevDate ? daysBetween(prevDate, ev.event_date) : 0;
+        if (days < 0 || days > 100) return; // skip outliers
+
+        if (!byStep[ev.step_id]) byStep[ev.step_id] = [];
+        byStep[ev.step_id].push({
+          initials: a.initials,
+          subDate: s.submitted || "",
+          stepDate: ev.event_date,
+          stream: a.stream,
+          days,
+        });
+      });
+    });
+
+    // Sort each step's entries by most recent first
+    Object.values(byStep).forEach(arr => arr.sort((a, b) => b.stepDate.localeCompare(a.stepDate)));
+
+    const totalUpdates = Object.values(byStep).reduce((s, arr) => s + arr.length, 0);
+    const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
 
     // Build the message
-    let msg = `*SponsorTrack — ${periodLabel}*\n\n`;
+    let msg = `*SponsorTrack — This Week*\n`;
+    msg += `${totalUpdates} milestones · ${waiting} waiting for AOR\n\n`;
 
-    // AOR Updates — Outland
-    msg += `*Outland AOR Updates*\n`;
-    if (avgOutlandAor) msg += `Avg days to AOR: ${avgOutlandAor}d (${outlandAorDays.length} reported)\n`;
-    if (latestOutlandAor) {
-      msg += `Latest AOR: ${fmtDate(latestOutlandAor)}${fmtSubDates(outlandSubDates)}\n`;
-    } else {
-      msg += `No AORs reported yet\n`;
-    }
-    msg += `\n`;
+    // Show each milestone with individual entries
+    STEPS.forEach(step => {
+      if (step.id === "submitted") return;
+      const entries = byStep[step.id];
+      if (!entries || entries.length === 0) return;
 
-    // AOR Updates — Inland
-    msg += `*Inland AOR Updates*\n`;
-    if (avgInlandAor) msg += `Avg days to AOR: ${avgInlandAor}d (${inlandAorDays.length} reported)\n`;
-    if (latestInlandAor) {
-      msg += `Latest AOR: ${fmtDate(latestInlandAor)}${fmtSubDates(inlandSubDates)}\n`;
-    } else {
-      msg += `No AORs reported yet\n`;
-    }
-    msg += `\n`;
-
-    // Other milestones (non-AOR)
-    const nonAorMilestones = Object.entries(milestones).filter(([step]) => step !== "AOR");
-    if (nonAorMilestones.length > 0) {
-      msg += `*Other Milestones*\n`;
-      nonAorMilestones
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([step, count]) => {
-          msg += `${count} reached ${step}\n`;
-        });
+      msg += `*${step.label}* (${entries.length})\n`;
+      entries.slice(0, 10).forEach(e => {
+        msg += `  ${e.initials} · ${e.stream} · Sub ${fmtDate(e.subDate)} → ${fmtDate(e.stepDate)} (${e.days}d)\n`;
+      });
+      if (entries.length > 10) msg += `  +${entries.length - 10} more\n`;
       msg += `\n`;
-    }
+    });
 
     msg += `Track yours: https://tracker-lime-five.vercel.app/dashboard`;
 
     return msg;
-  }, [apps, period]);
+  }, [apps]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(digest);
@@ -515,22 +459,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="text-sm font-bold text-sand-900">Weekly Digest</h2>
-          <p className="text-[11px] text-sand-400">Auto-generated summary to paste in your WhatsApp group</p>
-        </div>
-        <div className="flex items-center gap-1 bg-sand-50 rounded-lg p-0.5 border border-sand-200">
-          {(["7", "14", "30"] as const).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`text-[10px] px-2 py-1 rounded-md font-medium transition-all ${
-                period === p
-                  ? "bg-brand-500 text-white"
-                  : "text-sand-500 hover:text-sand-800"
-              }`}
-            >
-              {p === "7" ? "7d" : p === "14" ? "14d" : "30d"}
-            </button>
-          ))}
+          <p className="text-[11px] text-sand-400">This week's milestones — share to your WhatsApp group</p>
         </div>
       </div>
 
