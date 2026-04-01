@@ -15,6 +15,7 @@ import { AchievementBadges } from "@/components/AchievementBadges";
 import { playMilestoneSound } from "@/lib/sounds";
 import { TimelineExport } from "@/components/TimelineExport";
 import { PostAORGuide } from "@/components/PostAORGuide";
+import { FindRepresentativeCard } from "@/components/FindRepresentativeCard";
 import { MeSkeleton } from "@/components/Skeletons";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { Button } from "@/components/ui";
@@ -327,6 +328,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           })}
         </div>
       </div>
+
+      {/* 6. Find a Representative */}
+      <FindRepresentativeCard />
 
       {/* Reminder + Share */}
       <div className="border-t border-sand-100 pt-4 space-y-3">
