@@ -100,6 +100,7 @@ export default function CalculatorPage() {
       const s = buildStepsMap(a.step_events || []);
       if (s.submitted && s.aor) {
         const d = daysBetween(s.submitted, s.aor);
+        if (d < 0 || d > 500) return; // skip bad data
         allAorDays.push(d);
         if (country && a.country_origin.toLowerCase() === country.toLowerCase()) {
           countryAorDays.push(d);
@@ -124,7 +125,10 @@ export default function CalculatorPage() {
     const durations: number[] = [];
     streamApps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
-      if (s[prevId] && s[nextId]) durations.push(daysBetween(s[prevId]!, s[nextId]!));
+      if (s[prevId] && s[nextId]) {
+        const d = daysBetween(s[prevId]!, s[nextId]!);
+        if (d >= 0 && d <= 500) durations.push(d);
+      }
     });
     durations.sort((a, b) => a - b);
     const avg = durations.length >= 1 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
@@ -173,7 +177,10 @@ export default function CalculatorPage() {
       const durations: number[] = [];
       streamApps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
-        if (s[prev.id] && s[step.id]) durations.push(daysBetween(s[prev.id]!, s[step.id]!));
+        if (s[prev.id] && s[step.id]) {
+          const d = daysBetween(s[prev.id]!, s[step.id]!);
+          if (d >= 0 && d <= 500) durations.push(d);
+        }
       });
       const communityAvg = durations.length >= 1 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
       // Fallback: midpoint of IRCC published week ranges
@@ -207,8 +214,8 @@ export default function CalculatorPage() {
     const daysSoFar = daysBetween(submittedDate, today);
     const predicted = addDays(submittedDate, aorData.avg);
     const daysRemaining = Math.max(0, aorData.avg - daysSoFar);
-    const optimistic = aorData.p25 != null ? addDays(submittedDate, aorData.p25) : null;
-    const pessimistic = aorData.p75 != null ? addDays(submittedDate, aorData.p75) : null;
+    const optimistic = aorData.p25 != null ? addDays(submittedDate, Math.min(aorData.p25, aorData.avg!)) : null;
+    const pessimistic = aorData.p75 != null ? addDays(submittedDate, Math.max(aorData.p75, aorData.avg!)) : null;
     const countryPredicted = aorData.countryAvg != null ? addDays(submittedDate, aorData.countryAvg) : null;
     const progressPct = aorData.avg > 0 ? Math.min(Math.round((daysSoFar / aorData.avg) * 100), 100) : 0;
     return { predicted, daysRemaining, daysSoFar, optimistic, pessimistic, countryPredicted, progressPct };
@@ -223,8 +230,8 @@ export default function CalculatorPage() {
     const predicted = addDays(prevDate, nextStepData.avg);
     const daysRemaining = Math.max(0, nextStepData.avg - daysSincePrev);
     const progressPct = nextStepData.avg > 0 ? Math.min(Math.round((daysSincePrev / nextStepData.avg) * 100), 100) : 0;
-    const optimistic = nextStepData.p25 != null ? addDays(prevDate, nextStepData.p25) : null;
-    const pessimistic = nextStepData.p75 != null ? addDays(prevDate, nextStepData.p75) : null;
+    const optimistic = nextStepData.p25 != null ? addDays(prevDate, Math.min(nextStepData.p25, nextStepData.avg)) : null;
+    const pessimistic = nextStepData.p75 != null ? addDays(prevDate, Math.max(nextStepData.p75, nextStepData.avg)) : null;
     return {
       stepLabel: myProgress.nextStep.label, fromStepLabel: myProgress.latestStep!.label,
       predicted, daysRemaining, daysSincePrev, progressPct, optimistic, pessimistic,
