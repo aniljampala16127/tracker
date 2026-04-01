@@ -15,6 +15,8 @@ interface Badge {
 
 export function AchievementBadges({ app }: { app: Application }) {
   const [expanded, setExpanded] = useState(true);
+  const [userToggled, setUserToggled] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);
 
@@ -25,6 +27,39 @@ export function AchievementBadges({ app }: { app: Application }) {
     }
   }, []);
 
+  // IntersectionObserver — expand when visible, collapse when scrolled away
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (userToggled) return; // Don't override manual toggle
+        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+          setExpanded(true);
+        } else if (!entry.isIntersecting) {
+          setExpanded(false);
+        }
+      },
+      { threshold: [0, 0.5] }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [userToggled]);
+
+  // Reset manual override after 5s so scroll behavior resumes
+  useEffect(() => {
+    if (!userToggled) return;
+    const t = setTimeout(() => setUserToggled(false), 5000);
+    return () => clearTimeout(t);
+  }, [userToggled]);
+
+  const handleToggle = () => {
+    setExpanded(prev => !prev);
+    setUserToggled(true);
+  };
+
   const badges = useMemo(() => {
     const stepsMap = buildStepsMap(app.step_events || []);
     const submittedDate = stepsMap.submitted;
@@ -34,43 +69,22 @@ export function AchievementBadges({ app }: { app: Application }) {
     const totalSteps = STEPS.length;
 
     return [
-      {
-        id: "aor", label: "AOR",
-        icon: "M9 12L11 14L15 10M3 3H21V21H3Z",
-        earned: !!stepsMap.aor, color: "text-brand-700 bg-brand-200",
-      },
-      {
-        id: "halfway", label: "Halfway",
-        icon: "M18 20V10M12 20V4M6 20V14",
-        earned: completedSteps >= Math.ceil(totalSteps / 2), color: "text-warn-dark bg-warn-light",
-      },
-      {
-        id: "medical", label: "Medical",
-        icon: "M12 4V20M4 12H20",
-        earned: !!stepsMap.medical, color: "text-brand-600 bg-brand-100",
-      },
-      {
-        id: "background", label: "Background",
-        icon: "M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z",
-        earned: !!stepsMap.background, color: "text-brand-600 bg-brand-100",
-      },
-      {
-        id: "ecopr", label: "eCoPR",
-        icon: "M3 21H21M5 21V7L12 3L19 7V21",
-        earned: !!stepsMap.ecopr, color: "text-warn-dark bg-yellow-100",
-      },
+      { id: "aor", label: "AOR", icon: "M9 12L11 14L15 10M3 3H21V21H3Z", earned: !!stepsMap.aor, color: "text-brand-700 bg-brand-200" },
+      { id: "halfway", label: "Halfway", icon: "M18 20V10M12 20V4M6 20V14", earned: completedSteps >= Math.ceil(totalSteps / 2), color: "text-warn-dark bg-warn-light" },
+      { id: "medical", label: "Medical", icon: "M12 4V20M4 12H20", earned: !!stepsMap.medical, color: "text-brand-600 bg-brand-100" },
+      { id: "background", label: "Background", icon: "M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z", earned: !!stepsMap.background, color: "text-brand-600 bg-brand-100" },
+      { id: "ecopr", label: "eCoPR", icon: "M3 21H21M5 21V7L12 3L19 7V21", earned: !!stepsMap.ecopr, color: "text-warn-dark bg-yellow-100" },
     ] as Badge[];
   }, [app]);
 
   if (badges.length === 0) return null;
-
   const earned = badges.filter(b => b.earned).length;
 
   return (
-    <div className="bg-white border border-sand-200 rounded-xl mb-3 overflow-hidden">
+    <div ref={containerRef} className="bg-white border border-sand-200 rounded-xl mb-3 overflow-hidden">
       {/* Header */}
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleToggle}
         className="w-full flex items-center gap-3 px-4 py-3 text-left active:scale-[0.99] transition-transform"
       >
         <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -81,67 +95,40 @@ export function AchievementBadges({ app }: { app: Application }) {
         {/* Mini dots when collapsed */}
         <div className="flex gap-1 flex-shrink-0" style={{ opacity: expanded ? 0 : 1, transition: "opacity 0.2s ease" }}>
           {badges.map((b) => (
-            <div
-              key={b.id}
-              className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                b.earned ? b.color : "bg-sand-100"
-              }`}
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                className={b.earned ? "" : "opacity-20"}>
+            <div key={b.id} className={`w-5 h-5 rounded-full flex items-center justify-center ${b.earned ? b.color : "bg-sand-100"}`}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={b.earned ? "" : "opacity-20"}>
                 <path d={b.icon} />
               </svg>
             </div>
           ))}
         </div>
 
-        <svg
-          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
-          className="flex-shrink-0"
-          style={{ transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
-        >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0"
+          style={{ transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
           <path d="M6 9L12 15L18 9" />
         </svg>
       </button>
 
-      {/* Body — height-based animation */}
-      <div
-        ref={contentRef}
-        style={{
-          maxHeight: expanded ? (height ? `${height}px` : "200px") : "0px",
-          overflow: "hidden",
-          transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
-      >
-        <div
-          className="px-4 pb-4"
-          style={{
-            opacity: expanded ? 1 : 0,
-            transition: "opacity 0.2s ease",
-            transitionDelay: expanded ? "0.08s" : "0s",
-          }}
-        >
+      {/* Body */}
+      <div ref={contentRef} style={{
+        maxHeight: expanded ? (height ? `${height}px` : "200px") : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div className="px-4 pb-4" style={{
+          opacity: expanded ? 1 : 0,
+          transition: "opacity 0.2s ease",
+          transitionDelay: expanded ? "0.08s" : "0s",
+        }}>
           <div className="flex justify-between gap-2">
             {badges.map((b) => (
-              <div
-                key={b.id}
-                className={`flex flex-col items-center gap-1.5 flex-1 py-2.5 rounded-xl transition-all ${
-                  b.earned ? b.color : "bg-sand-50 text-sand-300"
-                }`}
-              >
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                  b.earned ? "bg-white/60" : "bg-sand-100"
-                }`}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    className={b.earned ? "" : "opacity-25"}>
+              <div key={b.id} className={`flex flex-col items-center gap-1.5 flex-1 py-2.5 rounded-xl transition-all ${b.earned ? b.color : "bg-sand-50 text-sand-300"}`}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${b.earned ? "bg-white/60" : "bg-sand-100"}`}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={b.earned ? "" : "opacity-25"}>
                     <path d={b.icon} />
                   </svg>
                 </div>
-                <span className={`text-[9px] font-semibold ${b.earned ? "" : "text-sand-300"}`}>
-                  {b.label}
-                </span>
+                <span className={`text-[9px] font-semibold ${b.earned ? "" : "text-sand-300"}`}>{b.label}</span>
                 {!b.earned && (
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-sand-300 -mt-0.5">
                     <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
