@@ -151,7 +151,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
 
       {/* 1. Header */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-3">
         <div className="w-12 h-12 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-lg">
           {app.initials.slice(0, 2).toUpperCase()}
         </div>
@@ -165,11 +165,16 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         <div className="text-right">
           <div className="text-xs font-bold text-brand-600">Day {daysSoFar}</div>
           <div className="text-[9px] text-sand-400">{submittedDate ? formatNice(submittedDate) : "—"}</div>
-          <a href="/dashboard" className="text-[9px] text-brand-500 font-medium mt-0.5 inline-block">Edit</a>
         </div>
       </div>
 
-      {/* 2. AOR Countdown */}
+      {/* 2. Timeline — RIGHT after name, most important section */}
+      <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
+        latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
+        stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
+        handleUndoStep={handleUndoStep} saving={saving} undoing={undoing} />
+
+      {/* 3. AOR Countdown */}
       <AORCountdown app={app} allApps={allApps} />
 
       {/* 3. Queue Position */}
@@ -221,13 +226,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       {/* 4. Achievement Badges */}
       <AchievementBadges app={app} />
 
-      {/* 5. Step timeline — collapsed by default */}
-      <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
-        latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
-        stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
-        handleUndoStep={handleUndoStep} saving={saving} undoing={undoing} />
-
-      {/* 6. Find a Representative */}
+      {/* 5. Find a Representative */}
       <FindRepresentativeCard />
 
       {/* Reminder + Share */}
@@ -374,21 +373,58 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
   };
 
   return (
-    <div className="bg-white border border-sand-200 rounded-xl mb-3 overflow-hidden">
-      {/* Header — always visible */}
-      <button onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left active:scale-[0.99] transition-transform">
-        <div className="flex-1 min-w-0">
+    <div className="border border-sand-200 rounded-xl mb-3 overflow-hidden bg-sand-50/30">
+      {/* Header — always visible with Update button */}
+      <div className="px-4 py-3">
+        <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your Timeline</span>
             <span className="text-[10px] font-bold text-brand-600">{completedCount}/{STEPS.length}</span>
           </div>
-          {!expanded && nextStep && (
-            <div className="text-[11px] text-warn-dark font-medium mt-0.5">Next: {nextStep.label}</div>
-          )}
+          <div className="flex items-center gap-2">
+            <TimelineExport app={app} />
+          </div>
         </div>
-        <TimelineExport app={app} />
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
+
+        {/* Next step — prominent Update button always visible */}
+        {nextStep && activeStep !== nextStep.id && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(true); setActiveStep(nextStep.id); }}
+            className="w-full flex items-center gap-3 mt-2 px-3 py-2.5 rounded-lg bg-warn-light border border-warn/20 active:scale-[0.98] transition-all">
+            <div className="w-2.5 h-2.5 rounded-full bg-warn animate-pulse flex-shrink-0" />
+            <span className="text-sm font-medium text-sand-900 flex-1 text-left">Update {nextStep.label}</span>
+            <span className="text-xs bg-warn text-white px-3 py-1 rounded-lg font-medium">Update</span>
+          </button>
+        )}
+
+        {/* Date picker for next step — works in collapsed header too */}
+        {nextStep && activeStep === nextStep.id && (
+          <div className="flex items-center gap-2 mt-2">
+            <input type="date" autoFocus
+              className="flex-1 text-sm px-3 py-2 border border-sand-200 rounded-lg bg-white text-sand-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
+              max={new Date().toISOString().split("T")[0]} value={stepDate}
+              onChange={(e) => setStepDate(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && stepDate) handleSaveStep(nextStep.id, stepDate);
+                if (e.key === "Escape") { setActiveStep(null); setStepDate(""); }
+              }} />
+            {stepDate && (
+              <button onClick={() => handleSaveStep(nextStep.id, stepDate)} disabled={saving}
+                className="text-xs bg-brand-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-brand-600 transition-all active:scale-95 disabled:opacity-50">
+                {saving ? "..." : "Save"}
+              </button>
+            )}
+            <button onClick={() => { setActiveStep(null); setStepDate(""); }}
+              className="text-xs text-sand-400 hover:text-sand-600 px-2 py-2 transition-colors">Cancel</button>
+          </div>
+        )}
+      </div>
+
+      {/* Expand/collapse toggle */}
+      <button onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-center gap-1 py-2 border-t border-sand-100 text-[10px] text-sand-400 font-medium hover:text-sand-600 transition-colors">
+        {expanded ? "Hide steps" : "View all steps"}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
           style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
           <path d="M6 9L12 15L18 9" />
         </svg>
