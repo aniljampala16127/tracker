@@ -232,7 +232,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
             <div className="flex gap-2">
               <button onClick={handleEditSave} disabled={saving || !editForm.initials.trim() || !editForm.country_origin}
                 className="flex-1 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors disabled:opacity-50 active:scale-[0.98]">
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? "..." : "Save"}
               </button>
               <button onClick={() => setEditing(false)}
                 className="px-5 py-2.5 rounded-lg border border-sand-200 text-sm text-sand-500 font-medium hover:bg-sand-50 transition-colors">
@@ -462,7 +462,7 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
         </div>
 
         {/* Next step — tap to expand and update */}
-        {nextStep && (
+        {nextStep && !expanded && (
           <button
             onClick={() => { setExpanded(true); const t = new Date().toISOString().split("T")[0]; setStepDate(t); setTimeout(() => setActiveStep(nextStep.id), 100); }}
             className="w-full flex items-center gap-3 mt-2 px-3 py-2.5 rounded-lg bg-warn-light border border-warn/20 active:scale-[0.98] transition-all">
