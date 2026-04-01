@@ -453,7 +453,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
         d.subDates.sort();
         const subList = d.subDates.map(s => fmtDate(s)).join(", ");
         const streamInfo = d.streams.inland > 0 && d.streams.outland > 0
-          ? ` (${d.streams.outland}O/${d.streams.inland}I)`
+          ? ` (${d.streams.outland} Outland, ${d.streams.inland} Inland)`
           : d.streams.inland > 0 ? ` (Inland)` : "";
         msg += `  ${fmtDate(date)} — ${d.count} received${streamInfo} · sub ${subList}\n`;
       });

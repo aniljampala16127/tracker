@@ -158,7 +158,7 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
       // Date rows
       step.dates.forEach(d => {
         const subList = d.subDates.map(s => fmt(s)).join(", ");
-        const streamInfo = d.inland > 0 && d.outland > 0 ? ` (${d.outland}O/${d.inland}I)` : d.inland > 0 ? " (Inland)" : "";
+        const streamInfo = d.inland > 0 && d.outland > 0 ? ` (${d.outland} Outland, ${d.inland} Inland)` : d.inland > 0 ? " (Inland)" : "";
 
         // Row background
         ctx.fillStyle = "rgba(45,106,79,0.03)";
