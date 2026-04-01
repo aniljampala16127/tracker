@@ -182,7 +182,8 @@ export default function CalculatorPage() {
           if (d >= 0 && d <= 500) durations.push(d);
         }
       });
-      const communityAvg = durations.length >= 1 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+      const rawAvg = durations.length >= 1 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+      const communityAvg = rawAvg !== null && rawAvg <= 500 ? rawAvg : null; // double safety
       // Fallback: midpoint of IRCC published week ranges
       const weeksRange = stream === "Outland" ? step.avgWeeksOutland : step.avgWeeksInland;
       const irccFallback = weeksRange ? Math.round(((weeksRange[0] + weeksRange[1]) / 2) * 7) : null;
