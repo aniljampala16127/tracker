@@ -99,6 +99,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   const [showConfetti, setShowConfetti] = useState(false);
   const [saving, setSaving] = useState(false);
   const [undoing, setUndoing] = useState(false);
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
   const supabase = createClient();
 
   // What's the next step to complete?
@@ -175,7 +176,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-sand-900">{app.initials}</h2>
-            <button onClick={() => setEditing(!editing)}
+            <button onClick={() => { setEditing(!editing); if (!editing) setTimelineExpanded(false); }}
               className="text-[10px] text-brand-500 font-medium px-2 py-0.5 rounded-full border border-brand-200 hover:bg-brand-50 transition-colors">
               {editing ? "Cancel" : "Edit"}
             </button>
@@ -247,7 +248,8 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
         latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
         stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
-        handleUndoStep={handleUndoStep} saving={saving} undoing={undoing} />
+        handleUndoStep={handleUndoStep} saving={saving} undoing={undoing}
+        expanded={timelineExpanded} setExpanded={(v: boolean) => { setTimelineExpanded(v); if (v) setEditing(false); }} />
 
       {/* 3. AOR Countdown */}
       <AORCountdown app={app} allApps={allApps} />
@@ -421,6 +423,7 @@ function GCKeyInlineStep({ appId, gckeyDone, toggleGckey }: {
 // Collapsible Timeline with inline GCKey after AOR
 function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestCompletedId,
   activeStep, setActiveStep, stepDate, setStepDate, handleSaveStep, handleUndoStep, saving, undoing,
+  expanded, setExpanded,
 }: {
   app: Application; stepsMap: Record<string, string | null>; currentIdx: number;
   nextStepId: string | null; latestCompletedId: string | null;
@@ -428,8 +431,8 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
   stepDate: string; setStepDate: (s: string) => void;
   handleSaveStep: (stepId: string, date: string) => void;
   handleUndoStep: (stepId: string) => void; saving: boolean; undoing: boolean;
+  expanded: boolean; setExpanded: (v: boolean) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const [gckeyDone, setGckeyDone] = useState(false);
   const hasAor = !!stepsMap.aor;
   const completedCount = STEPS.filter(s => stepsMap[s.id]).length;
