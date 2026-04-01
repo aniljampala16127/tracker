@@ -6,7 +6,13 @@ import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-function fmtDate(d: string) { const dt = new Date(d + "T00:00:00"); return `${MO[dt.getMonth()]} ${dt.getDate()}`; }
+function fmtDate(d: string) {
+  const dt = new Date(d + "T00:00:00");
+  const now = new Date();
+  // Show year if different from current year
+  const yr = dt.getFullYear() !== now.getFullYear() ? ` '${String(dt.getFullYear()).slice(2)}` : "";
+  return `${MO[dt.getMonth()]} ${dt.getDate()}${yr}`;
+}
 
 const STEP_COLORS: Record<string, string> = {
   aor: "bg-brand-500", bil: "bg-brand-400", sponsor_eligibility: "bg-emerald-500",
@@ -76,10 +82,13 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     const byStep: Record<string, MilestoneEntry[]> = {};
     const wk: Record<string, number> = {};
 
+    const todayStr = ld(now);
+
     apps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
       (a.step_events || []).forEach(ev => {
         if (ev.step_id === "submitted") return;
+        if (ev.event_date > todayStr) return; // skip future dates (bad data)
         if (!byStep[ev.step_id]) { byStep[ev.step_id] = []; wk[ev.step_id] = 0; }
         const pi = STEPS.findIndex(st => st.id === ev.step_id) - 1;
         const pd = pi >= 0 ? s[STEPS[pi].id] : s.submitted;
