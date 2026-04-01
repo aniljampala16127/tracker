@@ -460,7 +460,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
       });
     });
 
-    msg += `\ntracker-lime-five.vercel.app`;
+    msg += `\nhttps://tracker-lime-five.vercel.app/dashboard`;
 
     return msg;
   }, [apps]);
