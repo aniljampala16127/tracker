@@ -64,6 +64,71 @@ function AutoSwipeController({ scrollRef, cards, pausedRef, expanded }: {
   return null;
 }
 
+function AutoScrollList({ children, entryCount, expanded }: {
+  children: React.ReactNode;
+  entryCount: number;
+  expanded: boolean;
+}) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const paused = useRef(false);
+  const touchTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (!expanded || entryCount <= 3) return;
+    const el = listRef.current;
+    if (!el) return;
+
+    let rafId: number;
+    let lastTime = 0;
+    const speed = 0.3; // px per frame (~18px/sec at 60fps)
+
+    const tick = (time: number) => {
+      if (!paused.current && el.scrollHeight > el.clientHeight) {
+        const dt = lastTime ? time - lastTime : 16;
+        el.scrollTop += speed * (dt / 16);
+        // Loop: when near bottom, jump to top
+        if (el.scrollTop >= el.scrollHeight - el.clientHeight - 2) {
+          el.scrollTop = 0;
+        }
+      }
+      lastTime = time;
+      rafId = requestAnimationFrame(tick);
+    };
+
+    // Start after a small delay so content renders
+    const startTimer = setTimeout(() => {
+      rafId = requestAnimationFrame(tick);
+    }, 1000);
+
+    return () => {
+      clearTimeout(startTimer);
+      cancelAnimationFrame(rafId);
+    };
+  }, [expanded, entryCount]);
+
+  const handleTouchStart = () => {
+    paused.current = true;
+    clearTimeout(touchTimer.current);
+  };
+
+  const handleTouchEnd = () => {
+    clearTimeout(touchTimer.current);
+    touchTimer.current = setTimeout(() => { paused.current = false; }, 5000);
+  };
+
+  return (
+    <div
+      ref={listRef}
+      className="h-full overflow-y-auto hide-scrollbar overscroll-contain pt-1"
+      style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function AORWaveTracker({ apps }: { apps: Application[] }) {
   const data = useMemo(() => {
     const now = new Date();
@@ -295,10 +360,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                   <div className="h-[120px] relative">
                     <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-white/90 to-transparent z-10 pointer-events-none" />
                     <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-white/90 to-transparent z-10 pointer-events-none" />
-                    <div
-                      className="h-full overflow-y-auto hide-scrollbar overscroll-contain pt-1"
-                      style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
-                    >
+                    <AutoScrollList entryCount={card.entries.length} expanded={expanded}>
                       {card.entries.slice(0, 15).map((a, i) => (
                         <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
                           <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
@@ -324,7 +386,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                       {card.entries.length > 15 && (
                         <div className="text-center text-[9px] text-sand-400 py-1">+{card.entries.length - 15} more</div>
                       )}
-                    </div>
+                    </AutoScrollList>
                   </div>
                 )}
               </div>
