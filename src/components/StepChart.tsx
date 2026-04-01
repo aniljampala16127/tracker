@@ -34,7 +34,7 @@ export function StepChart({ apps }: StepChartProps) {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) {
           const d = daysBetween(s[prev.id]!, s[step.id]!);
-          if (d < 0 || d > 500) return; // Skip bad data (negative or >500 days per step)
+          if (d < 0 || d > 100) return; // Skip bad data (negative or >100 days per step)
           if (a.stream === "Outland") outlandDurations.push(d);
           else inlandDurations.push(d);
         }

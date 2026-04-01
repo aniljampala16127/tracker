@@ -58,7 +58,7 @@ export default function StatsPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s[prev.id] && s[step.id]) {
           const d = daysBetween(s[prev.id]!, s[step.id]!);
-          if (d < 0 || d > 500) return; // skip bad data
+          if (d < 0 || d > 100) return; // skip bad data
           if (a.stream === "Outland") outlandDays.push(d);
           else inlandDays.push(d);
         }
@@ -89,7 +89,7 @@ export default function StatsPage() {
         const s = buildStepsMap(a.step_events || []);
         if (s.submitted && s.aor) {
           const d = daysBetween(s.submitted, s.aor);
-          if (d < 0 || d > 500) return;
+          if (d < 0 || d > 100) return;
           if (a.stream === "Outland") outlandAor.push(d);
           else inlandAor.push(d);
         }
@@ -263,7 +263,7 @@ export default function StatsPage() {
             const s = buildStepsMap(a.step_events || []);
             if (s.submitted && s.aor) {
               const days = daysBetween(s.submitted, s.aor);
-              if (days < 0 || days > 500) return;
+              if (days < 0 || days > 100) return;
               const d = new Date(s.aor + "T00:00:00");
               points.push({
                 date: s.aor,
@@ -326,7 +326,7 @@ export default function StatsPage() {
             const s = buildStepsMap(a.step_events || []);
             if (s.submitted && s.aor) {
               const d = daysBetween(s.submitted, s.aor);
-              if (d >= 0 && d <= 500) aorDays.push(d);
+              if (d >= 0 && d <= 100) aorDays.push(d);
             }
           });
           const avg = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
@@ -401,7 +401,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
       const s = buildStepsMap(a.step_events || []);
       if (s.submitted && s.aor) {
         const d = daysBetween(s.submitted, s.aor);
-        if (d >= 0 && d <= 500) outlandAorDays.push(d);
+        if (d >= 0 && d <= 100) outlandAorDays.push(d);
       }
     });
     const avgOutlandAor = outlandAorDays.length ? Math.round(outlandAorDays.reduce((a, b) => a + b, 0) / outlandAorDays.length) : null;
@@ -411,7 +411,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
       const s = buildStepsMap(a.step_events || []);
       if (s.submitted && s.aor) {
         const d = daysBetween(s.submitted, s.aor);
-        if (d >= 0 && d <= 500) inlandAorDays.push(d);
+        if (d >= 0 && d <= 100) inlandAorDays.push(d);
       }
     });
     const avgInlandAor = inlandAorDays.length ? Math.round(inlandAorDays.reduce((a, b) => a + b, 0) / inlandAorDays.length) : null;
