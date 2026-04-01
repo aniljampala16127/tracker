@@ -176,9 +176,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
         <div className="w-2 h-2 rounded-full flex-shrink-0 bg-brand-500 animate-pulse" />
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-bold text-sand-900">{data.weekTotal} updates this week</div>
-          <div className="text-[10px] text-sand-500">
-            {data.weekBreakdown} · {data.waiting} waiting
-          </div>
+          <div className="text-[10px] text-sand-500">{data.waiting} waiting for AOR</div>
         </div>
         {/* Collapsed: mini dots */}
         <div className="flex gap-1 flex-shrink-0"
