@@ -191,39 +191,59 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         </div>
       </div>
 
-      {/* Inline Edit Form */}
+      {/* Inline Edit Form — cleaner, more spacious */}
       {editing && (
-        <div className="bg-sand-50 rounded-xl p-3 mb-3 space-y-2 border border-sand-200">
-          <input className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white" placeholder="Name"
-            value={editForm.initials} onChange={(e) => setEditForm(p => ({ ...p, initials: e.target.value }))} />
-          <input className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white" placeholder="PA Country"
-            value={editForm.country_origin} onChange={(e) => setEditForm(p => ({ ...p, country_origin: e.target.value }))} />
-          <div className="grid grid-cols-3 gap-2">
-            <select className="px-2 py-2 rounded-lg border border-sand-200 text-xs bg-white"
-              value={editForm.sponsor_status} onChange={(e) => setEditForm(p => ({ ...p, sponsor_status: e.target.value }))}>
-              <option value="PR">PR</option><option value="Citizen">Citizen</option>
-            </select>
-            <select className="px-2 py-2 rounded-lg border border-sand-200 text-xs bg-white"
-              value={editForm.stream} onChange={(e) => setEditForm(p => ({ ...p, stream: e.target.value }))}>
-              <option value="Outland">Outland</option><option value="Inland">Inland</option>
-            </select>
-            <select className="px-2 py-2 rounded-lg border border-sand-200 text-xs bg-white"
-              value={editForm.province} onChange={(e) => setEditForm(p => ({ ...p, province: e.target.value }))}>
-              <option value="Outside Quebec">Outside QC</option><option value="Quebec">Inside QC</option>
-            </select>
+        <div className="bg-sand-50 rounded-xl p-4 mb-3 border border-sand-200">
+          <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-3">Edit Details</div>
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] text-sand-500 font-medium mb-1 block">Name</label>
+              <input className="w-full px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+                value={editForm.initials} onChange={(e) => setEditForm(p => ({ ...p, initials: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-[10px] text-sand-500 font-medium mb-1 block">PA Country</label>
+              <input className="w-full px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+                value={editForm.country_origin} onChange={(e) => setEditForm(p => ({ ...p, country_origin: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-sand-500 font-medium mb-1 block">Sponsor Status</label>
+                <select className="w-full px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  value={editForm.sponsor_status} onChange={(e) => setEditForm(p => ({ ...p, sponsor_status: e.target.value }))}>
+                  <option value="PR">PR</option><option value="Citizen">Citizen</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-sand-500 font-medium mb-1 block">Stream</label>
+                <select className="w-full px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  value={editForm.stream} onChange={(e) => setEditForm(p => ({ ...p, stream: e.target.value }))}>
+                  <option value="Outland">Outland</option><option value="Inland">Inland</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-sand-500 font-medium mb-1 block">Quebec</label>
+              <select className="w-full px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                value={editForm.province} onChange={(e) => setEditForm(p => ({ ...p, province: e.target.value }))}>
+                <option value="Outside Quebec">Outside Quebec</option><option value="Quebec">Inside Quebec</option>
+              </select>
+            </div>
+            <button onClick={handleEditSave} disabled={saving || !editForm.initials.trim() || !editForm.country_origin}
+              className="w-full py-2.5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors disabled:opacity-50 active:scale-[0.98]">
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
           </div>
-          <button onClick={handleEditSave} disabled={saving || !editForm.initials.trim() || !editForm.country_origin}
-            className="w-full py-2 rounded-lg bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 transition-colors disabled:opacity-50">
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
         </div>
       )}
 
-      {/* 2. Timeline — RIGHT after name, most important section */}
-      <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
-        latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
-        stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
-        handleUndoStep={handleUndoStep} saving={saving} undoing={undoing} />
+      {/* 2. Timeline — collapses when editing */}
+      {!editing && (
+        <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
+          latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
+          stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
+          handleUndoStep={handleUndoStep} saving={saving} undoing={undoing} />
+      )}
 
       {/* 3. AOR Countdown */}
       <AORCountdown app={app} allApps={allApps} />
@@ -440,7 +460,7 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
         {/* Next step — tap to expand and update */}
         {nextStep && (
           <button
-            onClick={() => { setExpanded(true); setTimeout(() => setActiveStep(nextStep.id), 100); }}
+            onClick={() => { setExpanded(true); const t = new Date().toISOString().split("T")[0]; setStepDate(t); setTimeout(() => setActiveStep(nextStep.id), 100); }}
             className="w-full flex items-center gap-3 mt-2 px-3 py-2.5 rounded-lg bg-warn-light border border-warn/20 active:scale-[0.98] transition-all">
             <div className="w-2.5 h-2.5 rounded-full bg-warn animate-pulse flex-shrink-0" />
             <span className="text-sm font-medium text-sand-900 flex-1 text-left">{nextStep.label}</span>
@@ -501,7 +521,7 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
                       </div>
                     )}
                     {isNext && activeStep !== step.id && (
-                      <button onClick={() => setActiveStep(step.id)}
+                      <button onClick={() => { const t = new Date().toISOString().split("T")[0]; setStepDate(t); setActiveStep(step.id); }}
                         className="text-xs bg-warn text-white px-3 py-1.5 rounded-lg font-medium hover:bg-warn-dark transition-all active:scale-95">
                         Update
                       </button>
