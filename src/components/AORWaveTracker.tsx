@@ -15,7 +15,7 @@ const STEP_COLORS: Record<string, string> = {
 };
 
 interface MilestoneEntry {
-  initials: string; stepDate: string; stream: string; country: string; days: number;
+  initials: string; stepDate: string; subDate: string; stream: string; country: string; days: number;
 }
 interface MilestoneCard {
   stepId: string; label: string; entries: MilestoneEntry[]; thisWeek: number;
@@ -84,7 +84,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
         const pi = STEPS.findIndex(st => st.id === ev.step_id) - 1;
         const pd = pi >= 0 ? s[STEPS[pi].id] : s.submitted;
         byStep[ev.step_id].push({
-          initials: a.initials, stepDate: ev.event_date, stream: a.stream,
+          initials: a.initials, stepDate: ev.event_date, subDate: s.submitted || "", stream: a.stream,
           country: a.country_origin, days: pd ? daysBetween(pd, ev.event_date) : 0,
         });
         if (ev.event_date >= wkStart) wk[ev.step_id]++;
@@ -253,7 +253,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-[11px] font-semibold text-sand-900 truncate leading-tight">{a.initials}</div>
-                            <div className="text-[9px] text-sand-400 leading-tight">{a.country} · {a.days}d</div>
+                            <div className="text-[9px] text-sand-400 leading-tight">{a.country} · Sub {fmtDate(a.subDate)} · {a.days}d</div>
                           </div>
                           <div className="text-[10px] font-semibold text-sand-600 flex-shrink-0 tabular-nums">{fmtDate(a.stepDate)}</div>
                         </div>
