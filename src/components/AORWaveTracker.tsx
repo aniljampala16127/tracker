@@ -97,7 +97,15 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
 
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
     const weekTotal = Object.values(wk).reduce((s, n) => s + n, 0);
-    return { cards, waiting, weekTotal };
+
+    // Build "6 AOR · 3 BIL · 2 Medical" string for this week
+    const weekParts: string[] = [];
+    cards.forEach(c => {
+      if (c.thisWeek > 0) weekParts.push(`${c.thisWeek} ${c.label}`);
+    });
+    const weekBreakdown = weekParts.length > 0 ? weekParts.slice(0, 4).join(" · ") : "No updates yet";
+
+    return { cards, waiting, weekTotal, weekBreakdown };
   }, [apps]);
 
   const [expanded, setExpanded] = useState(true);
@@ -105,23 +113,23 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
   const [activeCard, setActiveCard] = useState(0);
   const lastY = useRef(0);
   const scrollDelta = useRef(0);
-  const initialized = useRef(false);
+  const mountTime = useRef(Date.now());
   const cardsRef = useRef<HTMLDivElement>(null);
 
-  // Initialize scroll position
+  // Scroll-to-collapse: requires 150px sustained downward scroll
+  // 1.5s cooldown after mount to prevent collapse on tab switch
   useEffect(() => {
     if (typeof window === "undefined") return;
     lastY.current = window.scrollY;
-    initialized.current = true;
-  }, []);
+    mountTime.current = Date.now();
 
-  // Scroll-to-collapse: requires 150px sustained downward scroll
-  useEffect(() => {
-    if (typeof window === "undefined") return;
     let raf: number | null = null;
     const onScroll = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
+        // Skip collapse for 1.5s after mount (tab switch protection)
+        if (Date.now() - mountTime.current < 1500) { lastY.current = window.scrollY; raf = null; return; }
+
         const y = window.scrollY;
         const dy = y - lastY.current;
         if (!userToggled) {
@@ -168,7 +176,9 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
         <div className="w-2 h-2 rounded-full flex-shrink-0 bg-brand-500 animate-pulse" />
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-bold text-sand-900">{data.weekTotal} updates this week</div>
-          <div className="text-[10px] text-sand-500">{data.cards.reduce((s, c) => s + c.entries.length, 0)} milestones · {data.waiting} waiting</div>
+          <div className="text-[10px] text-sand-500">
+            {data.weekBreakdown} · {data.waiting} waiting
+          </div>
         </div>
         {/* Collapsed: mini dots */}
         <div className="flex gap-1 flex-shrink-0"
