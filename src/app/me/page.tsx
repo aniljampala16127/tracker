@@ -14,7 +14,6 @@ import { AORCountdown } from "@/components/AORCountdown";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { playMilestoneSound } from "@/lib/sounds";
 import { TimelineExport } from "@/components/TimelineExport";
-import { PostAORGuide } from "@/components/PostAORGuide";
 import { FindRepresentativeCard } from "@/components/FindRepresentativeCard";
 import { MeSkeleton } from "@/components/Skeletons";
 import { PullToRefresh } from "@/components/PullToRefresh";
@@ -221,107 +220,11 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       {/* 4. Achievement Badges */}
       <AchievementBadges app={app} />
 
-      {/* 4.5 Post-AOR Guide — only after AOR received */}
-      {stepsMap.aor && <PostAORGuide />}
-
-      {/* 5. Step timeline */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your Timeline</div>
-          <TimelineExport app={app} />
-        </div>
-        <div className="space-y-1">
-          {STEPS.map((step, i) => {
-            const date = stepsMap[step.id];
-            const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
-            const days = date && prevDate ? daysBetween(prevDate, date) : null;
-            const isDone = i <= currentIdx && date;
-            const isNext = step.id === nextStepId;
-
-            return (
-              <div key={step.id}>
-                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  isDone ? "bg-brand-50 step-done" : isNext ? "bg-warn-light border border-warn/20" : "opacity-30"
-                }`}>
-                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                    isDone ? "bg-brand-500 dot-fill" : isNext ? "bg-warn animate-pulse" : "bg-sand-300"
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-sand-900">{step.label}</span>
-                  </div>
-
-                  {/* Done — show date */}
-                  {isDone && (
-                    <div className="text-right date-slide">
-                      <div className="text-xs font-medium text-sand-700">{formatNice(date!).replace(/, \d{4}/, "")}</div>
-                      {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d</div>}
-                    </div>
-                  )}
-
-                  {/* Next step — show Update button or date picker */}
-                  {isNext && activeStep !== step.id && (
-                    <button
-                      onClick={() => setActiveStep(step.id)}
-                      className="text-xs bg-warn text-white px-3 py-1.5 rounded-lg font-medium hover:bg-warn-dark transition-all active:scale-95"
-                    >
-                      Update
-                    </button>
-                  )}
-
-                  {isDone && (
-                    <div className="flex items-center gap-1 flex-shrink-0 check-draw">
-                      <Reactions applicationId={app.id} stepId={step.id} compact />
-                      {step.id !== "submitted" && step.id === latestCompletedId ? (
-                        <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
-                          className="text-[9px] px-1.5 py-0.5 rounded bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50">
-                          {undoing ? "..." : "Undo"}
-                        </button>
-                      ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 6L9 17L4 12" />
-                        </svg>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Date picker row */}
-                {isNext && activeStep === step.id && (
-                  <div className="flex items-center gap-2 px-3 py-2 ml-6 animate-in">
-                    <input
-                      type="date"
-                      autoFocus
-                      className="flex-1 text-sm px-3 py-2 border border-sand-200 rounded-lg bg-white text-sand-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
-                      max={new Date().toISOString().split("T")[0]}
-                      value={stepDate}
-                      onChange={(e) => setStepDate(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && stepDate) handleSaveStep(step.id, stepDate);
-                        if (e.key === "Escape") { setActiveStep(null); setStepDate(""); }
-                      }}
-                    />
-                    {stepDate && (
-                      <button
-                        onClick={() => handleSaveStep(step.id, stepDate)}
-                        disabled={saving}
-                        className="text-xs bg-brand-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-brand-600 transition-all active:scale-95 disabled:opacity-50"
-                      >
-                        {saving ? "..." : "Save"}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => { setActiveStep(null); setStepDate(""); }}
-                      className="text-xs text-sand-400 hover:text-sand-600 px-2 py-2 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* 5. Step timeline — collapsed by default */}
+      <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
+        latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
+        stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
+        handleUndoStep={handleUndoStep} saving={saving} undoing={undoing} />
 
       {/* 6. Find a Representative */}
       <FindRepresentativeCard />
@@ -331,6 +234,173 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         <div>
           <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Share Timeline</div>
           <ShareButtons app={app} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Collapsible Timeline with inline GCKey after AOR
+function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestCompletedId,
+  activeStep, setActiveStep, stepDate, setStepDate, handleSaveStep, handleUndoStep, saving, undoing,
+}: {
+  app: Application; stepsMap: Record<string, string | null>; currentIdx: number;
+  nextStepId: string | null; latestCompletedId: string | null;
+  activeStep: string | null; setActiveStep: (s: string | null) => void;
+  stepDate: string; setStepDate: (s: string) => void;
+  handleSaveStep: (stepId: string, date: string) => void;
+  handleUndoStep: (stepId: string) => void; saving: boolean; undoing: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [gckeyDone, setGckeyDone] = useState(false);
+  const hasAor = !!stepsMap.aor;
+  const completedCount = STEPS.filter(s => stepsMap[s.id]).length;
+  const nextStep = nextStepId ? STEPS.find(s => s.id === nextStepId) : null;
+
+  // Load GCKey done state from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(`gckey-done-${app.id}`);
+    if (saved === "true") setGckeyDone(true);
+  }, [app.id]);
+
+  const toggleGckey = () => {
+    const next = !gckeyDone;
+    setGckeyDone(next);
+    localStorage.setItem(`gckey-done-${app.id}`, String(next));
+  };
+
+  return (
+    <div className="bg-white border border-sand-200 rounded-xl mb-3 overflow-hidden">
+      {/* Header — always visible */}
+      <button onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left active:scale-[0.99] transition-transform">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your Timeline</span>
+            <span className="text-[10px] font-bold text-brand-600">{completedCount}/{STEPS.length}</span>
+          </div>
+          {!expanded && nextStep && (
+            <div className="text-[11px] text-warn-dark font-medium mt-0.5">Next: {nextStep.label}</div>
+          )}
+        </div>
+        <TimelineExport app={app} />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
+          style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M6 9L12 15L18 9" />
+        </svg>
+      </button>
+
+      {/* Expandable body */}
+      <div style={{
+        maxHeight: expanded ? "1200px" : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div className="px-4 pb-4" style={{
+          opacity: expanded ? 1 : 0,
+          transition: "opacity 0.25s ease",
+          transitionDelay: expanded ? "0.1s" : "0s",
+        }}>
+          <div className="space-y-1">
+            {STEPS.map((step, i) => {
+              const date = stepsMap[step.id];
+              const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
+              const days = date && prevDate ? daysBetween(prevDate, date) : null;
+              const isDone = i <= currentIdx && date;
+              const isNext = step.id === nextStepId;
+
+              return (
+                <div key={step.id}>
+                  <div className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                    isDone ? "bg-brand-50" : isNext ? "bg-warn-light border border-warn/20" : "opacity-30"
+                  }`}>
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      isDone ? "bg-brand-500" : isNext ? "bg-warn animate-pulse" : "bg-sand-300"
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-sand-900">{step.label}</span>
+                    </div>
+                    {isDone && (
+                      <div className="text-right">
+                        <div className="text-xs font-medium text-sand-700">{formatNice(date!).replace(/, \d{4}/, "")}</div>
+                        {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d</div>}
+                      </div>
+                    )}
+                    {isNext && activeStep !== step.id && (
+                      <button onClick={() => setActiveStep(step.id)}
+                        className="text-xs bg-warn text-white px-3 py-1.5 rounded-lg font-medium hover:bg-warn-dark transition-all active:scale-95">
+                        Update
+                      </button>
+                    )}
+                    {isDone && (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Reactions applicationId={app.id} stepId={step.id} compact />
+                        {step.id !== "submitted" && step.id === latestCompletedId ? (
+                          <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
+                            className="text-[9px] px-1.5 py-0.5 rounded bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50">
+                            {undoing ? "..." : "Undo"}
+                          </button>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 6L9 17L4 12" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Date picker */}
+                  {isNext && activeStep === step.id && (
+                    <div className="flex items-center gap-2 px-3 py-2 ml-6 animate-in">
+                      <input type="date" autoFocus
+                        className="flex-1 text-sm px-3 py-2 border border-sand-200 rounded-lg bg-white text-sand-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
+                        max={new Date().toISOString().split("T")[0]} value={stepDate}
+                        onChange={(e) => setStepDate(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && stepDate) handleSaveStep(step.id, stepDate);
+                          if (e.key === "Escape") { setActiveStep(null); setStepDate(""); }
+                        }} />
+                      {stepDate && (
+                        <button onClick={() => handleSaveStep(step.id, stepDate)} disabled={saving}
+                          className="text-xs bg-brand-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-brand-600 transition-all active:scale-95 disabled:opacity-50">
+                          {saving ? "..." : "Save"}
+                        </button>
+                      )}
+                      <button onClick={() => { setActiveStep(null); setStepDate(""); }}
+                        className="text-xs text-sand-400 hover:text-sand-600 px-2 py-2 transition-colors">Cancel</button>
+                    </div>
+                  )}
+
+                  {/* GCKey inline step — after AOR */}
+                  {step.id === "aor" && hasAor && (
+                    <button onClick={toggleGckey}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg mx-1 mt-1 mb-1 w-[calc(100%-8px)] text-left transition-all ${
+                        gckeyDone ? "bg-brand-50" : "bg-blue-50 border border-blue-100"
+                      }`}>
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                        gckeyDone ? "bg-brand-500 border-brand-500" : "border-blue-300 bg-white"
+                      }`}>
+                        {gckeyDone && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17L4 12" /></svg>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-xs font-medium ${gckeyDone ? "text-brand-600 line-through" : "text-blue-700"}`}>
+                          Set up GCKey & IRCC Tracker
+                        </div>
+                        {!gckeyDone && (
+                          <div className="text-[9px] text-blue-500">Link your application to track progress on IRCC</div>
+                        )}
+                      </div>
+                      {gckeyDone && (
+                        <span className="text-[9px] text-brand-500 font-medium">Done</span>
+                      )}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
