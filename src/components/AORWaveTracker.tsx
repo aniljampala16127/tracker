@@ -74,41 +74,46 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     const daysToMon = dow === 0 ? 6 : dow - 1; // Sun→back 6, Mon→0, Tue→1...
     const wkStart = ld(new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToMon));
     const byStep: Record<string, MilestoneEntry[]> = {};
-    const wk: Record<string, number> = {};
+    const weekByStep: Record<string, MilestoneEntry[]> = {};
+    const totalByStep: Record<string, number> = {};
 
     apps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
       (a.step_events || []).forEach(ev => {
         if (ev.step_id === "submitted") return;
         if (ev.event_date > todayStr) return;
-        if (!byStep[ev.step_id]) { byStep[ev.step_id] = []; wk[ev.step_id] = 0; }
+        if (!totalByStep[ev.step_id]) totalByStep[ev.step_id] = 0;
+        totalByStep[ev.step_id]++;
+
         const pi = STEPS.findIndex(st => st.id === ev.step_id) - 1;
         const pd = pi >= 0 ? s[STEPS[pi].id] : s.submitted;
-        byStep[ev.step_id].push({
+        const entry: MilestoneEntry = {
           initials: a.initials, stepDate: ev.event_date, subDate: s.submitted || "",
           stream: a.stream, country: a.country_origin, days: pd ? daysBetween(pd, ev.event_date) : 0,
-        });
-        if (ev.event_date >= wkStart) wk[ev.step_id]++;
+        };
+
+        // All entries (for total count)
+        if (!byStep[ev.step_id]) byStep[ev.step_id] = [];
+        byStep[ev.step_id].push(entry);
+
+        // This week only (for card display)
+        if (ev.event_date >= wkStart) {
+          if (!weekByStep[ev.step_id]) weekByStep[ev.step_id] = [];
+          weekByStep[ev.step_id].push(entry);
+        }
       });
     });
-    Object.values(byStep).forEach(a => a.sort((x, y) => y.stepDate.localeCompare(x.stepDate)));
+    Object.values(weekByStep).forEach(a => a.sort((x, y) => y.stepDate.localeCompare(x.stepDate)));
 
     const cards: MilestoneCard[] = STEPS
-      .filter(s => s.id !== "submitted" && byStep[s.id]?.length > 0)
-      .map(s => ({ stepId: s.id, label: s.label, entries: byStep[s.id], thisWeek: wk[s.id] || 0 }))
+      .filter(s => s.id !== "submitted" && weekByStep[s.id]?.length > 0)
+      .map(s => ({ stepId: s.id, label: s.label, entries: weekByStep[s.id], thisWeek: weekByStep[s.id]?.length || 0 }))
       .sort((a, b) => (b.entries[0]?.stepDate || "").localeCompare(a.entries[0]?.stepDate || ""));
 
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
-    const weekTotal = Object.values(wk).reduce((s, n) => s + n, 0);
+    const weekTotal = Object.values(weekByStep).reduce((s, arr) => s + arr.length, 0);
 
-    // Build "6 AOR · 3 BIL · 2 Medical" string for this week
-    const weekParts: string[] = [];
-    cards.forEach(c => {
-      if (c.thisWeek > 0) weekParts.push(`${c.thisWeek} ${c.label}`);
-    });
-    const weekBreakdown = weekParts.length > 0 ? weekParts.slice(0, 4).join(" · ") : "No updates yet";
-
-    return { cards, waiting, weekTotal, weekBreakdown };
+    return { cards, waiting, weekTotal };
   }, [apps]);
 
   const [expanded, setExpanded] = useState(true);
@@ -251,10 +256,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                     <span className="text-[13px] font-bold text-sand-900">{card.label}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {card.thisWeek > 0 && (
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-700">+{card.thisWeek} this week</span>
-                    )}
-                    <span className="text-[11px] font-semibold text-sand-400">{card.entries.length}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-700">{card.entries.length}</span>
                   </div>
                 </div>
 
