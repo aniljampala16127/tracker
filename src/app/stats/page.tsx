@@ -422,42 +422,47 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
 
     const totalUpdates = Object.values(byStep).reduce((s, arr) => s + arr.length, 0);
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
-    const totalTracked = apps.length;
 
-    // Step emojis
-    const stepEmoji: Record<string, string> = {
-      aor: "📬", bil: "🖐️", sponsor_eligibility: "✅", medical: "🏥",
-      pa_eligibility: "📋", pre_arrival: "✈️", background: "🔍",
-      portal1: "🌐", portal2: "🌐", ecopr: "🎉",
-    };
+    // Build clean WhatsApp message
+    let msg = `*SponsorTrack — Weekly Update*\n`;
+    msg += `${fmtDate(wkStart)} to ${fmtDate(todayStr)}\n`;
+    msg += `${totalUpdates} milestones · ${apps.length} tracked · ${waiting} waiting\n`;
 
-    // Build premium WhatsApp message
-    let msg = `📊 *SponsorTrack — Weekly Update*\n`;
-    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `🗓️ ${fmtDate(wkStart)} – ${fmtDate(todayStr)}\n`;
-    msg += `📈 *${totalUpdates}* milestones this week\n`;
-    msg += `👥 ${totalTracked} tracked · ${waiting} waiting\n\n`;
-
-    // Show each milestone
     STEPS.forEach(step => {
       if (step.id === "submitted") return;
       const entries = byStep[step.id];
       if (!entries || entries.length === 0) return;
 
-      const emoji = stepEmoji[step.id] || "📌";
-      msg += `${emoji} *${step.label}* — ${entries.length} this week\n`;
-      entries.slice(0, 8).forEach(e => {
-        const flag = e.stream === "Outland" ? "🟢" : "🟡";
-        msg += `${flag} ${e.initials}\n`;
-        msg += `    _Sub ${fmtDate(e.subDate)} → ${fmtDate(e.stepDate)}_ · ${e.days}d\n`;
+      // Group by milestone date
+      const byDate: Record<string, { count: number; subDates: string[]; streams: { outland: number; inland: number } }> = {};
+      entries.forEach(e => {
+        if (!byDate[e.stepDate]) byDate[e.stepDate] = { count: 0, subDates: [], streams: { outland: 0, inland: 0 } };
+        byDate[e.stepDate].count++;
+        if (!byDate[e.stepDate].subDates.includes(e.subDate)) byDate[e.stepDate].subDates.push(e.subDate);
+        if (e.stream === "Outland") byDate[e.stepDate].streams.outland++;
+        else byDate[e.stepDate].streams.inland++;
       });
-      if (entries.length > 8) msg += `    _+${entries.length - 8} more_\n`;
-      msg += `\n`;
+
+      // Avg days for this step this week
+      const avgDays = Math.round(entries.reduce((s, e) => s + e.days, 0) / entries.length);
+
+      msg += `\n*${step.label}* — ${entries.length} received · avg ${avgDays}d\n`;
+
+      // Show each date
+      Object.keys(byDate).sort((a, b) => b.localeCompare(a)).forEach(date => {
+        const d = byDate[date];
+        d.subDates.sort();
+        const subRange = d.subDates.length === 1
+          ? `sub ${fmtDate(d.subDates[0])}`
+          : `sub ${fmtDate(d.subDates[0])} – ${fmtDate(d.subDates[d.subDates.length - 1])}`;
+        const streamInfo = d.streams.inland > 0 && d.streams.outland > 0
+          ? ` (${d.streams.outland}O/${d.streams.inland}I)`
+          : d.streams.inland > 0 ? ` (Inland)` : "";
+        msg += `  ${fmtDate(date)} — ${d.count} received${streamInfo} · ${subRange}\n`;
+      });
     });
 
-    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `🔗 Track yours:\n`;
-    msg += `tracker-lime-five.vercel.app`;
+    msg += `\ntracker-lime-five.vercel.app`;
 
     return msg;
   }, [apps]);
