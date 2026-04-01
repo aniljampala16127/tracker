@@ -262,15 +262,22 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
             ))}
           </div>
 
-          {/* Dot indicators */}
+          {/* Dot indicators — tappable to jump to card */}
           {data.cards.length > 1 && (
-            <div className="flex justify-center gap-1.5 mt-2">
+            <div className="flex justify-center gap-1.5 mt-2.5">
               {data.cards.map((c, i) => (
-                <div key={c.stepId}
-                  className="rounded-full transition-all duration-300"
+                <button key={c.stepId}
+                  onClick={() => {
+                    const el = cardsRef.current;
+                    if (!el || !el.children[i]) return;
+                    const card = el.children[i] as HTMLElement;
+                    el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
+                    setActiveCard(i);
+                  }}
+                  className="rounded-full transition-all duration-300 active:scale-90"
                   style={{
-                    width: i === activeCard ? 18 : 6,
-                    height: 6,
+                    width: i === activeCard ? 20 : 8,
+                    height: 8,
                     backgroundColor: i === activeCard ? (STEP_DOT_COLORS[c.stepId] || "#8A8880") : "#D4D3CE",
                   }} />
               ))}

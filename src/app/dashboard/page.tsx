@@ -299,11 +299,9 @@ export default function DashboardPage() {
       {hasMyEntry && apps.length > 0 && <NewSinceLastVisit apps={apps} />}
       {hasMyEntry && apps.length > 0 && <CohortAORAlert apps={apps} />}
 
-      {/* AOR Wave Tracker — sticky below header */}
+      {/* AOR Wave Tracker */}
       {apps.length > 0 && (
-        <div className="sticky top-12 z-30">
-          <AORWaveTracker apps={apps} />
-        </div>
+        <AORWaveTracker apps={apps} />
       )}
 
       {/* Header */}
