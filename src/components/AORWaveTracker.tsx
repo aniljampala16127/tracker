@@ -292,17 +292,14 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                     <div className="text-[11px] text-sand-400">No AORs {card.label.toLowerCase()}</div>
                   </div>
                 ) : (
-                  <div className="overflow-hidden h-[120px] relative">
+                  <div className="h-[120px] relative">
                     <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-white/90 to-transparent z-10 pointer-events-none" />
                     <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-white/90 to-transparent z-10 pointer-events-none" />
                     <div
-                      className={card.entries.length > 3 ? "aor-vertical-scroll" : ""}
-                      style={card.entries.length > 3 ? { animationDuration: `${Math.min(card.entries.length, 8) * 2.5}s` } : { paddingTop: 4 }}
+                      className="h-full overflow-y-auto hide-scrollbar overscroll-contain pt-1"
+                      style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
                     >
-                      {(card.entries.length > 3
-                        ? [...card.entries.slice(0, 8), ...card.entries.slice(0, 8)]
-                        : card.entries
-                      ).map((a, i) => (
+                      {card.entries.slice(0, 15).map((a, i) => (
                         <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-1.5">
                           <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0 ${
                             a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
@@ -324,8 +321,8 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                           </div>
                         </div>
                       ))}
-                      {card.entries.length > 8 && (
-                        <div className="text-center text-[9px] text-sand-400 py-1">+{card.entries.length - 8} more</div>
+                      {card.entries.length > 15 && (
+                        <div className="text-center text-[9px] text-sand-400 py-1">+{card.entries.length - 15} more</div>
                       )}
                     </div>
                   </div>
