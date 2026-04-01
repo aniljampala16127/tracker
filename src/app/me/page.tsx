@@ -237,13 +237,11 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         </div>
       )}
 
-      {/* 2. Timeline — collapses when editing */}
-      {!editing && (
-        <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
-          latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
-          stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
-          handleUndoStep={handleUndoStep} saving={saving} undoing={undoing} />
-      )}
+      {/* 2. Timeline — always visible, below edit if open */}
+      <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
+        latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
+        stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
+        handleUndoStep={handleUndoStep} saving={saving} undoing={undoing} />
 
       {/* 3. AOR Countdown */}
       <AORCountdown app={app} allApps={allApps} />
