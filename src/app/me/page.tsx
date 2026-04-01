@@ -389,36 +389,19 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
           </div>
         </div>
 
-        {/* Next step — prominent Update button always visible */}
-        {nextStep && activeStep !== nextStep.id && (
+        {/* Next step — tap to expand and update */}
+        {nextStep && (
           <button
-            onClick={(e) => { e.stopPropagation(); setExpanded(true); setActiveStep(nextStep.id); }}
+            onClick={() => { setExpanded(true); setTimeout(() => setActiveStep(nextStep.id), 100); }}
             className="w-full flex items-center gap-3 mt-2 px-3 py-2.5 rounded-lg bg-warn-light border border-warn/20 active:scale-[0.98] transition-all">
             <div className="w-2.5 h-2.5 rounded-full bg-warn animate-pulse flex-shrink-0" />
-            <span className="text-sm font-medium text-sand-900 flex-1 text-left">Update {nextStep.label}</span>
+            <span className="text-sm font-medium text-sand-900 flex-1 text-left">{nextStep.label}</span>
             <span className="text-xs bg-warn text-white px-3 py-1 rounded-lg font-medium">Update</span>
           </button>
         )}
-
-        {/* Date picker for next step — works in collapsed header too */}
-        {nextStep && activeStep === nextStep.id && (
-          <div className="flex items-center gap-2 mt-2">
-            <input type="date" autoFocus
-              className="flex-1 text-sm px-3 py-2 border border-sand-200 rounded-lg bg-white text-sand-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
-              max={new Date().toISOString().split("T")[0]} value={stepDate}
-              onChange={(e) => setStepDate(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && stepDate) handleSaveStep(nextStep.id, stepDate);
-                if (e.key === "Escape") { setActiveStep(null); setStepDate(""); }
-              }} />
-            {stepDate && (
-              <button onClick={() => handleSaveStep(nextStep.id, stepDate)} disabled={saving}
-                className="text-xs bg-brand-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-brand-600 transition-all active:scale-95 disabled:opacity-50">
-                {saving ? "..." : "Save"}
-              </button>
-            )}
-            <button onClick={() => { setActiveStep(null); setStepDate(""); }}
-              className="text-xs text-sand-400 hover:text-sand-600 px-2 py-2 transition-colors">Cancel</button>
+        {!nextStep && app.is_complete && (
+          <div className="mt-2 px-3 py-2 rounded-lg bg-brand-50 text-center">
+            <span className="text-xs font-medium text-brand-600">All steps complete!</span>
           </div>
         )}
       </div>
@@ -495,7 +478,7 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
                   {/* Date picker */}
                   {isNext && activeStep === step.id && (
                     <div className="flex items-center gap-2 px-3 py-2 ml-6 animate-in">
-                      <input type="date" autoFocus
+                      <input type="date"
                         className="flex-1 text-sm px-3 py-2 border border-sand-200 rounded-lg bg-white text-sand-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
                         max={new Date().toISOString().split("T")[0]} value={stepDate}
                         onChange={(e) => setStepDate(e.target.value)}
