@@ -452,13 +452,11 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
       Object.keys(byDate).sort((a, b) => b.localeCompare(a)).forEach(date => {
         const d = byDate[date];
         d.subDates.sort();
-        const subRange = d.subDates.length === 1
-          ? `sub ${fmtDate(d.subDates[0])}`
-          : `sub ${fmtDate(d.subDates[0])} – ${fmtDate(d.subDates[d.subDates.length - 1])}`;
+        const subList = d.subDates.map(s => fmtDate(s)).join(", ");
         const streamInfo = d.streams.inland > 0 && d.streams.outland > 0
           ? ` (${d.streams.outland}O/${d.streams.inland}I)`
           : d.streams.inland > 0 ? ` (Inland)` : "";
-        msg += `  ${fmtDate(date)} — ${d.count} received${streamInfo} · ${subRange}\n`;
+        msg += `  ${fmtDate(date)} — ${d.count} received${streamInfo} · sub ${subList}\n`;
       });
     });
 
