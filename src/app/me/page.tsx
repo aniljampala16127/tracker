@@ -196,7 +196,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           </div>
           <p className="text-xs text-sand-500">
             {app.country_origin} · {app.sponsor_status} · {app.stream}
-            {app.province === "Quebec" ? " · Inside Quebec" : " · Outside Quebec"}
+            {app.province === "Quebec" ? " · Inside Quebec" : ""}
           </p>
         </div>
         <div className="text-right">
