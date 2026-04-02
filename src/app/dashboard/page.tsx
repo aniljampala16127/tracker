@@ -333,9 +333,11 @@ export default function DashboardPage() {
         <div className="text-sm text-sand-400">
           {isFiltered || searchQuery ? `${filteredApps.length} of ${apps.length} entries` : `${apps.length} entries`}
         </div>
-        <Button onClick={() => setShowAdd(true)} size="sm">
-          <PlusIcon size={14} className="text-white" /> Add
-        </Button>
+        {!hasMyEntry && (
+          <Button onClick={() => setShowAdd(true)} size="sm">
+            <PlusIcon size={14} className="text-white" /> Add
+          </Button>
+        )}
       </div>
 
       {/* Search */}
