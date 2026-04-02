@@ -187,7 +187,11 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     setActiveCard(Math.min(idx, data.cards.length - 1));
   }, [data.cards.length]);
 
-  if (data.cards.length === 0) return null;
+  if (data.cards.length === 0) return (
+    <div className="rounded-xl mb-4 p-4 bg-sand-50 border border-sand-200 text-center">
+      <div className="text-xs text-sand-400">No milestones reported this week yet</div>
+    </div>
+  );
 
   return (
     <div className="rounded-xl mb-4 overflow-hidden"

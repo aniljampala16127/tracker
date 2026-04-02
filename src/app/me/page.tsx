@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Application, StepId } from "@/lib/types";
 import { STEPS, getStepIndex } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
@@ -36,22 +35,18 @@ export default function MyAppPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [myApps, setMyApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
-    const { data } = await supabase
-      .from("applications")
-      .select("*, step_events(*)")
-      .order("created_at", { ascending: true });
-    if (data) {
+    const res = await fetch("/api/applications");
+    const data = await res.json();
+    if (Array.isArray(data)) {
       const all = data as Application[];
       setApps(all);
-      // Find entries that belong to this browser (PIN saved in localStorage)
       const mine = all.filter(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
       setMyApps(mine);
     }
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
@@ -100,7 +95,6 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   const [saving, setSaving] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const [timelineExpanded, setTimelineExpanded] = useState(false);
-  const supabase = createClient();
 
   // What's the next step to complete?
   const nextStepId = currentIdx < STEPS.length - 1 ? STEPS[currentIdx + 1].id : null;
@@ -113,8 +107,18 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
     setSaving(true);
     if (navigator.vibrate) navigator.vibrate(12);
     playMilestoneSound();
-    await supabase.from("step_events").insert({ application_id: app.id, step_id: stepId, event_date: date });
-    await supabase.from("applications").update({ current_step: stepId, is_complete: stepId === "ecopr" }).eq("id", app.id);
+    const pinHash = getSavedPinHash(app.id);
+    const res = await fetch("/api/steps", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ application_id: app.id, step_id: stepId, event_date: date, pin_hash: pinHash || "" }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error || "Failed to save step");
+      setSaving(false);
+      return;
+    }
     setShowConfetti(true);
     setActiveStep(null);
     setStepDate("");
@@ -154,11 +158,21 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
   const handleEditSave = async () => {
     setSaving(true);
-    await supabase.from("applications").update({
-      initials: editForm.initials.trim(), country_origin: editForm.country_origin,
-      stream: editForm.stream, sponsor_status: editForm.sponsor_status,
-      province: editForm.province,
-    }).eq("id", app.id);
+    const pinHash = getSavedPinHash(app.id);
+    const res = await fetch("/api/applications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: app.id, pin_hash: pinHash || "",
+        initials: editForm.initials.trim(), country_origin: editForm.country_origin,
+        stream: editForm.stream, sponsor_status: editForm.sponsor_status,
+        province: editForm.province,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error || "Failed to save");
+    }
     setSaving(false);
     setEditing(false);
     onRefresh();
@@ -183,7 +197,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           </div>
           <p className="text-xs text-sand-500">
             {app.country_origin} · {app.sponsor_status} · {app.stream}
-            {app.province === "Quebec" ? " · Quebec" : ""}
+            {app.province === "Quebec" ? " · Inside Quebec" : " · Outside Quebec"}
           </p>
         </div>
         <div className="text-right">

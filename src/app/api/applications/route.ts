@@ -19,7 +19,17 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+
+  // Strip future-dated step events (bad data)
+  const today = new Date().toISOString().split("T")[0];
+  const cleaned = (data || []).map(app => ({
+    ...app,
+    // Normalize old province values → Outside Quebec / Quebec
+    province: app.province === "Quebec" ? "Quebec" : "Outside Quebec",
+    step_events: (app.step_events || []).filter((e: { event_date: string }) => e.event_date <= today),
+  }));
+
+  return NextResponse.json(cleaned);
 }
 
 export async function POST(request: Request) {
@@ -90,6 +100,55 @@ export async function DELETE(request: Request) {
 
   const { error } = await supabase.from("applications").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ success: true });
+}
+
+// PATCH — update application fields (PIN-protected)
+export async function PATCH(request: Request) {
+  const supabase = getSupabase();
+  const body = await request.json();
+  const { id, pin_hash, submitted_date, ...updates } = body;
+
+  if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+  // Verify PIN
+  const { data: app } = await supabase
+    .from("applications")
+    .select("pin_hash")
+    .eq("id", id)
+    .single();
+
+  if (!app) return NextResponse.json({ error: "Application not found" }, { status: 404 });
+  if (app.pin_hash && app.pin_hash !== pin_hash) {
+    return NextResponse.json({ error: "Invalid PIN" }, { status: 403 });
+  }
+
+  // Only allow safe fields
+  const allowed = ["initials", "sponsor_status", "stream", "country_origin", "province", "subcategory", "notes", "mei_type", "visa_country"];
+  const safeUpdates: Record<string, string | null> = {};
+  for (const key of allowed) {
+    if (key in updates) safeUpdates[key] = updates[key];
+  }
+
+  if (Object.keys(safeUpdates).length > 0) {
+    const { error } = await supabase.from("applications").update(safeUpdates).eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Update submission date if provided
+  if (submitted_date) {
+    const today = new Date().toISOString().split("T")[0];
+    if (submitted_date > today) {
+      return NextResponse.json({ error: "Date cannot be in the future" }, { status: 400 });
+    }
+    const { error } = await supabase
+      .from("step_events")
+      .update({ event_date: submitted_date })
+      .eq("application_id", id)
+      .eq("step_id", "submitted");
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }

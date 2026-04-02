@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, MEI_TYPES, getNextStep } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
@@ -68,14 +67,11 @@ export default function DashboardPage() {
   // PIN state
   const [pinTarget, setPinTarget] = useState<Application | null>(null);
   const [claimTarget, setClaimTarget] = useState<Application | null>(null);
-  const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
-    const { data } = await supabase
-      .from("applications")
-      .select("*, step_events(*)")
-      .order("created_at", { ascending: true });
-    if (data) {
+    const res = await fetch("/api/applications");
+    const data = await res.json();
+    if (Array.isArray(data)) {
       const sorted = (data as Application[]).sort((a, b) => {
         const aD = a.step_events?.find(e => e.step_id === "submitted")?.event_date || "";
         const bD = b.step_events?.find(e => e.step_id === "submitted")?.event_date || "";
@@ -84,7 +80,7 @@ export default function DashboardPage() {
       setApps(sorted);
     }
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
@@ -116,35 +112,36 @@ export default function DashboardPage() {
   const availableCountries = useMemo(() => Array.from(new Set(apps.map(a => a.country_origin))).sort(), [apps]);
 
   const handleAdd = async (form: ApplicationFormData & { pin: string }) => {
-    // Block future dates
     if (form.submitted_date > localToday()) {
       alert("Submission date cannot be in the future");
       return;
     }
     setSubmitting(true);
     const pinHash = await hashPin(form.pin);
-    const { data: app } = await supabase
-      .from("applications")
-      .insert({
+    const res = await fetch("/api/applications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         initials: form.initials.trim(), sponsor_status: form.sponsor_status,
         stream: form.stream, country_origin: form.country_origin,
-        subcategory: form.subcategory || null,
-        visa_country: form.visa_country || null,
-        mei_type: form.mei_type || null,
-        province: form.province, current_step: "submitted", notes: form.notes || null,
-        pin_hash: pinHash,
-      }).select().single();
-    if (app) {
-      await supabase.from("step_events").insert({
-        application_id: app.id, step_id: "submitted", event_date: form.submitted_date,
-      });
+        subcategory: form.subcategory || null, visa_country: form.visa_country || null,
+        mei_type: form.mei_type || null, province: form.province,
+        notes: form.notes || null, pin_hash: pinHash, submitted_date: form.submitted_date,
+      }),
+    });
+    if (res.ok) {
+      const app = await res.json();
       savePinForApp(app.id, pinHash);
-      // Fetch updated app with step_events for celebration
-      const { data: fullApp } = await supabase.from("applications").select("*, step_events(*)").eq("id", app.id).single();
       setSubmitting(false); setShowAdd(false); fetchApps();
-      if (fullApp) setCelebrateApp(fullApp as Application);
+      // Fetch full app for celebration
+      const appsRes = await fetch("/api/applications");
+      const allApps = await appsRes.json();
+      const fullApp = allApps.find((a: Application) => a.id === app.id);
+      if (fullApp) setCelebrateApp(fullApp);
     } else {
-      setSubmitting(false); setShowAdd(false); fetchApps();
+      const err = await res.json();
+      alert(err.error || "Failed to add");
+      setSubmitting(false);
     }
   };
 
@@ -164,16 +161,24 @@ export default function DashboardPage() {
   };
 
   const handleMarkStep = async (appId: string, stepId: StepId, date: string) => {
-    await supabase.from("step_events").insert({ application_id: appId, step_id: stepId, event_date: date });
-    await supabase.from("applications").update({ current_step: stepId, is_complete: stepId === "ecopr" }).eq("id", appId);
+    const pinHash = getSavedPinHash(appId);
+    await fetch("/api/steps", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ application_id: appId, step_id: stepId, event_date: date, pin_hash: pinHash || "" }),
+    });
     fetchApps();
-    const { data } = await supabase.from("applications").select("*, step_events(*)").eq("id", appId).single();
-    if (data) setEditApp(data as Application);
+    // Refresh edit app if open
+    const appsRes = await fetch("/api/applications");
+    const allApps = await appsRes.json();
+    const updated = allApps.find((a: Application) => a.id === appId);
+    if (updated) setEditApp(updated);
   };
 
   const handleDelete = async (appId: string) => {
     if (!confirm("Delete this entry?")) return;
-    await supabase.from("applications").delete().eq("id", appId);
+    const pinHash = getSavedPinHash(appId);
+    await fetch(`/api/applications?id=${appId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
     removeSavedPin(appId);
     setEditApp(null); fetchApps();
   };
@@ -717,13 +722,17 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
     submitted_date: stepsMap.submitted || "",
   });
   const nextStep = getNextStep(app.current_step);
-  const supabase = createClient();
 
   const eu = (f: string, v: string) => setEditForm(p => ({ ...p, [f]: v }));
 
   const handleMeiChange = async (val: string) => {
     setMeiType(val);
-    await supabase.from("applications").update({ mei_type: val || null }).eq("id", app.id);
+    const pinHash = getSavedPinHash(app.id);
+    await fetch("/api/applications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: app.id, pin_hash: pinHash || "", mei_type: val || null }),
+    });
   };
 
   const handleStepSave = (stepId: StepId, date: string) => {
@@ -735,23 +744,22 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
 
   const handleEditSave = async () => {
     setSaving(true);
-    await supabase.from("applications").update({
-      initials: editForm.initials.trim(),
-      country_origin: editForm.country_origin,
-      stream: editForm.stream,
-      sponsor_status: editForm.sponsor_status,
-      province: editForm.province,
-      visa_country: editForm.visa_country || null,
-      notes: editForm.notes || null,
-    }).eq("id", app.id);
-
-    // Update submission date if changed
-    if (editForm.submitted_date && editForm.submitted_date !== stepsMap.submitted) {
-      const subEvent = (app.step_events || []).find(e => e.step_id === "submitted");
-      if (subEvent) {
-        await supabase.from("step_events").update({ event_date: editForm.submitted_date }).eq("id", subEvent.id);
-      }
-    }
+    const pinHash = getSavedPinHash(app.id);
+    await fetch("/api/applications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: app.id, pin_hash: pinHash || "",
+        initials: editForm.initials.trim(),
+        country_origin: editForm.country_origin,
+        stream: editForm.stream,
+        sponsor_status: editForm.sponsor_status,
+        province: editForm.province,
+        visa_country: editForm.visa_country || null,
+        notes: editForm.notes || null,
+        submitted_date: editForm.submitted_date !== stepsMap.submitted ? editForm.submitted_date : undefined,
+      }),
+    });
     setSaving(false);
     setShowEdit(false);
     onClose();

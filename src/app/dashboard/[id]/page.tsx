@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Application, StepId } from "@/lib/types";
 import { STEPS, getStepIndex, getNextStep } from "@/lib/constants";
 import {
@@ -20,7 +19,6 @@ import { DetailSkeleton } from "@/components/Skeletons";
 export default function ApplicationDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const supabase = createClient();
   const [app, setApp] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingStep, setEditingStep] = useState<StepId | null>(null);
@@ -31,21 +29,18 @@ export default function ApplicationDetailPage() {
   const [pendingAction, setPendingAction] = useState<"delete" | StepId | null>(null);
 
   const fetchApp = useCallback(async () => {
-    const { data } = await supabase
-      .from("applications")
-      .select("*, step_events(*)")
-      .eq("id", id)
-      .single();
+    const res = await fetch("/api/applications");
+    const all = await res.json();
+    const found = Array.isArray(all) ? all.find((a: Application) => a.id === id) : null;
 
-    if (data) {
-      const a = data as Application;
-      setApp(a);
-      if (!a.pin_hash || getSavedPinHash(a.id) === a.pin_hash) {
+    if (found) {
+      setApp(found);
+      if (!found.pin_hash || getSavedPinHash(found.id) === found.pin_hash) {
         setPinVerified(true);
       }
     }
     setLoading(false);
-  }, [id, supabase]);
+  }, [id]);
 
   useEffect(() => { fetchApp(); }, [fetchApp]);
 
@@ -78,13 +73,12 @@ export default function ApplicationDetailPage() {
     if (!app) return;
     if (navigator.vibrate) navigator.vibrate(12);
     playMilestoneSound();
-    await supabase.from("step_events").insert({
-      application_id: app.id, step_id: stepId, event_date: date,
+    const pinHash = getSavedPinHash(app.id);
+    await fetch("/api/steps", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ application_id: app.id, step_id: stepId, event_date: date, pin_hash: pinHash || "" }),
     });
-    const isLanding = stepId === "ecopr";
-    await supabase.from("applications")
-      .update({ current_step: stepId, is_complete: isLanding })
-      .eq("id", app.id);
     setEditingStep(null);
     fetchApp();
   };
@@ -92,7 +86,8 @@ export default function ApplicationDetailPage() {
   const doDelete = async () => {
     if (!app || !confirm("Delete this application? This cannot be undone.")) return;
     setDeleting(true);
-    await supabase.from("applications").delete().eq("id", app.id);
+    const pinHash = getSavedPinHash(app.id);
+    await fetch(`/api/applications?id=${app.id}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
     removeSavedPin(app.id);
     router.push("/dashboard");
   };
