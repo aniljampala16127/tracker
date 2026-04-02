@@ -9,7 +9,6 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { Reactions } from "@/components/Reactions";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
-import { AORCountdown } from "@/components/AORCountdown";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { playMilestoneSound } from "@/lib/sounds";
 import { TimelineExport } from "@/components/TimelineExport";
@@ -265,8 +264,8 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         handleUndoStep={handleUndoStep} saving={saving} undoing={undoing}
         expanded={timelineExpanded} setExpanded={(v: boolean) => { setTimelineExpanded(v); if (v) setEditing(false); }} />
 
-      {/* 3. AOR Countdown */}
-      <AORCountdown app={app} allApps={allApps} />
+      {/* 3. Next Step Estimate — works for ALL steps */}
+      <NextStepEstimate app={app} allApps={allApps} />
 
       {/* 3. Queue Position */}
       <PositionRunway app={app} allApps={allApps} />
@@ -327,6 +326,107 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           <ShareButtons app={app} />
         </div>
       </div>
+    </div>
+  );
+}
+
+// Next Step Estimate — works for ALL steps, not just AOR
+function NextStepEstimate({ app, allApps }: { app: Application; allApps: Application[] }) {
+  const data = useMemo(() => {
+    const stepsMap = buildStepsMap(app.step_events || []);
+    const currentIdx = STEPS.findIndex(s => s.id === app.current_step);
+    if (currentIdx < 0 || currentIdx >= STEPS.length - 1) return null;
+    if (app.is_complete) return null;
+
+    const currentStep = STEPS[currentIdx];
+    const nextStep = STEPS[currentIdx + 1];
+    const currentDate = stepsMap[currentStep.id];
+    if (!currentDate) return null;
+
+    const today = new Date().toISOString().split("T")[0];
+    const daysSinceCurrent = daysBetween(currentDate, today);
+
+    // Calculate community average for current → next step
+    const durations: number[] = [];
+    allApps.forEach(a => {
+      if (a.stream !== app.stream) return;
+      const s = buildStepsMap(a.step_events || []);
+      const from = s[currentStep.id];
+      const to = s[nextStep.id];
+      if (from && to) {
+        const d = daysBetween(from, to);
+        if (d >= 0 && d <= 200) durations.push(d);
+      }
+    });
+
+    if (durations.length < 3) return null; // Need enough data
+
+    const avgDays = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+    const daysLeft = avgDays - daysSinceCurrent;
+    const predictedDate = new Date(currentDate + "T00:00:00");
+    predictedDate.setDate(predictedDate.getDate() + avgDays);
+    const predictedStr = predictedDate.toISOString().split("T")[0];
+
+    return {
+      currentStep: currentStep.label,
+      nextStep: nextStep.label,
+      daysSinceCurrent,
+      avgDays,
+      daysLeft,
+      predictedDate: predictedStr,
+      sampleSize: durations.length,
+    };
+  }, [app, allApps]);
+
+  if (!data) return null;
+
+  const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const fmtDate = (d: string) => { const dt = new Date(d + "T00:00:00"); return `${MO[dt.getMonth()]} ${dt.getDate()}`; };
+
+  const isImminent = data.daysLeft <= 0;
+  const isClose = data.daysLeft > 0 && data.daysLeft <= 5;
+  const pct = Math.min(Math.round((data.daysSinceCurrent / data.avgDays) * 100), 100);
+
+  return (
+    <div className={`rounded-xl p-4 mb-3 border transition-all ${
+      isImminent ? "bg-gradient-to-r from-brand-100 to-brand-200 border-brand-300"
+      : isClose ? "bg-gradient-to-r from-brand-50 to-brand-100 border-brand-200"
+      : "bg-white border-sand-200"
+    }`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">
+          Next: {data.nextStep}
+        </div>
+        <div className="text-[9px] text-sand-400">{data.sampleSize} reports</div>
+      </div>
+
+      {isImminent ? (
+        <div className="text-center py-1">
+          <div className="text-xl font-bold text-brand-600 animate-pulse">Any day now!</div>
+          <div className="text-[10px] text-brand-500 mt-0.5">
+            Past the {data.avgDays}-day average · Day {data.daysSinceCurrent} since {data.currentStep}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className={`text-3xl font-bold tabular-nums ${isClose ? "text-brand-600" : "text-sand-900"}`}>
+              {data.daysLeft}
+            </span>
+            <span className="text-xs text-sand-500">days left</span>
+            <span className="text-[10px] text-sand-400 ml-auto">~{fmtDate(data.predictedDate)}</span>
+          </div>
+          {/* Progress bar */}
+          <div className="w-full h-1.5 rounded-full bg-sand-100 overflow-hidden">
+            <div className="h-full rounded-full bg-brand-500 transition-all duration-700"
+              style={{ width: `${pct}%` }} />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[9px] text-sand-400">{data.currentStep} · Day {data.daysSinceCurrent}</span>
+            <span className="text-[9px] text-sand-400">avg {data.avgDays}d</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
