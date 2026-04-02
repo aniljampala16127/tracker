@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, Cell, LineChart, Line,
@@ -16,6 +16,58 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { DigestImageExport } from "@/components/DigestImageExport";
 
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// Reusable collapsible section — collapsed by default, auto-expands on scroll
+function CollapsibleSection({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  const [expanded, setExpanded] = useState(false);
+  const [autoExpanded, setAutoExpanded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || expanded) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.2 && !autoExpanded) {
+          setExpanded(true);
+          setAutoExpanded(true);
+        }
+      },
+      { threshold: [0.2] }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [expanded, autoExpanded]);
+
+  return (
+    <div ref={ref} className="bg-white border border-sand-200 rounded-xl mb-5 overflow-hidden">
+      <button onClick={() => { setExpanded(!expanded); setAutoExpanded(true); }}
+        className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-sand-50 transition-colors">
+        <div>
+          <h2 className="text-sm font-bold text-sand-900">{title}</h2>
+          <p className="text-[11px] text-sand-400">{subtitle}</p>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
+          style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M6 9L12 15L18 9" />
+        </svg>
+      </button>
+      <div style={{
+        maxHeight: expanded ? "2000px" : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div className="px-4 pb-4" style={{
+          opacity: expanded ? 1 : 0,
+          transition: "opacity 0.25s ease",
+          transitionDelay: expanded ? "0.15s" : "0s",
+        }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function StatsPage() {
   const [apps, setApps] = useState<Application[]>([]);
@@ -151,11 +203,7 @@ export default function StatsPage() {
       <CountryBreakdown apps={apps} />
 
       {/* Community per-step averages */}
-      <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-        <h2 className="text-sm font-bold text-sand-900 mb-1">Community Average: Days per Step</h2>
-        <p className="text-[11px] text-sand-400 mb-3">
-          Based on community-reported data — IRCC does not publish per-step breakdowns
-        </p>
+      <CollapsibleSection title="Community Average: Days per Step" subtitle="Based on community-reported data">
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={stepAverages} margin={{ top: 4, right: 12, left: -4, bottom: 0 }} barCategoryGap="16%">
             <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
@@ -211,14 +259,10 @@ export default function StatsPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Monthly Cohort Comparison */}
-      <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-        <h2 className="text-sm font-bold text-sand-900 mb-1">Monthly Cohort Comparison</h2>
-        <p className="text-[11px] text-sand-400 mb-3">
-          Average days to AOR by submission month — is your batch faster or slower?
-        </p>
+      <CollapsibleSection title="Monthly Cohort Comparison" subtitle="Avg days to AOR by submission month">
         {cohortChartData.some(d => d.outlandAvg != null || d.inlandAvg != null) ? (
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={cohortChartData} margin={{ top: 4, right: 12, left: -4, bottom: 0 }} barCategoryGap="20%">
@@ -248,14 +292,10 @@ export default function StatsPage() {
         ) : (
           <p className="text-xs text-sand-400 py-8 text-center">Not enough AOR data across months to compare yet.</p>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Processing Speed Trend */}
-      <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-        <h2 className="text-sm font-bold text-sand-900 mb-1">Processing Speed Trend</h2>
-        <p className="text-[11px] text-sand-400 mb-3">
-          Days from submission to AOR — plotted by AOR received date. Is IRCC getting faster or slower?
-        </p>
+      <CollapsibleSection title="Processing Speed Trend" subtitle="Days to AOR by date — is IRCC getting faster?">
         {(() => {
           // Build trend data: each AOR as a data point
           const points: { date: string; label: string; days: number; name: string; stream: string }[] = [];
@@ -313,7 +353,7 @@ export default function StatsPage() {
             </ResponsiveContainer>
           );
         })()}
-      </div>
+      </CollapsibleSection>
 
       {/* Cohort summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
