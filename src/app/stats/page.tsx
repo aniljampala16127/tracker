@@ -355,47 +355,41 @@ export default function StatsPage() {
         })()}
       </CollapsibleSection>
 
-      {/* Cohort summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {Object.keys(monthCohorts).sort().map((key) => {
-          const group = monthCohorts[key];
-          const [y, m] = key.split("-");
-          const label = `${MONTHS_SHORT[parseInt(m) - 1]} ${y}`;
-          const aorDays: number[] = [];
-          group.forEach((a) => {
-            const s = buildStepsMap(a.step_events || []);
-            if (s.submitted && s.aor) {
-              const d = daysBetween(s.submitted, s.aor);
-              if (d >= 0 && d <= getOutlierMax(a.province)) aorDays.push(d);
-            }
-          });
-          const avg = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
-          const outland = group.filter(a => a.stream === "Outland").length;
-          const inland = group.filter(a => a.stream === "Inland").length;
+      {/* Cohort summary cards — horizontal scroll */}
+      <CollapsibleSection title="Monthly Cohorts" subtitle={`${Object.keys(monthCohorts).length} months tracked`}>
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+          {Object.keys(monthCohorts).sort().reverse().map((key) => {
+            const group = monthCohorts[key];
+            const [y, m] = key.split("-");
+            const label = `${MONTHS_SHORT[parseInt(m) - 1]} ${y}`;
+            const aorDays: number[] = [];
+            group.forEach((a) => {
+              const s = buildStepsMap(a.step_events || []);
+              if (s.submitted && s.aor) {
+                const d = daysBetween(s.submitted, s.aor);
+                if (d >= 0 && d <= getOutlierMax(a.province)) aorDays.push(d);
+              }
+            });
+            const avg = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : null;
+            const outland = group.filter(a => a.stream === "Outland").length;
+            const inland = group.filter(a => a.stream === "Inland").length;
+            const pct = group.length > 0 ? Math.round((aorDays.length / group.length) * 100) : 0;
 
-          return (
-            <div key={key} className="bg-white border border-sand-200 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-sand-900">{label}</span>
-                <span className="text-[10px] text-sand-400">{group.length} entries</span>
-              </div>
-              <div className="flex gap-4 mb-2">
-                <div>
-                  <div className="text-[10px] text-sand-500 uppercase tracking-wider">Avg to AOR</div>
-                  <div className="text-lg font-bold text-brand-600">{avg != null ? `${avg}d` : "—"}</div>
+            return (
+              <div key={key} className="flex-shrink-0 w-[140px] bg-sand-50 rounded-xl p-3 snap-start">
+                <div className="text-xs font-bold text-sand-900 mb-2">{label}</div>
+                <div className="text-2xl font-bold text-brand-600 leading-none">{avg != null ? `${avg}d` : "—"}</div>
+                <div className="text-[9px] text-sand-400 mt-0.5 mb-2">avg to AOR</div>
+                {/* Mini progress */}
+                <div className="w-full h-1 rounded-full bg-sand-200 mb-1.5">
+                  <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
                 </div>
-                <div>
-                  <div className="text-[10px] text-sand-500 uppercase tracking-wider">With AOR</div>
-                  <div className="text-lg font-bold text-sand-700">{aorDays.length}/{group.length}</div>
-                </div>
+                <div className="text-[9px] text-sand-400">{aorDays.length}/{group.length} AOR · {outland}O {inland}I</div>
               </div>
-              <div className="text-[10px] text-sand-400">
-                {outland} outland · {inland} inland
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </CollapsibleSection>
 
       {/* Weekly WhatsApp Digest */}
       <WeeklyDigest apps={apps} />
