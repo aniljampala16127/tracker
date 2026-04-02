@@ -62,6 +62,7 @@ export default function DashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [searchQuery, setSearchQuery] = useState("");
   const [celebrateApp, setCelebrateApp] = useState<Application | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   // PIN state
@@ -104,9 +105,13 @@ export default function DashboardPage() {
       if (filters.country && a.country_origin !== filters.country) return false;
       if (filters.sponsor_status && a.sponsor_status !== filters.sponsor_status) return false;
       if (filters.subcategory && a.subcategory !== filters.subcategory) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!a.initials.toLowerCase().includes(q) && !a.country_origin.toLowerCase().includes(q)) return false;
+      }
       return true;
     });
-  }, [apps, filters]);
+  }, [apps, filters, searchQuery]);
 
   // Unique values for filter dropdowns (from actual data)
   const availableCountries = useMemo(() => Array.from(new Set(apps.map(a => a.country_origin))).sort(), [apps]);
@@ -324,14 +329,33 @@ export default function DashboardPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="text-sm text-sand-400">
-          {isFiltered ? `${filteredApps.length} of ${apps.length} entries` : `${apps.length} entries`}
+          {isFiltered || searchQuery ? `${filteredApps.length} of ${apps.length} entries` : `${apps.length} entries`}
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm">
           <PlusIcon size={14} className="text-white" /> Add
         </Button>
       </div>
+
+      {/* Search */}
+      {apps.length > 10 && (
+        <div className="relative mb-3">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-sand-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
+          <input
+            type="text"
+            placeholder="Search by name or country..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-sand-300"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-sand-400 hover:text-sand-600">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6L18 18"/></svg>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       {apps.length > 0 && (
@@ -349,11 +373,11 @@ export default function DashboardPage() {
       {filteredApps.length === 0 && (
         <div className="text-center py-20 bg-white border border-sand-200 rounded-xl">
           <p className="text-sand-500 text-sm mb-4">
-            {isFiltered ? "No entries match your filters" : "No entries yet"}
+            {searchQuery ? `No results for "${searchQuery}"` : isFiltered ? "No entries match your filters" : "No entries yet"}
           </p>
-          {isFiltered ? (
-            <Button onClick={() => setFilters(EMPTY_FILTERS)} size="sm" variant="secondary">
-              Clear Filters
+          {(isFiltered || searchQuery) ? (
+            <Button onClick={() => { setFilters(EMPTY_FILTERS); setSearchQuery(""); }} size="sm" variant="secondary">
+              Clear All
             </Button>
           ) : (
             <Button onClick={() => setShowAdd(true)} size="sm">
