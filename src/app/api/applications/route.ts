@@ -51,6 +51,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "PIN is required" }, { status: 400 });
   }
 
+  // Limit entries per PIN — prevent spam/duplicates
+  const { count } = await supabase
+    .from("applications")
+    .select("id", { count: "exact", head: true })
+    .eq("pin_hash", pin_hash);
+  if (count && count >= 3) {
+    return NextResponse.json({ error: "Maximum 3 entries per PIN. Delete an existing entry to add a new one." }, { status: 429 });
+  }
+
   const { data: app, error: appError } = await supabase
     .from("applications")
     .insert({

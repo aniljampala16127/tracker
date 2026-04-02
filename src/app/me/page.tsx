@@ -526,14 +526,14 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
 
               return (
                 <div key={step.id}>
-                  <div className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                    isDone ? "bg-brand-50" : isNext ? "bg-warn-light border border-warn/20" : "opacity-30"
+                  <div className={`flex items-center gap-3 rounded-lg transition-all ${
+                    isDone ? "px-3 py-2 bg-brand-50" : isNext ? "px-3 py-2.5 bg-warn-light border border-warn/20" : "px-3 py-1"
                   }`}>
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                      isDone ? "bg-brand-500" : isNext ? "bg-warn animate-pulse" : "bg-sand-300"
+                    <div className={`flex-shrink-0 rounded-full ${
+                      isDone ? "w-2.5 h-2.5 bg-brand-500" : isNext ? "w-2.5 h-2.5 bg-warn animate-pulse" : "w-1.5 h-1.5 bg-sand-300"
                     }`} />
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-sand-900">{step.label}</span>
+                      <span className={`font-medium text-sand-900 ${isDone || isNext ? "text-sm" : "text-[11px] text-sand-400"}`}>{step.label}</span>
                     </div>
                     {isDone && (
                       <div className="text-right">
