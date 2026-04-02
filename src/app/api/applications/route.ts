@@ -15,6 +15,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("applications")
     .select("*, step_events(*)")
+    .not("pin_hash", "is", null)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
