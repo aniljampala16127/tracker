@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { Application } from "@/lib/types";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
@@ -15,6 +15,29 @@ interface CountryData {
 }
 
 export function CountryBreakdown({ apps }: { apps: Application[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const [autoExpanded, setAutoExpanded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Auto-expand when scrolled into view
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || expanded) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.3 && !autoExpanded) {
+          setExpanded(true);
+          setAutoExpanded(true);
+        }
+      },
+      { threshold: [0.3] }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [expanded, autoExpanded]);
+
   const data = useMemo(() => {
     const map: Record<string, {
       outlandDays: number[]; inlandDays: number[];
@@ -65,11 +88,33 @@ export function CountryBreakdown({ apps }: { apps: Application[] }) {
   );
 
   return (
-    <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-      <h2 className="text-sm font-bold text-sand-900 mb-1">AOR by Country</h2>
-      <p className="text-[11px] text-sand-400 mb-4">
-        Average days to AOR by PA country · min 2 entries to show
-      </p>
+    <div ref={ref} className="bg-white border border-sand-200 rounded-xl mb-5 overflow-hidden">
+      {/* Header — always visible, tap to toggle */}
+      <button onClick={() => { setExpanded(!expanded); setAutoExpanded(true); }}
+        className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-sand-50 transition-colors">
+        <div>
+          <h2 className="text-sm font-bold text-sand-900">AOR by Country</h2>
+          <p className="text-[11px] text-sand-400">
+            {data.length} countries · avg days to AOR
+          </p>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
+          style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M6 9L12 15L18 9" />
+        </svg>
+      </button>
+
+      {/* Collapsible body */}
+      <div style={{
+        maxHeight: expanded ? `${data.length * 60 + 80}px` : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div className="px-4 pb-4" style={{
+          opacity: expanded ? 1 : 0,
+          transition: "opacity 0.25s ease",
+          transitionDelay: expanded ? "0.1s" : "0s",
+        }}>
 
       <div className="space-y-3">
         {data.map(d => (
@@ -132,6 +177,8 @@ export function CountryBreakdown({ apps }: { apps: Application[] }) {
           <span className="text-[9px] text-sand-500">Inland avg</span>
         </div>
         <span className="text-[9px] text-sand-400 ml-auto">count on right</span>
+      </div>
+        </div>
       </div>
     </div>
   );
