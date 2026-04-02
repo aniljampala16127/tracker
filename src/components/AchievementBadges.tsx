@@ -15,7 +15,6 @@ interface Badge {
 
 export function AchievementBadges({ app }: { app: Application }) {
   const [expanded, setExpanded] = useState(false);
-  const [userToggled, setUserToggled] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);
@@ -27,37 +26,8 @@ export function AchievementBadges({ app }: { app: Application }) {
     }
   }, []);
 
-  // IntersectionObserver — expand when visible, collapse when scrolled away
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (userToggled) return; // Don't override manual toggle
-        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-          setExpanded(true);
-        } else if (!entry.isIntersecting) {
-          setExpanded(false);
-        }
-      },
-      { threshold: [0, 0.5] }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [userToggled]);
-
-  // Reset manual override after 5s so scroll behavior resumes
-  useEffect(() => {
-    if (!userToggled) return;
-    const t = setTimeout(() => setUserToggled(false), 5000);
-    return () => clearTimeout(t);
-  }, [userToggled]);
-
   const handleToggle = () => {
     setExpanded(prev => !prev);
-    setUserToggled(true);
   };
 
   const badges = useMemo(() => {
