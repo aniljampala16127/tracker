@@ -154,19 +154,20 @@ export function Nav() {
   // Force scroll to top on every route change — aggressive approach
   useEffect(() => {
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    // Immediate
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    // Delayed — catches post-paint browser restoration
-    const t1 = requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-    });
-    const t2 = setTimeout(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+
+    const forceTop = () => {
+      window.scrollTo(0, 1); // iOS Safari trick — slight offset forces recalculate
+      window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
-    }, 100);
-    return () => { cancelAnimationFrame(t1); clearTimeout(t2); };
+      document.body.scrollTop = 0;
+    };
+
+    forceTop();
+    const t1 = requestAnimationFrame(forceTop);
+    const t2 = setTimeout(forceTop, 50);
+    const t3 = setTimeout(forceTop, 150);
+    const t4 = setTimeout(forceTop, 300);
+    return () => { cancelAnimationFrame(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, [pathname]);
 
   return (
