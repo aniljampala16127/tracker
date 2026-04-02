@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
@@ -32,25 +31,20 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true);
   const [checked, setChecked] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
-    const { data } = await supabase
-      .from("applications")
-      .select("*, step_events(*)")
-      .order("created_at", { ascending: true });
-    if (data) {
-      const all = data as Application[];
-      setApps(all);
-      // Smart return: if user has a claimed entry, redirect to /me
+    const res = await fetch("/api/applications");
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      setApps(data);
       if (!checked) {
-        const hasEntry = all.some(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
+        const hasEntry = data.some((a: Application) => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
         if (hasEntry) { router.replace("/me"); return; }
         setChecked(true);
       }
     }
     setLoading(false);
-  }, [supabase, checked, router]);
+  }, [checked, router]);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 

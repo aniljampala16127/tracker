@@ -455,8 +455,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Status — shows what step they're waiting for */}
-                    <div className="text-right flex-shrink-0">
+                    {/* Status + progress bar */}
+                    <div className="text-right flex-shrink-0 min-w-[80px]">
                       {statusDone ? (
                         <div className="text-xs font-semibold text-brand-600">eCoPR ✓</div>
                       ) : (
@@ -464,11 +464,16 @@ export default function DashboardPage() {
                           <div className={`text-[10px] font-semibold ${hasAor ? "text-brand-600" : "text-warn-dark"}`}>
                             {statusLabel}
                           </div>
-                          <div className="text-[9px] text-sand-400">
+                          <div className="text-[9px] text-sand-400 mb-1">
                             {completedSteps.length}/{STEPS.length}{daysWaiting != null ? ` · Day ${daysWaiting}` : ""}
                           </div>
                         </>
                       )}
+                      {/* Progress bar */}
+                      <div className="w-full h-1 rounded-full bg-sand-100 overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-500 ${statusDone ? "bg-brand-500" : hasAor ? "bg-brand-400" : "bg-warn"}`}
+                          style={{ width: `${Math.round((completedSteps.length / STEPS.length) * 100)}%` }} />
+                      </div>
                     </div>
                   </div>
                 );

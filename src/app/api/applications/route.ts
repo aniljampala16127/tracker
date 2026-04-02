@@ -29,7 +29,9 @@ export async function GET() {
     step_events: (app.step_events || []).filter((e: { event_date: string }) => e.event_date <= today),
   }));
 
-  return NextResponse.json(cleaned);
+  return NextResponse.json(cleaned, {
+    headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
+  });
 }
 
 export async function POST(request: Request) {
