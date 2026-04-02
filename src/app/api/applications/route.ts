@@ -52,12 +52,23 @@ export async function POST(request: Request) {
   }
 
   // Limit entries per PIN — prevent spam/duplicates
-  const { count } = await supabase
+  const { data: existing } = await supabase
     .from("applications")
-    .select("id", { count: "exact", head: true })
+    .select("id, initials, step_events(event_date)")
     .eq("pin_hash", pin_hash);
-  if (count && count >= 3) {
-    return NextResponse.json({ error: "Maximum 3 entries per PIN. Delete an existing entry to add a new one." }, { status: 429 });
+
+  if (existing && existing.length >= 2) {
+    return NextResponse.json({ error: "Maximum 2 entries per PIN. Delete an existing entry first." }, { status: 429 });
+  }
+
+  // Block exact duplicate — same PIN + same submission date
+  if (existing && existing.length > 0) {
+    const hasSameDate = existing.some(app =>
+      (app.step_events as { event_date: string }[])?.some(e => e.event_date === submitted_date)
+    );
+    if (hasSameDate) {
+      return NextResponse.json({ error: "You already have an entry with this submission date. Tap your existing entry to update it instead." }, { status: 409 });
+    }
   }
 
   const { data: app, error: appError } = await supabase
