@@ -116,7 +116,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
     return { cards, waiting, weekTotal };
   }, [apps]);
 
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [userToggled, setUserToggled] = useState(false);
   const [activeCard, setActiveCard] = useState(0);
   const lastY = useRef(0);

@@ -54,6 +54,34 @@ function smoothScroll(target: HTMLElement | Window, to: number, duration = 600) 
   requestAnimationFrame(step);
 }
 
+function CollapsibleChart({ apps }: { apps: Application[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="bg-white border border-sand-200 rounded-xl mb-4 overflow-hidden">
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-sand-50 transition-colors">
+        <div>
+          <div className="text-sm font-bold text-sand-900">Average Days per Step</div>
+          <div className="text-[11px] text-sand-400">Outland vs Inland — community data</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
+          style={{ transition: "transform 0.3s ease", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M6 9L12 15L18 9" />
+        </svg>
+      </button>
+      <div style={{
+        maxHeight: open ? "500px" : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div style={{ opacity: open ? 1 : 0, transition: "opacity 0.25s ease", transitionDelay: open ? "0.1s" : "0s" }}>
+          <StepChart apps={apps} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -368,8 +396,8 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Bar Chart */}
-      {apps.length > 0 && <StepChart apps={filteredApps} />}
+      {/* Bar Chart — collapsible */}
+      {apps.length > 0 && <CollapsibleChart apps={filteredApps} />}
 
       {/* Empty state */}
       {filteredApps.length === 0 && (
