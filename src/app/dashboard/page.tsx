@@ -97,6 +97,12 @@ export default function DashboardPage() {
   const [pinTarget, setPinTarget] = useState<Application | null>(null);
   const [claimTarget, setClaimTarget] = useState<Application | null>(null);
 
+  // Always scroll to top on mount (tab switch, refresh, navigate)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+  }, []);
+
   const fetchApps = useCallback(async () => {
     const res = await fetch("/api/applications");
     const data = await res.json();
