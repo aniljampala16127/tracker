@@ -60,17 +60,14 @@ export function StepChart({ apps }: StepChartProps) {
 
   if (!hasAnyData) {
     return (
-      <div className="bg-white border border-sand-200 rounded-xl p-6 mb-5">
-        <h2 className="text-sm font-bold text-sand-900 mb-2">Average Days per Step</h2>
+      <div className="p-2">
         <p className="text-xs text-sand-400">Not enough data yet — update some steps to see the chart.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-      <h2 className="text-sm font-bold text-sand-900 mb-1">Average Days per Step</h2>
-      <p className="text-[11px] text-sand-400 mb-3">Outland vs Inland — based on community-reported data</p>
+    <div>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={data} margin={{ top: 4, right: 12, left: -4, bottom: 0 }} barCategoryGap="16%">
           <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
