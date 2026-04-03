@@ -134,8 +134,16 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   const handleUndoStep = async (stepId: string) => {
     if (!confirm("Remove this step? This will revert your progress.")) return;
     setUndoing(true);
-    const pinHash = getSavedPinHash(app.id);
-    await fetch(`/api/steps?application_id=${app.id}&step_id=${stepId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
+    try {
+      const pinHash = getSavedPinHash(app.id);
+      const res = await fetch(`/api/steps?application_id=${app.id}&step_id=${stepId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Failed to undo step");
+      }
+    } catch (e) {
+      alert("Network error — try again");
+    }
     setUndoing(false);
     onRefresh();
   };
@@ -681,16 +689,16 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
                           {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d</div>}
                         </div>
                         {step.id !== "submitted" && (
-                          <>
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             <button onClick={() => { setEditingStep(step.id); setEditDate(date!); }}
-                              className="text-[9px] px-1.5 py-0.5 rounded bg-sand-100 text-sand-500 font-medium hover:bg-sand-200 transition-colors">
+                              className="text-[10px] px-2 py-1 rounded-md bg-sand-100 text-sand-500 font-medium hover:bg-sand-200 transition-colors min-h-[28px]">
                               Edit
                             </button>
                             <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
-                              className="text-[9px] px-1.5 py-0.5 rounded bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50">
+                              className="text-[10px] px-2 py-1 rounded-md bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50 min-h-[28px]">
                               {undoing ? "..." : "Undo"}
                             </button>
-                          </>
+                          </div>
                         )}
                         {step.id === "submitted" && (
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
