@@ -120,38 +120,40 @@ export default function LandingPage() {
             <p className="text-sm text-sand-500 mb-6 leading-relaxed max-w-sm mx-auto">
               See real processing times from the community. Know where you stand. Get predicted dates for every step.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/dashboard" className="w-full sm:w-auto px-6 py-3 bg-brand-500 text-white font-semibold text-sm rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-lg shadow-brand-500/20">
+            <div className="flex flex-col gap-3 max-w-sm mx-auto">
+              {/* New user */}
+              <Link href="/dashboard" className="w-full px-6 py-3 bg-brand-500 text-white font-semibold text-sm rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-lg shadow-brand-500/20 text-center">
                 Add Your Application
               </Link>
-              <Link href="/stats" className="w-full sm:w-auto px-6 py-3 bg-white text-sand-700 font-medium text-sm rounded-xl border border-sand-200 hover:bg-sand-50 transition-all active:scale-[0.98]">
-                View Analytics
-              </Link>
-            </div>
 
-            {/* Returning user — claim by PIN */}
-            <div className="mt-5 pt-4 border-t border-sand-200/50">
-              <p className="text-[11px] text-sand-400 mb-2">Already tracking? Enter your PIN to reconnect.</p>
-              <div className="flex items-center justify-center gap-2 max-w-[240px] mx-auto">
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={4}
-                  placeholder="4-digit PIN"
-                  value={claimPin}
-                  onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
-                  onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
-                  className="flex-1 px-3 py-2 text-sm text-center rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.3em] font-mono"
-                />
-                <button
-                  onClick={handleClaim}
-                  disabled={claimPin.length !== 4 || claiming}
-                  className="px-4 py-2 bg-brand-500 text-white text-sm font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-50"
-                >
-                  {claiming ? "..." : "Go"}
-                </button>
+              {/* Returning user — claim by PIN */}
+              <div className="w-full px-4 py-3 bg-white border border-sand-200 rounded-xl">
+                <p className="text-[11px] font-semibold text-sand-600 mb-2 text-center">Already tracking? Enter your PIN</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="PIN"
+                    value={claimPin}
+                    onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
+                    className="flex-1 px-3 py-2 text-sm text-center rounded-lg border border-sand-200 bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.3em] font-mono"
+                  />
+                  <button
+                    onClick={handleClaim}
+                    disabled={claimPin.length !== 4 || claiming}
+                    className="px-5 py-2 bg-brand-500 text-white text-sm font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {claiming ? "..." : "Reconnect"}
+                  </button>
+                </div>
+                {claimError && <p className="text-[10px] text-error mt-1.5 text-center">{claimError}</p>}
               </div>
-              {claimError && <p className="text-[10px] text-error mt-1">{claimError}</p>}
+
+              <Link href="/stats" className="w-full px-6 py-3 text-sand-500 font-medium text-xs text-center hover:text-sand-800 transition-colors">
+                View Analytics →
+              </Link>
             </div>
           </div>
         </div>
