@@ -412,7 +412,7 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
       }
     });
 
-    if (durations.length < 3) return null;
+    if (durations.length < 1) return null;
 
     const avgDays = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
     const daysLeft = avgDays - daysSinceCurrent;
@@ -450,7 +450,7 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
         <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">
           Next: {data.nextStep}
         </div>
-        <div className="text-[9px] text-sand-400">{data.sampleSize} reports</div>
+        <div className="text-[9px] text-sand-400">{data.sampleSize} {data.sampleSize === 1 ? "report" : "reports"}{data.sampleSize < 5 ? " · limited data" : ""}</div>
       </div>
 
       {isImminent ? (
