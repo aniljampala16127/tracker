@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Application, StepId } from "@/lib/types";
-import { STEPS } from "@/lib/constants";
+import { STEPS, getVisibleSteps } from "@/lib/constants";
 import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
 import { Select } from "@/components/ui";
@@ -52,6 +52,7 @@ export default function CalculatorPage() {
   const [autoDetected, setAutoDetected] = useState(false);
   const [myStepsMap, setMyStepsMap] = useState<Record<StepId, string | null> | null>(null);
   const supabase = createClient();
+  const visibleSteps = useMemo(() => getVisibleSteps(stream as "Outland" | "Inland"), [stream]);
 
   const fetchApps = useCallback(async () => {
     const { data } = await supabase
@@ -84,17 +85,21 @@ export default function CalculatorPage() {
   const myProgress = useMemo(() => {
     if (!myStepsMap) return null;
     let latestCompletedIdx = -1;
-    for (let i = STEPS.length - 1; i >= 0; i--) {
-      if (myStepsMap[STEPS[i].id]) { latestCompletedIdx = i; break; }
+    for (let i = visibleSteps.length - 1; i >= 0; i--) {
+      if (myStepsMap[visibleSteps[i].id]) { latestCompletedIdx = i; break; }
     }
-    const nextStepIdx = latestCompletedIdx + 1 < STEPS.length ? latestCompletedIdx + 1 : null;
-    const nextStep = nextStepIdx !== null ? STEPS[nextStepIdx] : null;
-    const latestStep = latestCompletedIdx >= 0 ? STEPS[latestCompletedIdx] : null;
+    // Find first incomplete step
+    let nextStepIdx: number | null = null;
+    for (let i = latestCompletedIdx + 1; i < visibleSteps.length; i++) {
+      if (!myStepsMap[visibleSteps[i].id]) { nextStepIdx = i; break; }
+    }
+    const nextStep = nextStepIdx !== null ? visibleSteps[nextStepIdx] : null;
+    const latestStep = latestCompletedIdx >= 0 ? visibleSteps[latestCompletedIdx] : null;
     const latestStepDate = latestStep ? myStepsMap[latestStep.id] : null;
     const hasAor = !!myStepsMap.aor;
-    const isComplete = latestCompletedIdx === STEPS.length - 1;
+    const isComplete = latestCompletedIdx === visibleSteps.length - 1;
     return { latestCompletedIdx, nextStep, nextStepIdx, latestStep, latestStepDate, hasAor, isComplete };
-  }, [myStepsMap]);
+  }, [myStepsMap, visibleSteps]);
 
   // AOR community data
   const aorData = useMemo(() => {
@@ -177,8 +182,8 @@ export default function CalculatorPage() {
   // Step-by-step estimates — community data with IRCC fallback
   const stepEstimates = useMemo(() => {
     const streamApps = apps.filter(a => a.stream === stream);
-    return STEPS.slice(1).map((step) => {
-      const prev = STEPS[STEPS.indexOf(step) - 1];
+    return visibleSteps.slice(1).map((step, idx) => {
+      const prev = visibleSteps[idx]; // idx is already offset by slice(1)
       const durations: number[] = [];
       streamApps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
@@ -196,7 +201,7 @@ export default function CalculatorPage() {
       const isIrccFallback = communityAvg === null && irccFallback !== null;
       return { step, avg, reports: durations.length, isIrccFallback };
     });
-  }, [apps, stream]);
+  }, [apps, stream, visibleSteps]);
 
   // Timeline with actual dates for completed steps
   const timeline = useMemo(() => {
@@ -481,9 +486,9 @@ export default function CalculatorPage() {
 
                 let daysFromPrev: number | null = null;
                 if (isCompleted && s.actualDate) {
-                  const prevIdx = STEPS.findIndex(st => st.id === s.id) - 1;
+                  const prevIdx = visibleSteps.findIndex(st => st.id === s.id) - 1;
                   if (prevIdx >= 0 && myStepsMap) {
-                    const prevDate = myStepsMap[STEPS[prevIdx].id];
+                    const prevDate = myStepsMap[visibleSteps[prevIdx].id];
                     if (prevDate) daysFromPrev = daysBetween(prevDate, s.actualDate);
                   }
                 }
