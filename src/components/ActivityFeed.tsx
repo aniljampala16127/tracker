@@ -27,6 +27,7 @@ interface ActivityItem {
   id: string;
   app_initials: string;
   app_country: string;
+  app_sub_date: string;
   step_id: string;
   event_date: string;
   created_at: string;
@@ -130,12 +131,14 @@ export function ActivityPanel() {
   const activities: ActivityItem[] = [];
   apps.forEach(a => {
     if (!cohortIds.has(a.id)) return;
+    const s = buildStepsMap(a.step_events || []);
     (a.step_events || []).forEach(e => {
-      if (e.step_id === "submitted") return; // skip new entries from cohort
+      if (e.step_id === "submitted") return;
       activities.push({
         id: e.id,
         app_initials: a.initials,
         app_country: a.country_origin,
+        app_sub_date: s.submitted || "",
         step_id: e.step_id,
         event_date: e.event_date,
         created_at: e.created_at,
@@ -234,7 +237,7 @@ export function ActivityPanel() {
                             <span className={`font-semibold ${isUnread ? "text-brand-600" : "text-sand-700"}`}>{stepLabel(a.step_id)}</span>
                             {a.event_date && <span className="text-sand-500"> on {fmt(a.event_date)}</span>}
                           </div>
-                          <div className="text-[10px] text-sand-400">{a.app_country} · {timeAgo(a.created_at)}</div>
+                          <div className="text-[10px] text-sand-400">{a.app_country} · Sub {fmt(a.app_sub_date)} · {timeAgo(a.created_at)}</div>
                         </div>
                         {isUnread && <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0 mt-2 animate-pulse" />}
                       </div>
