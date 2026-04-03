@@ -160,10 +160,8 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
   );
 
   return (
-    <div className="rounded-xl mb-4 overflow-hidden"
+    <div className="rounded-xl mb-4 overflow-hidden bg-brand-50 border border-brand-200"
       style={{
-        background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf3 50%, #f0f9f0 100%)",
-        border: "1px solid #c6e7d4",
         boxShadow: expanded ? "0 1px 4px rgba(45,106,79,0.08)" : "0 1px 2px rgba(0,0,0,0.04)",
         transition: "box-shadow 0.4s ease",
       }}>
@@ -187,7 +185,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
             </div>
           ))}
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0"
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0 text-sand-400"
           style={{ transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
           <path d="M6 9L12 15L18 9" />
         </svg>
@@ -233,9 +231,9 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                 {/* Entries */}
                 <div className="h-[200px] relative">
                   <div className="absolute top-0 left-0 right-0 h-4 z-10 pointer-events-none"
-                    style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.95), transparent)" }} />
+                    style={{ background: "linear-gradient(to bottom, var(--surface-card), transparent)" }} />
                   <div className="absolute bottom-0 left-0 right-0 h-4 z-10 pointer-events-none"
-                    style={{ background: "linear-gradient(to top, rgba(255,255,255,0.95), transparent)" }} />
+                    style={{ background: "linear-gradient(to top, var(--surface-card), transparent)" }} />
                   <SmoothScroll count={card.entries.length}>
                     <div className="py-1">
                       {card.entries.slice(0, 30).map((a, i) => (
@@ -273,7 +271,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                   style={{
                     width: i === activeCard ? 16 : 6,
                     height: 6,
-                    backgroundColor: i === activeCard ? (STEP_DOT_COLORS[c.stepId] || "#8A8880") : "#D4D3CE",
+                    backgroundColor: i === activeCard ? (STEP_DOT_COLORS[c.stepId] || "#8A8880") : "var(--sand-300)",
                     WebkitTapHighlightColor: "transparent",
                   }} />
               ))}
