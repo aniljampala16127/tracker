@@ -373,19 +373,33 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 function NextStepEstimate({ app, allApps }: { app: Application; allApps: Application[] }) {
   const data = useMemo(() => {
     const stepsMap = buildStepsMap(app.step_events || []);
-    const currentIdx = STEPS.findIndex(s => s.id === app.current_step);
-    if (currentIdx < 0 || currentIdx >= STEPS.length - 1) return null;
     if (app.is_complete) return null;
 
-    const currentStep = STEPS[currentIdx];
-    const nextStep = STEPS[currentIdx + 1];
+    const visSteps = getVisibleSteps(app.stream);
+
+    // Find the last completed step (highest with a date)
+    let lastCompletedIdx = -1;
+    for (let i = visSteps.length - 1; i >= 0; i--) {
+      if (stepsMap[visSteps[i].id]) { lastCompletedIdx = i; break; }
+    }
+    if (lastCompletedIdx < 0) return null;
+
+    // Find the next incomplete step after it
+    let nextIdx = -1;
+    for (let i = lastCompletedIdx + 1; i < visSteps.length; i++) {
+      if (!stepsMap[visSteps[i].id]) { nextIdx = i; break; }
+    }
+    if (nextIdx < 0) return null;
+
+    const currentStep = visSteps[lastCompletedIdx];
+    const nextStep = visSteps[nextIdx];
     const currentDate = stepsMap[currentStep.id];
     if (!currentDate) return null;
 
     const today = new Date().toISOString().split("T")[0];
     const daysSinceCurrent = daysBetween(currentDate, today);
 
-    // Calculate community average for current → next step
+    // Calculate community average for current -> next step
     const durations: number[] = [];
     allApps.forEach(a => {
       if (a.stream !== app.stream) return;
@@ -398,7 +412,7 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
       }
     });
 
-    if (durations.length < 3) return null; // Need enough data
+    if (durations.length < 3) return null;
 
     const avgDays = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
     const daysLeft = avgDays - daysSinceCurrent;

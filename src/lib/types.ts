@@ -59,6 +59,7 @@ export type StepId =
   | "medical_passed"
   | "pa_eligibility"
   | "pre_arrival"
+  | "background_started"
   | "background"
   | "portal1"
   | "portal2"
