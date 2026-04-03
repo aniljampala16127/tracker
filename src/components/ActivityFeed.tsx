@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
+import { buildStepsMap } from "@/lib/utils";
+import { getSavedPinHash } from "@/lib/pin";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const LAST_READ_KEY = "sponsortrack-notif-read";
@@ -61,6 +63,30 @@ function stepIcon(stepId: string): string {
   return icons[stepId] || icons.submitted;
 }
 
+// Get cohort app IDs (submitted same week as user)
+function getCohortIds(apps: Application[], myApp: Application | null): Set<string> {
+  if (!myApp) return new Set();
+  const mySteps = buildStepsMap(myApp.step_events || []);
+  if (!mySteps.submitted) return new Set();
+
+  const mySub = new Date(mySteps.submitted + "T00:00:00");
+  const myDay = mySub.getDay();
+  const weekStart = new Date(mySub);
+  weekStart.setDate(weekStart.getDate() - myDay);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  const ids = new Set<string>();
+  apps.forEach(a => {
+    if (a.id === myApp.id) return;
+    const s = buildStepsMap(a.step_events || []);
+    if (!s.submitted) return;
+    const sub = new Date(s.submitted + "T00:00:00");
+    if (sub >= weekStart && sub <= weekEnd) ids.add(a.id);
+  });
+  return ids;
+}
+
 export function NotificationBell({ count }: { count: number }) {
   return (
     <div className="relative w-8 h-8 rounded-lg flex items-center justify-center text-sand-500 hover:text-sand-800 hover:bg-sand-100 transition-all cursor-pointer">
@@ -78,69 +104,54 @@ export function NotificationBell({ count }: { count: number }) {
 }
 
 export function ActivityPanel() {
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [lastRead, setLastRead] = useState(0);
   const [showAll, setShowAll] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => { setLastRead(getLastReadTime()); }, []);
 
-  const fetchActivities = useCallback(async () => {
-    const { data } = await supabase
-      .from("step_events")
-      .select("id, step_id, event_date, created_at, application_id, applications(initials, country_origin)")
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (data) {
-      setActivities(data.map((d: any) => ({
-        id: d.id,
-        app_initials: d.applications?.initials || "?",
-        app_country: d.applications?.country_origin || "",
-        step_id: d.step_id,
-        event_date: d.event_date,
-        created_at: d.created_at,
-      })));
-    }
+  const fetchApps = useCallback(async () => {
+    const res = await fetch("/api/applications");
+    const data = await res.json();
+    if (Array.isArray(data)) setApps(data);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
-  useEffect(() => { fetchActivities(); }, [fetchActivities]);
+  useEffect(() => { fetchApps(); }, [fetchApps]);
 
-  // Unread = created after last read time
+  // Find user's app
+  const myApp = apps.find(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash) || null;
+  const cohortIds = getCohortIds(apps, myApp);
+  const hasCohort = cohortIds.size > 0;
+
+  // Build activity from cohort apps only
+  const activities: ActivityItem[] = [];
+  apps.forEach(a => {
+    if (!cohortIds.has(a.id)) return;
+    (a.step_events || []).forEach(e => {
+      if (e.step_id === "submitted") return; // skip new entries from cohort
+      activities.push({
+        id: e.id,
+        app_initials: a.initials,
+        app_country: a.country_origin,
+        step_id: e.step_id,
+        event_date: e.event_date,
+        created_at: e.created_at,
+      });
+    });
+  });
+  activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
   const unreadActivities = activities.filter(a => new Date(a.created_at).getTime() > lastRead);
   const unreadCount = unreadActivities.length;
 
-  // When opening, mark as read
-  const handleOpen = () => {
-    if (!open) {
-      setOpen(true);
-      // Don't mark read yet — let them see the unread items highlighted first
-    } else {
-      setOpen(false);
-    }
-  };
+  const handleOpen = () => { setOpen(!open); };
+  const handleMarkRead = () => { markAllRead(); setLastRead(Date.now()); };
+  const handleClose = () => { markAllRead(); setLastRead(Date.now()); setOpen(false); setShowAll(false); };
 
-  const handleMarkRead = () => {
-    markAllRead();
-    setLastRead(Date.now());
-  };
-
-  const handleClose = () => {
-    // Mark read on close
-    markAllRead();
-    setLastRead(Date.now());
-    setOpen(false);
-    setShowAll(false);
-  };
-
-  // What to display
   const displayActivities = showAll ? activities : unreadActivities;
-  const updates = displayActivities.filter(a => a.step_id !== "submitted");
-  const newEntries = displayActivities.filter(a => a.step_id === "submitted");
-  const hasContent = updates.length > 0 || newEntries.length > 0;
 
   if (loading) return <div className="w-8 h-8" />;
 
@@ -156,55 +167,58 @@ export function ActivityPanel() {
           <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-sand-200 rounded-xl shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col panel-enter">
             {/* Header */}
             <div className="px-4 py-3 border-b border-sand-100 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-sand-900">
-                {showAll ? "All Activity" : "New Activity"}
-              </h3>
+              <div>
+                <h3 className="text-sm font-bold text-sand-900">Your Cohort</h3>
+                <p className="text-[9px] text-sand-400">{hasCohort ? `${cohortIds.size} people submitted your week` : "Add your app to see cohort activity"}</p>
+              </div>
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && !showAll && (
-                  <button
-                    onClick={handleMarkRead}
-                    className="text-[10px] px-2 py-0.5 rounded-full text-brand-600 hover:bg-brand-50 font-medium transition-colors"
-                  >
+                  <button onClick={handleMarkRead}
+                    className="text-[10px] px-2 py-0.5 rounded-full text-brand-600 hover:bg-brand-50 font-medium transition-colors">
                     Mark all read
                   </button>
                 )}
-                <button
-                  onClick={() => setShowAll(!showAll)}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-sand-100 text-sand-600 font-medium hover:bg-sand-200 transition-colors"
-                >
-                  {showAll ? "New only" : "Show all"}
-                </button>
+                {activities.length > 0 && (
+                  <button onClick={() => setShowAll(!showAll)}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-sand-100 text-sand-600 font-medium hover:bg-sand-200 transition-colors">
+                    {showAll ? "New only" : "Show all"}
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="overflow-y-auto flex-1">
+              {/* No cohort */}
+              {!hasCohort && (
+                <div className="px-4 py-10 text-center">
+                  <p className="text-xs text-sand-500">Add your application to see updates from people who submitted the same week as you.</p>
+                </div>
+              )}
+
               {/* No new notifications */}
-              {!hasContent && !showAll && (
+              {hasCohort && displayActivities.length === 0 && !showAll && (
                 <div className="px-4 py-10 text-center">
                   <div className="w-10 h-10 rounded-full bg-sand-100 flex items-center justify-center mx-auto mb-2">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20 6L9 17L4 12" />
                     </svg>
                   </div>
-                  <p className="text-xs text-sand-500">You&apos;re all caught up!</p>
-                  <button
-                    onClick={() => setShowAll(true)}
-                    className="text-[10px] text-brand-600 font-medium mt-1 hover:underline"
-                  >
+                  <p className="text-xs text-sand-500">No new cohort updates!</p>
+                  <button onClick={() => setShowAll(true)}
+                    className="text-[10px] text-brand-600 font-medium mt-1 hover:underline">
                     View past activity
                   </button>
                 </div>
               )}
 
-              {!hasContent && showAll && activities.length === 0 && (
-                <div className="px-4 py-8 text-center text-sand-400 text-xs">No activity yet</div>
+              {hasCohort && displayActivities.length === 0 && showAll && (
+                <div className="px-4 py-8 text-center text-sand-400 text-xs">No cohort milestones yet</div>
               )}
 
-              {/* Step updates / milestones */}
-              {updates.length > 0 && (
-                <div className="px-4 pt-3 pb-1">
-                  <div className="text-[9px] font-semibold text-sand-400 uppercase tracking-wider mb-2">Milestones</div>
-                  {updates.map((a) => {
+              {/* Cohort milestones */}
+              {displayActivities.length > 0 && (
+                <div className="px-4 pt-3 pb-2">
+                  {displayActivities.slice(0, 20).map((a) => {
                     const isUnread = new Date(a.created_at).getTime() > lastRead;
                     return (
                       <div key={a.id} className={`flex items-start gap-2.5 py-2 transition-colors ${isUnread ? "bg-brand-50/40 -mx-4 px-4 rounded" : ""}`}>
@@ -218,46 +232,11 @@ export function ActivityPanel() {
                             <span className="font-semibold">{a.app_initials}</span>
                             <span className="text-sand-500"> received </span>
                             <span className={`font-semibold ${isUnread ? "text-brand-600" : "text-sand-700"}`}>{stepLabel(a.step_id)}</span>
-                            {a.event_date && (
-                              <span className="text-sand-500"> on {fmt(a.event_date)}</span>
-                            )}
+                            {a.event_date && <span className="text-sand-500"> on {fmt(a.event_date)}</span>}
                           </div>
-                          <div className="text-[10px] text-sand-400">
-                            {a.app_country} · {timeAgo(a.created_at)}
-                          </div>
+                          <div className="text-[10px] text-sand-400">{a.app_country} · {timeAgo(a.created_at)}</div>
                         </div>
-                        {isUnread && (
-                          <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0 mt-2 animate-pulse" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* New entries */}
-              {newEntries.length > 0 && (
-                <div className={`px-4 pt-3 pb-2 ${updates.length > 0 ? "border-t border-sand-100" : ""}`}>
-                  <div className="text-[9px] font-semibold text-sand-400 uppercase tracking-wider mb-2">New Entries</div>
-                  {newEntries.slice(0, 15).map((a) => {
-                    const isUnread = new Date(a.created_at).getTime() > lastRead;
-                    return (
-                      <div key={a.id} className="flex items-center gap-2.5 py-1.5">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isUnread ? "bg-brand-500" : "bg-sand-100"}`}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={isUnread ? "white" : "#8A8880"} strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M12 5V19M5 12H19" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs text-sand-600">
-                            <span className={`font-medium ${isUnread ? "text-sand-900" : "text-sand-800"}`}>{a.app_initials}</span> · {a.app_country}
-                          </div>
-                          {a.event_date && (
-                            <div className="text-[10px] text-sand-400">Sub {MONTHS[new Date(a.event_date + "T00:00:00").getMonth()]} {new Date(a.event_date + "T00:00:00").getDate()}, {new Date(a.event_date + "T00:00:00").getFullYear()}</div>
-                          )}
-                        </div>
-                        {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0 animate-pulse" />}
-                        <span className="text-[10px] text-sand-400 flex-shrink-0">{timeAgo(a.created_at)}</span>
+                        {isUnread && <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0 mt-2 animate-pulse" />}
                       </div>
                     );
                   })}
