@@ -15,7 +15,6 @@ export async function GET() {
   const { data, error } = await supabase
     .from("applications")
     .select("*, step_events(*)")
-    .not("pin_hash", "is", null)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -130,7 +129,7 @@ export async function DELETE(request: Request) {
 export async function PATCH(request: Request) {
   const supabase = getSupabase();
   const body = await request.json();
-  const { id, pin_hash, submitted_date, ...updates } = body;
+  const { id, pin_hash, claim_pin_hash, submitted_date, ...updates } = body;
 
   if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
 
@@ -142,6 +141,17 @@ export async function PATCH(request: Request) {
     .single();
 
   if (!app) return NextResponse.json({ error: "Application not found" }, { status: 404 });
+
+  // CLAIM: set PIN on unclaimed entry (no existing PIN)
+  if (claim_pin_hash) {
+    if (app.pin_hash) {
+      return NextResponse.json({ error: "This entry already has a PIN" }, { status: 409 });
+    }
+    const { error } = await supabase.from("applications").update({ pin_hash: claim_pin_hash }).eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, claimed: true });
+  }
+
   if (app.pin_hash && app.pin_hash !== pin_hash) {
     return NextResponse.json({ error: "Invalid PIN" }, { status: 403 });
   }

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Modal, Button } from "./ui";
 import { generatePin, hashPin, savePinForApp, getSavedPinHash } from "@/lib/pin";
-import { createClient } from "@/lib/supabase/client";
 
 interface ClaimPinModalProps {
   open: boolean;
@@ -21,7 +20,6 @@ export function ClaimPinModal({
   const [claiming, setClaiming] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
-  const supabase = createClient();
 
   const handleClaim = async () => {
     setClaiming(true);
@@ -29,20 +27,15 @@ export function ClaimPinModal({
     const newPin = generatePin();
     const hash = await hashPin(newPin);
 
-    // Atomic claim — only succeeds if pin_hash is still NULL
-    const { data, error: rpcErr } = await supabase.rpc("claim_application", {
-      app_id: appId,
-      new_pin_hash: hash,
+    const res = await fetch("/api/applications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: appId, claim_pin_hash: hash }),
     });
 
-    if (rpcErr) {
-      setError("Failed to claim. Try again.");
-      setClaiming(false);
-      return;
-    }
-
-    if (data === false) {
-      setError("Someone else already claimed this entry.");
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error || "Failed to claim. Try again.");
       setClaiming(false);
       return;
     }
@@ -53,7 +46,6 @@ export function ClaimPinModal({
     if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
     setStep("reveal");
     setClaiming(false);
-    // Don't call onClaimed yet — wait for user to see the PIN
   };
 
   const handleCopy = () => {
@@ -72,7 +64,6 @@ export function ClaimPinModal({
   };
 
   const handleClose = () => {
-    // If PIN was revealed, still call onClaimed so the app updates
     if (step === "reveal") {
       handleSavedPin();
       return;
