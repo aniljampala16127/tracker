@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
-import { STEPS } from "@/lib/constants";
+import { STEPS, getVisibleSteps } from "@/lib/constants";
 import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
 import { AORProgress } from "@/components/AORProgress";
 import { CountryBreakdown } from "@/components/CountryBreakdown";
@@ -89,18 +89,28 @@ export default function StatsPage() {
   // Compute per-step community averages
   const stepAverages = useMemo(() => {
     return STEPS.slice(1).map((step) => {
-      const prev = STEPS[STEPS.indexOf(step) - 1];
       const outlandDays: number[] = [];
       const inlandDays: number[] = [];
 
       apps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
-        if (s[prev.id] && s[step.id]) {
-          const d = daysBetween(s[prev.id]!, s[step.id]!);
-          if (d < 0 || d > getOutlierMax(a.province)) return;
-          if (a.stream === "Outland") outlandDays.push(d);
-          else inlandDays.push(d);
+        if (!s[step.id]) return; // user hasn't reached this step
+
+        // Find user's most recent PREVIOUS completed step
+        const visSteps = getVisibleSteps(a.stream);
+        const stepIdx = visSteps.findIndex(vs => vs.id === step.id);
+        if (stepIdx <= 0) return;
+
+        let prevDate: string | null = null;
+        for (let i = stepIdx - 1; i >= 0; i--) {
+          if (s[visSteps[i].id]) { prevDate = s[visSteps[i].id]; break; }
         }
+        if (!prevDate) return;
+
+        const d = daysBetween(prevDate, s[step.id]!);
+        if (d < 0 || d > getOutlierMax(a.province)) return;
+        if (a.stream === "Outland") outlandDays.push(d);
+        else inlandDays.push(d);
       });
 
       return {

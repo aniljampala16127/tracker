@@ -434,17 +434,25 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
     const today = new Date().toISOString().split("T")[0];
     const daysSinceCurrent = daysBetween(baseDate, today);
 
-    // Calculate community average for base -> next step
+    // Calculate community average — from each user's actual previous step to nextStep
     const durations: number[] = [];
     allApps.forEach(a => {
       if (a.stream !== app.stream) return;
       const s = buildStepsMap(a.step_events || []);
-      const from = s[baseStep!.id];
-      const to = s[nextStep.id];
-      if (from && to) {
-        const d = daysBetween(from, to);
-        if (d >= 0 && d <= 200) durations.push(d);
+      if (!s[nextStep.id]) return;
+
+      // Find this user's most recent previous completed step before nextStep
+      const aVisSteps = getVisibleSteps(a.stream);
+      const targetIdx = aVisSteps.findIndex(vs => vs.id === nextStep.id);
+      if (targetIdx <= 0) return;
+      let prevDate: string | null = null;
+      for (let i = targetIdx - 1; i >= 0; i--) {
+        if (s[aVisSteps[i].id]) { prevDate = s[aVisSteps[i].id]; break; }
       }
+      if (!prevDate) return;
+
+      const d = daysBetween(prevDate, s[nextStep.id]!);
+      if (d >= 0 && d <= 200) durations.push(d);
     });
 
     if (durations.length < 1) return null;

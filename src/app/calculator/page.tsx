@@ -179,18 +179,25 @@ export default function CalculatorPage() {
     return { total: cohort.length, gotAor: gotAor.length, pct: cohort.length > 0 ? Math.round((gotAor.length / cohort.length) * 100) : 0 };
   }, [apps, submittedDate, myProgress]);
 
-  // Step-by-step estimates — community data with IRCC fallback
+  // Step-by-step estimates — from each user's most recent previous completed step
   const stepEstimates = useMemo(() => {
     const streamApps = apps.filter(a => a.stream === stream);
     return visibleSteps.slice(1).map((step, idx) => {
-      const prev = visibleSteps[idx]; // idx is already offset by slice(1)
       const durations: number[] = [];
       streamApps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
-        if (s[prev.id] && s[step.id]) {
-          const d = daysBetween(s[prev.id]!, s[step.id]!);
-          const max = getOutlierMax(a.province); if (d >= 0 && d <= max) durations.push(d);
+        if (!s[step.id]) return;
+
+        // Find user's most recent previous completed step
+        const stepIdx = idx + 1; // offset for slice(1)
+        let prevDate: string | null = null;
+        for (let i = stepIdx - 1; i >= 0; i--) {
+          if (s[visibleSteps[i].id]) { prevDate = s[visibleSteps[i].id]; break; }
         }
+        if (!prevDate) return;
+
+        const d = daysBetween(prevDate, s[step.id]!);
+        const max = getOutlierMax(a.province); if (d >= 0 && d <= max) durations.push(d);
       });
       const rawAvg = durations.length >= 1 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
       const communityAvg = rawAvg !== null && rawAvg <= 900 ? rawAvg : null; // double safety
