@@ -598,7 +598,7 @@ export default function DashboardPage() {
                           style={isMe ? { boxShadow: "inset 3px 0 0 var(--brand-500)" } : undefined}
                           onClick={() => handleRowClick(app)}
                         >
-                          <td className={`px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 ${isMe ? "bg-brand-50" : "bg-white"}`}>
+                          <td className={`px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 ${isMe ? "bg-brand-50" : "bg-sand-50"}`}>
                             <span className="flex items-center gap-1.5">
                               {app.initials}
                               {isMe && (
@@ -609,7 +609,7 @@ export default function DashboardPage() {
                           </td>
                           <td className="px-1.5 py-2 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
-                              app.sponsor_status === "Citizen" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
+                              app.sponsor_status === "Citizen" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
                             }`}>{app.sponsor_status}</span>
                           </td>
                           <td className="px-1.5 py-2 text-sand-700 text-xs whitespace-nowrap">{app.country_origin}</td>
