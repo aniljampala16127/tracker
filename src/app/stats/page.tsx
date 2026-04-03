@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, Cell, LineChart, Line,
@@ -17,31 +17,13 @@ import { DigestImageExport } from "@/components/DigestImageExport";
 
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// Reusable collapsible section — collapsed by default, auto-expands on scroll
+// Reusable collapsible section — collapsed by default, click to expand
 function CollapsibleSection({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   const [expanded, setExpanded] = useState(false);
-  const [autoExpanded, setAutoExpanded] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || expanded) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.2 && !autoExpanded) {
-          setExpanded(true);
-          setAutoExpanded(true);
-        }
-      },
-      { threshold: [0.2] }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [expanded, autoExpanded]);
 
   return (
-    <div ref={ref} className="bg-white border border-sand-200 rounded-xl mb-5 overflow-hidden">
-      <button onClick={() => { setExpanded(!expanded); setAutoExpanded(true); }}
+    <div className="bg-white border border-sand-200 rounded-xl mb-5 overflow-hidden">
+      <button onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-sand-50 transition-colors">
         <div>
           <h2 className="text-sm font-bold text-sand-900">{title}</h2>

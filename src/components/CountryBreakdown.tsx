@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Application } from "@/lib/types";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
 
@@ -16,27 +16,6 @@ interface CountryData {
 
 export function CountryBreakdown({ apps }: { apps: Application[] }) {
   const [expanded, setExpanded] = useState(false);
-  const [autoExpanded, setAutoExpanded] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Auto-expand when scrolled into view
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || expanded) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.3 && !autoExpanded) {
-          setExpanded(true);
-          setAutoExpanded(true);
-        }
-      },
-      { threshold: [0.3] }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [expanded, autoExpanded]);
 
   const data = useMemo(() => {
     const map: Record<string, {
@@ -88,9 +67,9 @@ export function CountryBreakdown({ apps }: { apps: Application[] }) {
   );
 
   return (
-    <div ref={ref} className="bg-white border border-sand-200 rounded-xl mb-5 overflow-hidden">
+    <div className="bg-white border border-sand-200 rounded-xl mb-5 overflow-hidden">
       {/* Header — always visible, tap to toggle */}
-      <button onClick={() => { setExpanded(!expanded); setAutoExpanded(true); }}
+      <button onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-sand-50 transition-colors">
         <div>
           <h2 className="text-sm font-bold text-sand-900">AOR by Country</h2>
