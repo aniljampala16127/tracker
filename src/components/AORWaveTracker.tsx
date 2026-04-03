@@ -117,42 +117,8 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
   }, [apps]);
 
   const [expanded, setExpanded] = useState(false);
-  const [userToggled, setUserToggled] = useState(false);
   const [activeCard, setActiveCard] = useState(0);
-  const lastY = useRef(0);
-  const scrollDelta = useRef(0);
-  const mountTime = useRef(Date.now());
   const cardsRef = useRef<HTMLDivElement>(null);
-
-  // Scroll-to-collapse: requires 150px sustained downward scroll
-  // 1.5s cooldown after mount to prevent collapse on tab switch
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    lastY.current = window.scrollY;
-    mountTime.current = Date.now();
-
-    let raf: number | null = null;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        // Skip collapse for 1.5s after mount (tab switch protection)
-        if (Date.now() - mountTime.current < 1500) { lastY.current = window.scrollY; raf = null; return; }
-
-        const y = window.scrollY;
-        const dy = y - lastY.current;
-        if (!userToggled) {
-          if (dy > 0) { scrollDelta.current += dy; if (scrollDelta.current > 150 && expanded) setExpanded(false); }
-          else scrollDelta.current = 0;
-          if (y < 20 && !expanded) { setExpanded(true); scrollDelta.current = 0; }
-        }
-        lastY.current = y; raf = null;
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
-  }, [expanded, userToggled]);
-
-  useEffect(() => { if (!userToggled) return; const t = setTimeout(() => { setUserToggled(false); scrollDelta.current = 0; }, 6000); return () => clearTimeout(t); }, [userToggled]);
 
   // Scroll to a specific card
   const scrollToCard = useCallback((idx: number) => {
@@ -204,7 +170,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
 
       {/* Header */}
       <button
-        onClick={() => { setExpanded(p => !p); setUserToggled(true); scrollDelta.current = 0; }}
+        onClick={() => setExpanded(p => !p)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left"
         style={{ WebkitTapHighlightColor: "transparent" }}>
         <div className="w-2 h-2 rounded-full flex-shrink-0 bg-brand-500 animate-pulse" />

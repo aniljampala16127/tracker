@@ -197,7 +197,9 @@ export default function StatsPage() {
       </div>
 
       {/* AOR Progress */}
-      <AORProgress apps={apps} />
+      <CollapsibleSection title="AOR Progress" subtitle="Which submission dates are getting AOR">
+        <AORProgress apps={apps} />
+      </CollapsibleSection>
 
       {/* Country Breakdown */}
       <CountryBreakdown apps={apps} />

@@ -73,10 +73,7 @@ export function AORProgress({ apps }: { apps: Application[] }) {
   if (!outland && !inland) return null;
 
   return (
-    <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
-      <h2 className="text-sm font-bold text-sand-900 mb-1">AOR Progress</h2>
-      <p className="text-[11px] text-sand-400 mb-3">Which submission dates have received AOR so far</p>
-
+    <div>
       {outland && <StreamCard insight={outland} color="brand" />}
       {inland && <StreamCard insight={inland} color="warn" />}
     </div>
