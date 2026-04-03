@@ -206,21 +206,18 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
             style={{ WebkitOverflowScrolling: "touch" }}>
             {data.cards.map((card) => (
               <div key={card.stepId}
-                className="flex-shrink-0 rounded-xl overflow-hidden snap-center"
+                className="flex-shrink-0 rounded-xl overflow-hidden snap-center border border-sand-200"
                 style={{
                   width: "calc(100vw - 56px)", maxWidth: "400px",
-                  background: "rgba(255,255,255,0.9)",
-                  backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-                  border: "1px solid rgba(0,0,0,0.06)",
+                  background: "var(--surface-card)",
                   boxShadow: "0 2px 12px rgba(0,0,0,0.04), 0 0.5px 1px rgba(0,0,0,0.06)",
                 }}>
 
                 {/* Card header */}
-                <div className="px-3 py-2.5 flex items-center justify-between"
-                  style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
+                <div className="px-3 py-2.5 flex items-center justify-between border-b border-sand-200">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${STEP_COLORS[card.stepId] || "bg-sand-400"}`}
-                      style={{ boxShadow: "0 0 0 2px rgba(255,255,255,0.9)" }} />
+                      style={{ boxShadow: "0 0 0 2px var(--surface-card)" }} />
                     <span className="text-[13px] font-bold text-sand-900">{card.label}</span>
                   </div>
                   <div className="flex items-center gap-2">
