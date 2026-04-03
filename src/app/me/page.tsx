@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Application, StepId } from "@/lib/types";
-import { STEPS, getStepIndex } from "@/lib/constants";
+import { Application, StepId, StepDefinition } from "@/lib/types";
+import { STEPS, getStepIndex, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
-import { Reactions } from "@/components/Reactions";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
 import { playMilestoneSound } from "@/lib/sounds";
@@ -89,19 +88,24 @@ export default function MyAppPage() {
 function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: Application[]; onRefresh: () => void }) {
   const stepsMap = buildStepsMap(app.step_events || []);
   const submittedDate = stepsMap.submitted;
+  const visibleSteps = getVisibleSteps(app.stream);
   const currentIdx = getStepIndex(app.current_step);
   const [activeStep, setActiveStep] = useState<string | null>(null);
   const [stepDate, setStepDate] = useState("");
+  const [editingStep, setEditingStep] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
   const [saving, setSaving] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const [timelineExpanded, setTimelineExpanded] = useState(false);
 
-  // What's the next step to complete?
-  const nextStepId = currentIdx < STEPS.length - 1 ? STEPS[currentIdx + 1].id : null;
+  // Completed steps (stream-filtered)
+  const completedStepIds = visibleSteps.filter(s => stepsMap[s.id]).map(s => s.id);
 
-  // Latest completed step (for undo button)
-  const completedStepIds = STEPS.filter(s => stepsMap[s.id]).map(s => s.id);
+  // Next step to complete (first incomplete in visible steps, after submitted)
+  const nextStepDef = visibleSteps.find(s => s.id !== "submitted" && !stepsMap[s.id]);
+  const nextStepId = nextStepDef?.id || null;
+  // Latest completed (for highlight, not for restriction)
   const latestCompletedId = completedStepIds.length > 0 ? completedStepIds[completedStepIds.length - 1] : null;
 
   const handleSaveStep = async (stepId: string, date: string) => {
@@ -133,6 +137,24 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
     const pinHash = getSavedPinHash(app.id);
     await fetch(`/api/steps?application_id=${app.id}&step_id=${stepId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
     setUndoing(false);
+    onRefresh();
+  };
+
+  const handleEditStep = async (stepId: string, newDate: string) => {
+    setSaving(true);
+    const pinHash = getSavedPinHash(app.id);
+    const res = await fetch("/api/steps", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ application_id: app.id, step_id: stepId, event_date: newDate, pin_hash: pinHash || "" }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error || "Failed to edit step");
+    }
+    setEditingStep(null);
+    setEditDate("");
+    setSaving(false);
     onRefresh();
   };
 
@@ -263,7 +285,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
         latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
         stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
-        handleUndoStep={handleUndoStep} saving={saving} undoing={undoing}
+        handleUndoStep={handleUndoStep} handleEditStep={handleEditStep}
+        editingStep={editingStep} setEditingStep={setEditingStep} editDate={editDate} setEditDate={setEditDate}
+        saving={saving} undoing={undoing} visibleSteps={visibleSteps}
         expanded={timelineExpanded} setExpanded={(v: boolean) => { setTimelineExpanded(v); if (v) setEditing(false); }} />
 
       {/* 3. Next Step Estimate — works for ALL steps */}
@@ -543,23 +567,28 @@ function GCKeyInlineStep({ appId, gckeyDone, toggleGckey }: {
 
 // Collapsible Timeline with inline GCKey after AOR
 function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestCompletedId,
-  activeStep, setActiveStep, stepDate, setStepDate, handleSaveStep, handleUndoStep, saving, undoing,
-  expanded, setExpanded,
+  activeStep, setActiveStep, stepDate, setStepDate, handleSaveStep, handleUndoStep,
+  handleEditStep, editingStep, setEditingStep, editDate, setEditDate,
+  saving, undoing, visibleSteps, expanded, setExpanded,
 }: {
   app: Application; stepsMap: Record<string, string | null>; currentIdx: number;
   nextStepId: string | null; latestCompletedId: string | null;
   activeStep: string | null; setActiveStep: (s: string | null) => void;
   stepDate: string; setStepDate: (s: string) => void;
   handleSaveStep: (stepId: string, date: string) => void;
-  handleUndoStep: (stepId: string) => void; saving: boolean; undoing: boolean;
+  handleUndoStep: (stepId: string) => void;
+  handleEditStep: (stepId: string, date: string) => void;
+  editingStep: string | null; setEditingStep: (s: string | null) => void;
+  editDate: string; setEditDate: (s: string) => void;
+  saving: boolean; undoing: boolean;
+  visibleSteps: StepDefinition[];
   expanded: boolean; setExpanded: (v: boolean) => void;
 }) {
   const [gckeyDone, setGckeyDone] = useState(false);
   const hasAor = !!stepsMap.aor;
-  const completedCount = STEPS.filter(s => stepsMap[s.id]).length;
-  const nextStep = nextStepId ? STEPS.find(s => s.id === nextStepId) : null;
+  const completedCount = visibleSteps.filter(s => stepsMap[s.id]).length;
+  const nextStep = nextStepId ? visibleSteps.find(s => s.id === nextStepId) : null;
 
-  // Load GCKey done state from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(`gckey-done-${app.id}`);
     if (saved === "true") setGckeyDone(true);
@@ -573,19 +602,18 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
 
   return (
     <div className="border border-sand-200 rounded-xl mb-3 overflow-hidden bg-sand-50/30">
-      {/* Header — always visible with Update button */}
+      {/* Header */}
       <div className="px-4 py-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your Timeline</span>
-            <span className="text-[10px] font-bold text-brand-600">{completedCount}/{STEPS.length}</span>
+            <span className="text-[10px] font-bold text-brand-600">{completedCount}/{visibleSteps.length}</span>
           </div>
           <div className="flex items-center gap-2">
             <TimelineExport app={app} />
           </div>
         </div>
 
-        {/* Next step — tap to expand and update */}
         {nextStep && !expanded && (
           <button
             onClick={() => { setExpanded(true); const t = new Date().toISOString().split("T")[0]; setStepDate(t); setTimeout(() => setActiveStep(nextStep.id), 100); }}
@@ -614,7 +642,7 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
 
       {/* Expandable body */}
       <div style={{
-        maxHeight: expanded ? "1200px" : "0px",
+        maxHeight: expanded ? "2000px" : "0px",
         overflow: "hidden",
         transition: "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
       }}>
@@ -624,55 +652,65 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
           transitionDelay: expanded ? "0.1s" : "0s",
         }}>
           <div className="space-y-1">
-            {STEPS.map((step, i) => {
+            {visibleSteps.map((step, i) => {
               const date = stepsMap[step.id];
-              const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
+              const prevStep = i > 0 ? visibleSteps[i - 1] : null;
+              const prevDate = prevStep ? stepsMap[prevStep.id] : null;
               const days = date && prevDate ? daysBetween(prevDate, date) : null;
-              const isDone = i <= currentIdx && date;
-              const isNext = step.id === nextStepId;
+              const isDone = !!date;
+              const isIncomplete = !date && step.id !== "submitted";
 
               return (
                 <div key={step.id}>
                   <div className={`flex items-center gap-3 rounded-lg transition-all ${
-                    isDone ? "px-3 py-2 bg-brand-50" : isNext ? "px-3 py-2.5 bg-warn-light border border-warn/20" : "px-3 py-1"
+                    isDone ? "px-3 py-2 bg-brand-50" : isIncomplete ? "px-3 py-2 bg-white border border-sand-100" : "px-3 py-1"
                   }`}>
                     <div className={`flex-shrink-0 rounded-full ${
-                      isDone ? "w-2.5 h-2.5 bg-brand-500" : isNext ? "w-2.5 h-2.5 bg-warn animate-pulse" : "w-1.5 h-1.5 bg-sand-300"
+                      isDone ? "w-2.5 h-2.5 bg-brand-500" : isIncomplete ? "w-2 h-2 bg-sand-300 border border-sand-400" : "w-1.5 h-1.5 bg-sand-300"
                     }`} />
                     <div className="flex-1 min-w-0">
-                      <span className={`font-medium text-sand-900 ${isDone || isNext ? "text-sm" : "text-[11px] text-sand-400"}`}>{step.label}</span>
+                      <span className={`font-medium ${isDone ? "text-sm text-sand-900" : isIncomplete ? "text-xs text-sand-600" : "text-[11px] text-sand-400"}`}>{step.label}</span>
+                      {isIncomplete && <div className="text-[9px] text-sand-400">{step.hint}</div>}
                     </div>
+
+                    {/* Completed: date + edit + undo */}
                     {isDone && (
-                      <div className="text-right">
-                        <div className="text-xs font-medium text-sand-700">{formatNice(date!).replace(/, \d{4}/, "")}</div>
-                        {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d</div>}
-                      </div>
-                    )}
-                    {isNext && activeStep !== step.id && (
-                      <button onClick={() => { const t = new Date().toISOString().split("T")[0]; setStepDate(t); setActiveStep(step.id); }}
-                        className="text-xs bg-warn text-white px-3 py-1.5 rounded-lg font-medium hover:bg-warn-dark transition-all active:scale-95">
-                        Update
-                      </button>
-                    )}
-                    {isDone && (
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Reactions applicationId={app.id} stepId={step.id} compact />
-                        {step.id !== "submitted" && step.id === latestCompletedId ? (
-                          <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
-                            className="text-[9px] px-1.5 py-0.5 rounded bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50">
-                            {undoing ? "..." : "Undo"}
-                          </button>
-                        ) : (
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <div className="text-right">
+                          <div className="text-xs font-medium text-sand-700">{formatNice(date!).replace(/, \d{4}/, "")}</div>
+                          {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d</div>}
+                        </div>
+                        {step.id !== "submitted" && (
+                          <>
+                            <button onClick={() => { setEditingStep(step.id); setEditDate(date!); }}
+                              className="text-[9px] px-1.5 py-0.5 rounded bg-sand-100 text-sand-500 font-medium hover:bg-sand-200 transition-colors">
+                              Edit
+                            </button>
+                            <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
+                              className="text-[9px] px-1.5 py-0.5 rounded bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50">
+                              {undoing ? "..." : "Undo"}
+                            </button>
+                          </>
+                        )}
+                        {step.id === "submitted" && (
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M20 6L9 17L4 12" />
                           </svg>
                         )}
                       </div>
                     )}
+
+                    {/* Incomplete: Update button */}
+                    {isIncomplete && activeStep !== step.id && (
+                      <button onClick={() => { const t = new Date().toISOString().split("T")[0]; setStepDate(t); setActiveStep(step.id); }}
+                        className="text-[10px] bg-sand-200 text-sand-700 px-2.5 py-1 rounded-lg font-medium hover:bg-sand-300 transition-all active:scale-95">
+                        Update
+                      </button>
+                    )}
                   </div>
 
-                  {/* Date picker */}
-                  {isNext && activeStep === step.id && (
+                  {/* Add step date picker */}
+                  {isIncomplete && activeStep === step.id && (
                     <div className="flex items-center gap-2 px-3 py-2 ml-6 animate-in">
                       <input type="date"
                         className="flex-1 text-sm px-3 py-2 border border-sand-200 rounded-lg bg-white text-sand-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
@@ -689,6 +727,24 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
                         </button>
                       )}
                       <button onClick={() => { setActiveStep(null); setStepDate(""); }}
+                        className="text-xs text-sand-400 hover:text-sand-600 px-2 py-2 transition-colors">Cancel</button>
+                    </div>
+                  )}
+
+                  {/* Edit date picker for completed steps */}
+                  {isDone && editingStep === step.id && (
+                    <div className="flex items-center gap-2 px-3 py-2 ml-6 animate-in">
+                      <input type="date"
+                        className="flex-1 text-sm px-3 py-2 border border-sand-200 rounded-lg bg-white text-sand-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
+                        max={new Date().toISOString().split("T")[0]} value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)} />
+                      {editDate && (
+                        <button onClick={() => handleEditStep(step.id, editDate)} disabled={saving}
+                          className="text-xs bg-brand-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-brand-600 transition-all active:scale-95 disabled:opacity-50">
+                          {saving ? "..." : "Save"}
+                        </button>
+                      )}
+                      <button onClick={() => { setEditingStep(null); setEditDate(""); }}
                         className="text-xs text-sand-400 hover:text-sand-600 px-2 py-2 transition-colors">Cancel</button>
                     </div>
                   )}
