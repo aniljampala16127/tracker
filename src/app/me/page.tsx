@@ -323,7 +323,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
             SponsorTrack is free and always will be. If it helped ease your wait, consider supporting its development.
           </p>
           <a
-            href="https://buymeacoffee.com/aniljampala"
+            href="https://buymeacoffee.com/g9v9j4ct4sa"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFDD00] text-[#000000] text-xs font-bold hover:bg-[#e6c800] transition-all active:scale-[0.98] shadow-sm"
