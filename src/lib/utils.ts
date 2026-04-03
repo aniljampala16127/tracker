@@ -73,11 +73,14 @@ export function buildStepsMap(
     map[s.id] = getStepDate(stepEvents, s.id);
   });
 
-  // Auto-fill new sub-steps from parent steps for backwards compatibility.
-  // Existing users logged 'bil' as "biometrics done" and 'medical' as "medical passed".
-  // If they have the parent but not the sub-step, copy the date forward.
-  if (map.bil && !map.biometrics_done) map.biometrics_done = map.bil;
-  if (map.medical && !map.medical_passed) map.medical_passed = map.medical;
+  // Auto-fill sub-steps for backwards compatibility.
+  // Only auto-fill when a LATER step proves the sub-step must have happened.
+  // e.g., if bil + sponsor_eligibility both exist → biometrics must be done
+  const hasLaterThanBio = !!(map.sponsor_eligibility || map.medical || map.pa_eligibility || map.background);
+  const hasLaterThanMedPassed = !!(map.pa_eligibility || map.pre_arrival || map.background);
+
+  if (map.bil && !map.biometrics_done && hasLaterThanBio) map.biometrics_done = map.bil;
+  if (map.medical && !map.medical_passed && hasLaterThanMedPassed) map.medical_passed = map.medical;
   if (map.background && !map.background_started) map.background_started = map.background;
 
   return map as Record<StepId, string | null>;

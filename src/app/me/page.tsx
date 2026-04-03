@@ -36,8 +36,9 @@ export default function MyAppPage() {
     document.documentElement.scrollTop = 0;
   }, []);
 
-  const fetchApps = useCallback(async () => {
-    const res = await fetch("/api/applications");
+  const fetchApps = useCallback(async (bustCache = false) => {
+    const url = bustCache ? `/api/applications?t=${Date.now()}` : "/api/applications";
+    const res = await fetch(url);
     const data = await res.json();
     if (Array.isArray(data)) {
       const all = data as Application[];
