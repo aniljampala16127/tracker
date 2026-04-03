@@ -148,6 +148,39 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
   );
 }
 
+function ThemeToggle() {
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains("dark"));
+  }, []);
+
+  const toggle = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("sponsortrack-theme", next ? "dark" : "light");
+    // Update theme-color meta tag
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", next ? "#0E0E0D" : "#2D6A4F");
+  };
+
+  return (
+    <button onClick={toggle} className="w-8 h-8 rounded-lg flex items-center justify-center text-sand-500 hover:text-sand-800 hover:bg-sand-100 transition-all"
+      aria-label="Toggle dark mode">
+      {dark ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="5"/><path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22"/>
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+        </svg>
+      )}
+    </button>
+  );
+}
+
 export function Nav() {
   const pathname = usePathname();
 
@@ -181,6 +214,7 @@ export function Nav() {
           </Link>
           <DesktopTabs pathname={pathname} />
           <div className="flex items-center gap-1">
+            <ThemeToggle />
             <ActivityPanel />
             
           </div>

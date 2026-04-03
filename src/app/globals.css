@@ -2,6 +2,123 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════
+   THEME: CSS Variables for Light + Dark
+   ═══════════════════════════════════════ */
+:root {
+  /* Sand scale — warm neutrals */
+  --sand-50: #FAFAF8;
+  --sand-100: #F2F1ED;
+  --sand-200: #E8E6E1;
+  --sand-300: #D5D3CE;
+  --sand-400: #B0ADA6;
+  --sand-500: #8A8880;
+  --sand-600: #65635D;
+  --sand-700: #43423E;
+  --sand-800: #2B2A27;
+  --sand-900: #1A1A18;
+
+  /* Brand green */
+  --brand-50: #F0F7F2;
+  --brand-100: #D4E8DC;
+  --brand-200: #A8D1B8;
+  --brand-300: #74B08A;
+  --brand-400: #4A9468;
+  --brand-500: #2D6A4F;
+  --brand-600: #245740;
+  --brand-700: #1B4331;
+  --brand-800: #133022;
+  --brand-900: #0A1D14;
+
+  /* Accent colors */
+  --warn-light: #FDF3DC;
+  --warn: #D4A03C;
+  --warn-dark: #9B7420;
+  --error-light: #FCEAE7;
+  --error: #C05746;
+  --error-dark: #8B3D30;
+
+  /* Surface colors */
+  --surface-card: #FFFFFF;
+  --surface-card-border: #E8E6E1;
+  --surface-modal: #FFFFFF;
+  --surface-nav: rgba(255,255,255,0.8);
+  --surface-input: #FFFFFF;
+}
+
+/* ═══════════════════════════════════════
+   DARK THEME
+   ═══════════════════════════════════════ */
+.dark {
+  /* Sand scale — reversed for dark: 50=darkest bg, 900=lightest text */
+  --sand-50: #0E0E0D;
+  --sand-100: #171715;
+  --sand-200: #252422;
+  --sand-300: #333230;
+  --sand-400: #5A5955;
+  --sand-500: #7A7872;
+  --sand-600: #A8A6A0;
+  --sand-700: #C8C6C0;
+  --sand-800: #E0DFDB;
+  --sand-900: #F0EFEB;
+
+  /* Brand green — slightly brighter for dark backgrounds */
+  --brand-50: #0C1F15;
+  --brand-100: #14312A;
+  --brand-200: #1C4B3A;
+  --brand-300: #2D6A4F;
+  --brand-400: #3D8B68;
+  --brand-500: #4A9E78;
+  --brand-600: #5DB888;
+  --brand-700: #7DCCA0;
+  --brand-800: #A8DFC0;
+  --brand-900: #D4F0E0;
+
+  /* Accent colors — adjusted for dark */
+  --warn-light: #2A2315;
+  --warn: #E0AD42;
+  --warn-dark: #C89E3A;
+  --error-light: #2A1714;
+  --error: #E06A58;
+  --error-dark: #C08070;
+
+  /* Surface colors */
+  --surface-card: #1C1B19;
+  --surface-card-border: #252422;
+  --surface-modal: #1C1B19;
+  --surface-nav: rgba(14,14,13,0.85);
+  --surface-input: #171715;
+}
+
+/* ═══════════════════════════════════════
+   DARK MODE OVERRIDES — bg-white → dark card
+   ═══════════════════════════════════════ */
+.dark .bg-white { background-color: var(--surface-card) !important; }
+.dark .bg-white\/80 { background-color: var(--surface-nav) !important; }
+.dark .border-sand-200 { border-color: var(--sand-200) !important; }
+
+/* Nav + bottom nav */
+.dark header { background-color: var(--surface-card) !important; border-color: var(--sand-200) !important; }
+.dark nav.fixed { background-color: var(--surface-nav) !important; backdrop-filter: blur(20px); border-color: var(--sand-200) !important; }
+
+/* Inputs */
+.dark input, .dark select, .dark textarea {
+  background-color: var(--surface-input) !important;
+  border-color: var(--sand-200) !important;
+  color: var(--sand-900) !important;
+}
+.dark input::placeholder { color: var(--sand-400) !important; }
+
+/* Modal backdrop */
+.dark .modal-backdrop { background-color: rgba(0,0,0,0.7) !important; }
+
+/* Recharts */
+.dark .recharts-cartesian-grid line { stroke: var(--sand-200) !important; }
+.dark .recharts-text { fill: var(--sand-500) !important; }
+
+/* Scrollbar */
+.dark { color-scheme: dark; }
+
 html {
   font-family: "DM Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -17,8 +134,8 @@ html {
 }
 
 body {
-  background-color: #fafaf8;
-  color: #1a1a18;
+  background-color: var(--sand-50);
+  color: var(--sand-900);
 }
 
 /* Utilities */
@@ -146,8 +263,8 @@ a, button { touch-action: manipulation; }
 /* Loading spinner */
 .spinner {
   animation: spin 0.8s linear infinite;
-  border: 2px solid #E8E6E1;
-  border-top-color: #2D6A4F;
+  border: 2px solid var(--sand-200);
+  border-top-color: var(--brand-500);
   border-radius: 50%;
   width: 20px;
   height: 20px;
