@@ -12,11 +12,20 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (prevPath.current !== pathname) {
       setTransitioning(true);
-      // Short fade out
       const timeout = setTimeout(() => {
         setDisplayChildren(children);
         setTransitioning(false);
         prevPath.current = pathname;
+
+        // Scroll to top AFTER new page content is rendered
+        // This is the correct timing — after the 120ms fade transition
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        // Extra attempt after paint to beat iOS Safari scroll restoration
+        requestAnimationFrame(() => {
+          window.scrollTo(0, 0);
+        });
       }, 120);
       return () => clearTimeout(timeout);
     } else {
@@ -27,9 +36,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`transition-opacity duration-200 ease-out ${
-        transitioning
-          ? "opacity-0"
-          : "opacity-100"
+        transitioning ? "opacity-0" : "opacity-100"
       }`}
     >
       {displayChildren}
