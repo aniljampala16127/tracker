@@ -6,6 +6,7 @@ export const STEPS: StepDefinition[] = [
     label: "Submitted",
     shortLabel: "Sub",
     description: "Application sent to IRCC",
+    hint: "Date you mailed or submitted online",
     avgWeeksOutland: [0, 0],
     avgWeeksInland: [0, 0],
   },
@@ -14,6 +15,7 @@ export const STEPS: StepDefinition[] = [
     label: "AOR",
     shortLabel: "AOR",
     description: "Acknowledgment of Receipt",
+    hint: "Date on the AOR letter",
     avgWeeksOutland: [4, 8],
     avgWeeksInland: [4, 8],
   },
@@ -22,6 +24,7 @@ export const STEPS: StepDefinition[] = [
     label: "BIL",
     shortLabel: "BIL",
     description: "Biometrics Invitation Letter",
+    hint: "Date you completed biometrics",
     avgWeeksOutland: [0, 2],
     avgWeeksInland: [0, 2],
   },
@@ -30,6 +33,7 @@ export const STEPS: StepDefinition[] = [
     label: "Sponsor Elig.",
     shortLabel: "SE",
     description: "Sponsor eligibility decision",
+    hint: "Date approved on IRCC tracker",
     avgWeeksOutland: [4, 12],
     avgWeeksInland: [4, 16],
   },
@@ -37,7 +41,8 @@ export const STEPS: StepDefinition[] = [
     id: "medical",
     label: "Medical",
     shortLabel: "Med",
-    description: "Medical exam request / update",
+    description: "Medical exam",
+    hint: "Date medical passed/cleared",
     avgWeeksOutland: [4, 12],
     avgWeeksInland: [4, 16],
   },
@@ -46,6 +51,7 @@ export const STEPS: StepDefinition[] = [
     label: "PA Elig.",
     shortLabel: "PA",
     description: "Principal applicant eligibility",
+    hint: "Date approved on IRCC tracker",
     avgWeeksOutland: [4, 12],
     avgWeeksInland: [8, 20],
   },
@@ -54,6 +60,7 @@ export const STEPS: StepDefinition[] = [
     label: "Pre-Arrival",
     shortLabel: "Pre",
     description: "Pre-arrival / COPR readiness",
+    hint: "Date pre-arrival letter received",
     avgWeeksOutland: [2, 8],
     avgWeeksInland: [2, 8],
   },
@@ -62,6 +69,7 @@ export const STEPS: StepDefinition[] = [
     label: "Background",
     shortLabel: "BG",
     description: "Background & security check",
+    hint: "Date marked complete on IRCC tracker",
     avgWeeksOutland: [4, 16],
     avgWeeksInland: [8, 24],
   },
@@ -70,7 +78,9 @@ export const STEPS: StepDefinition[] = [
     label: "Portal 1",
     shortLabel: "P1",
     description: "First portal invitation",
-    avgWeeksOutland: [1, 4],
+    hint: "Date you received Portal 1 invite",
+    streams: ["Inland"],
+    avgWeeksOutland: [0, 0],
     avgWeeksInland: [1, 4],
   },
   {
@@ -78,14 +88,37 @@ export const STEPS: StepDefinition[] = [
     label: "Portal 2",
     shortLabel: "P2",
     description: "Second portal / final docs",
-    avgWeeksOutland: [1, 4],
+    hint: "Date you received Portal 2 invite",
+    streams: ["Inland"],
+    avgWeeksOutland: [0, 0],
     avgWeeksInland: [1, 4],
+  },
+  {
+    id: "ppr",
+    label: "PPR",
+    shortLabel: "PPR",
+    description: "Passport Request",
+    hint: "Date you received passport request",
+    streams: ["Outland"],
+    avgWeeksOutland: [1, 8],
+    avgWeeksInland: [0, 0],
+  },
+  {
+    id: "passport_received",
+    label: "Passport Stamped",
+    shortLabel: "Pass",
+    description: "Passport returned with visa",
+    hint: "Date passport returned to you",
+    streams: ["Outland"],
+    avgWeeksOutland: [2, 8],
+    avgWeeksInland: [0, 0],
   },
   {
     id: "ecopr",
     label: "eCoPR",
     shortLabel: "eCoPR",
     description: "Electronic Confirmation of PR",
+    hint: "Date on eCoPR letter",
     avgWeeksOutland: [1, 8],
     avgWeeksInland: [1, 8],
   },
@@ -180,12 +213,20 @@ export function getStepIndex(stepId: StepId): number {
   return STEP_ORDER.indexOf(stepId);
 }
 
-export function getNextStep(stepId: StepId): StepId | null {
-  const idx = getStepIndex(stepId);
-  return idx < STEP_ORDER.length - 1 ? STEP_ORDER[idx + 1] : null;
+/** Get steps visible for a given stream (filters out Outland-only or Inland-only steps) */
+export function getVisibleSteps(stream?: Stream): StepDefinition[] {
+  if (!stream) return STEPS;
+  return STEPS.filter(s => !s.streams || s.streams.includes(stream));
 }
 
-export function getPrevStep(stepId: StepId): StepId | null {
-  const idx = getStepIndex(stepId);
-  return idx > 0 ? STEP_ORDER[idx - 1] : null;
+export function getNextStep(stepId: StepId, stream?: Stream): StepId | null {
+  const visible = getVisibleSteps(stream);
+  const idx = visible.findIndex(s => s.id === stepId);
+  return idx >= 0 && idx < visible.length - 1 ? visible[idx + 1].id : null;
+}
+
+export function getPrevStep(stepId: StepId, stream?: Stream): StepId | null {
+  const visible = getVisibleSteps(stream);
+  const idx = visible.findIndex(s => s.id === stepId);
+  return idx > 0 ? visible[idx - 1].id : null;
 }

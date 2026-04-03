@@ -56,10 +56,12 @@ export type StepId =
   | "sponsor_eligibility"
   | "medical"
   | "pa_eligibility"
-  | "background"
   | "pre_arrival"
+  | "background"
   | "portal1"
   | "portal2"
+  | "ppr"
+  | "passport_received"
   | "ecopr";
 
 export type SponsorStatus = "Citizen" | "PR";
@@ -70,6 +72,8 @@ export interface StepDefinition {
   label: string;
   shortLabel: string;
   description: string;
+  hint: string; // tells user which date to log
+  streams?: Stream[]; // if undefined = both streams
   avgWeeksOutland: [number, number];
   avgWeeksInland: [number, number];
 }
