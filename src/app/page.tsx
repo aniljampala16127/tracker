@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
-import { getSavedPinHash } from "@/lib/pin";
+import { getSavedPinHash, hashPin, savePinForApp } from "@/lib/pin";
 import Link from "next/link";
 
 function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -30,6 +30,9 @@ export default function LandingPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [checked, setChecked] = useState(false);
+  const [claimPin, setClaimPin] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState("");
   const router = useRouter();
 
   const fetchApps = useCallback(async () => {
@@ -47,6 +50,23 @@ export default function LandingPage() {
   }, [checked, router]);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
+
+  // Claim entries by PIN — for users switching from old domain
+  const handleClaim = async () => {
+    if (claimPin.length !== 4) return;
+    setClaiming(true);
+    setClaimError("");
+    const pinHash = await hashPin(claimPin);
+    const matched = apps.filter(a => a.pin_hash === pinHash);
+    if (matched.length === 0) {
+      setClaimError("No entries found with this PIN");
+      setClaiming(false);
+      return;
+    }
+    matched.forEach(a => savePinForApp(a.id, pinHash));
+    setClaiming(false);
+    router.replace("/me");
+  };
 
   const totalEntries = apps.length;
   const totalCountries = new Set(apps.map(a => a.country_origin)).size;
@@ -107,6 +127,31 @@ export default function LandingPage() {
               <Link href="/stats" className="w-full sm:w-auto px-6 py-3 bg-white text-sand-700 font-medium text-sm rounded-xl border border-sand-200 hover:bg-sand-50 transition-all active:scale-[0.98]">
                 View Analytics
               </Link>
+            </div>
+
+            {/* Returning user — claim by PIN */}
+            <div className="mt-5 pt-4 border-t border-sand-200/50">
+              <p className="text-[11px] text-sand-400 mb-2">Already tracking? Enter your PIN to reconnect.</p>
+              <div className="flex items-center justify-center gap-2 max-w-[240px] mx-auto">
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="4-digit PIN"
+                  value={claimPin}
+                  onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
+                  className="flex-1 px-3 py-2 text-sm text-center rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.3em] font-mono"
+                />
+                <button
+                  onClick={handleClaim}
+                  disabled={claimPin.length !== 4 || claiming}
+                  className="px-4 py-2 bg-brand-500 text-white text-sm font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {claiming ? "..." : "Go"}
+                </button>
+              </div>
+              {claimError && <p className="text-[10px] text-error mt-1">{claimError}</p>}
             </div>
           </div>
         </div>
