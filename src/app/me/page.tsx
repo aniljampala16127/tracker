@@ -5,14 +5,11 @@ import { Application, StepId } from "@/lib/types";
 import { STEPS, getStepIndex } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
-import { ShareButtons } from "@/components/ShareButtons";
 import { Reactions } from "@/components/Reactions";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
-import { AchievementBadges } from "@/components/AchievementBadges";
 import { playMilestoneSound } from "@/lib/sounds";
 import { TimelineExport } from "@/components/TimelineExport";
-import { FindRepresentativeCard } from "@/components/FindRepresentativeCard";
 import { MeSkeleton } from "@/components/Skeletons";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { Button } from "@/components/ui";
@@ -313,17 +310,22 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         );
       })()}
 
-      {/* 4. Achievement Badges */}
-      <AchievementBadges app={app} />
-
-      {/* 5. Find a Representative */}
-      <FindRepresentativeCard />
-
-      {/* Reminder + Share */}
-      <div className="border-t border-sand-100 pt-4 space-y-3">
-        <div>
-          <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Share Timeline</div>
-          <ShareButtons app={app} />
+      {/* Support card */}
+      <div className="bg-gradient-to-br from-sand-50 to-white border border-sand-200 rounded-xl p-4 mt-1">
+        <div className="text-center">
+          <div className="text-sm font-semibold text-sand-800 mb-1">Built for the sponsorship community</div>
+          <p className="text-[11px] text-sand-500 mb-3 leading-relaxed">
+            SponsorTrack is free and always will be. If it helped ease your wait, consider supporting its development.
+          </p>
+          <a
+            href="https://ko-fi.com/aniljampala"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF5E5B] text-white text-xs font-semibold hover:bg-[#e54e4b] transition-all active:scale-[0.98] shadow-sm"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.216 6.415l-.132-.666c-.119-.598-.388-1.163-1.001-1.379-.197-.069-.42-.098-.57-.241-.152-.143-.196-.366-.231-.572-.065-.378-.125-.756-.192-1.133-.057-.325-.102-.69-.25-.987-.195-.4-.597-.634-.996-.788a5.723 5.723 0 00-.626-.194c-1-.263-2.05-.36-3.077-.416a25.834 25.834 0 00-3.7.062c-.915.083-1.88.184-2.75.5-.318.116-.646.256-.888.501-.297.302-.393.77-.177 1.146.154.267.415.456.692.58.36.162.737.284 1.123.366 1.075.238 2.189.331 3.287.37 1.218.05 2.437.01 3.65-.118.299-.033.598-.073.896-.119.352-.054.578-.513.474-.834-.124-.383-.457-.531-.834-.473-.466.074-.96.108-1.382.146-1.177.08-2.358.082-3.536.006a22.228 22.228 0 01-1.157-.107c.117-.025.213-.057.313-.088.337-.108.673-.228 1.002-.36a4.38 4.38 0 001.023-.627c.26-.207.49-.459.6-.77.072-.21.048-.43-.04-.624a.793.793 0 00-.118-.182c-.26-.292-.64-.404-1.017-.388-.375.016-.747.116-1.12.16h.002a12.299 12.299 0 01-2.694-.033c.263-.03.463-.108.639-.213.148-.088.295-.19.418-.3.24-.213.448-.42.594-.651.146-.23.252-.478.283-.749.028-.243.001-.461-.106-.628-.131-.207-.339-.274-.563-.255a1.89 1.89 0 00-.648.134c-.36.14-.71.317-1.06.489a11.045 11.045 0 01-2.076.756c-1.113.287-2.142.556-3.163.836-.28.078-.549.178-.815.278-.254.095-.502.202-.742.32-.382.19-.76.402-1.08.683-.267.235-.496.519-.647.842-.157.338-.24.712-.197 1.088.052.451.236.874.52 1.22.416.5.976.834 1.568 1.024.703.227 1.43.378 2.171.453 1.095.11 2.197.103 3.297.031.455-.03.909-.077 1.361-.139.118-.016.266-.057.312.068.036.098-.035.208-.098.298a2.54 2.54 0 01-.727.66c-.521.318-1.09.53-1.634.746-.714.281-1.447.504-2.183.71-.386.108-.78.198-1.168.308-.394.11-.82.267-1.007.664-.147.312-.086.67.063.96.175.338.445.613.744.843.3.23.626.43.97.588.345.158.711.286 1.087.38.373.093.758.155 1.137.212.372.056.75.1 1.126.13 1.532.114 3.07.032 4.569-.284.502-.107.994-.235 1.462-.42.226-.089.454-.192.663-.321.23-.14.442-.31.618-.52.317-.377.515-.857.453-1.354-.077-.617-.449-1.125-.915-1.49a5.97 5.97 0 00-.722-.438c-.307-.157-.634-.286-.965-.399.025-.007.049-.017.073-.026z"/></svg>
+            Support on Ko-fi
+          </a>
         </div>
       </div>
     </div>
