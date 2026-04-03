@@ -82,7 +82,7 @@ export default function RootLayout({
         <footer className="border-t border-sand-200 mt-16">
           <div className="max-w-5xl mx-auto px-4 py-6 text-center text-[10px] text-sand-400">
             <div>SponsorTrack · Not affiliated with IRCC · Community-reported data</div>
-            <a href="https://ko-fi.com/aniljampala" target="_blank" rel="noopener noreferrer"
+            <a href="https://buymeacoffee.com/aniljampala" target="_blank" rel="noopener noreferrer"
               className="inline-block mt-1.5 text-sand-400 hover:text-brand-600 transition-colors">
               Support this project
             </a>
