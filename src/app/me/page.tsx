@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { Application, StepId, StepDefinition } from "@/lib/types";
 import { STEPS, getStepIndex, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
-import { getSavedPinHash } from "@/lib/pin";
+import { getSavedPinHash, hashPin } from "@/lib/pin";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
 import { playMilestoneSound } from "@/lib/sounds";
@@ -99,6 +99,18 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   const [saving, setSaving] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const [timelineExpanded, setTimelineExpanded] = useState(false);
+  const [revealedPin, setRevealedPin] = useState<string | null>(null);
+
+  // Brute-force reveal PIN from hash (only 9000 possibilities, instant)
+  const revealPin = async () => {
+    const savedHash = getSavedPinHash(app.id);
+    if (!savedHash) return;
+    for (let i = 1000; i <= 9999; i++) {
+      const pin = String(i);
+      const h = await hashPin(pin);
+      if (h === savedHash) { setRevealedPin(pin); return; }
+    }
+  };
 
   // Completed steps (stream-filtered)
   const completedStepIds = visibleSteps.filter(s => stepsMap[s.id]).map(s => s.id);
@@ -231,6 +243,16 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
             {app.country_origin} · {app.sponsor_status} · {app.stream}
             {app.province === "Quebec" ? " · Inside Quebec" : ""}
           </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[10px] text-sand-400">PIN:</span>
+            {revealedPin ? (
+              <span className="text-[10px] font-mono font-bold text-brand-600 tracking-wider">{revealedPin}</span>
+            ) : (
+              <button onClick={revealPin} className="text-[10px] text-brand-500 font-medium hover:underline">
+                Show
+              </button>
+            )}
+          </div>
         </div>
         <div className="text-right">
           <div className="text-xs font-bold text-brand-600">Day {daysSoFar}</div>
