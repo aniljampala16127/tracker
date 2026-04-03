@@ -64,7 +64,7 @@ function CollapsibleChart({ apps }: { apps: Application[] }) {
           <div className="text-sm font-bold text-sand-900">Average Days per Step</div>
           <div className="text-[11px] text-sand-400">Outland vs Inland — community data</div>
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
           style={{ transition: "transform 0.3s ease", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
           <path d="M6 9L12 15L18 9" />
         </svg>
@@ -595,7 +595,7 @@ export default function DashboardPage() {
                               ? "border-brand-400 bg-brand-50 my-entry-highlight"
                               : "border-sand-100 hover:bg-brand-50/30"
                           }`}
-                          style={isMe ? { boxShadow: "inset 3px 0 0 #2D6A4F" } : undefined}
+                          style={isMe ? { boxShadow: "inset 3px 0 0 var(--brand-500)" } : undefined}
                           onClick={() => handleRowClick(app)}
                         >
                           <td className={`px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 ${isMe ? "bg-brand-50" : "bg-white"}`}>

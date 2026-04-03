@@ -95,7 +95,6 @@
    ═══════════════════════════════════════ */
 .dark .bg-white { background-color: var(--surface-card) !important; }
 .dark .bg-white\/80 { background-color: var(--surface-nav) !important; }
-.dark .border-sand-200 { border-color: var(--sand-200) !important; }
 
 /* Nav + bottom nav */
 .dark header { background-color: var(--surface-card) !important; border-color: var(--sand-200) !important; }
@@ -108,16 +107,38 @@
   color: var(--sand-900) !important;
 }
 .dark input::placeholder { color: var(--sand-400) !important; }
+.dark select option { background-color: var(--surface-card); color: var(--sand-900); }
 
 /* Modal backdrop */
 .dark .modal-backdrop { background-color: rgba(0,0,0,0.7) !important; }
 
-/* Recharts */
+/* Recharts — charts use hardcoded hex colors, override via CSS */
 .dark .recharts-cartesian-grid line { stroke: var(--sand-200) !important; }
 .dark .recharts-text { fill: var(--sand-500) !important; }
+.dark .recharts-default-tooltip {
+  background-color: var(--surface-card) !important;
+  border-color: var(--sand-200) !important;
+  color: var(--sand-900) !important;
+}
+.dark .recharts-tooltip-label { color: var(--sand-900) !important; }
+.dark .recharts-tooltip-item { color: var(--sand-700) !important; }
+.dark .recharts-legend-item-text { color: var(--sand-600) !important; }
+
+/* Desktop table */
+.dark table { color: var(--sand-900); }
+.dark th { background-color: var(--sand-50) !important; color: var(--sand-500); }
+.dark td { border-color: var(--sand-200); }
+.dark tr:hover { background-color: var(--brand-50) !important; }
+.dark .border-sand-100 { border-color: var(--sand-200) !important; }
 
 /* Scrollbar */
 .dark { color-scheme: dark; }
+.dark ::-webkit-scrollbar { width: 6px; height: 6px; }
+.dark ::-webkit-scrollbar-track { background: var(--sand-50); }
+.dark ::-webkit-scrollbar-thumb { background: var(--sand-300); border-radius: 3px; }
+
+/* Focus rings */
+.dark *:focus-visible { outline-color: var(--brand-500); }
 
 html {
   font-family: "DM Sans", "Helvetica Neue", sans-serif;
