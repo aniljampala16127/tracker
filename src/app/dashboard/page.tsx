@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
-import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, MEI_TYPES, getNextStep } from "@/lib/constants";
+import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, MEI_TYPES, getNextStep, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { hashPin, isValidPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
 import { PlusIcon } from "@/components/icons";
@@ -479,10 +479,10 @@ export default function DashboardPage() {
             <div className="sm:hidden max-h-[65vh] overflow-y-auto p-2 space-y-2 entries-stagger" id="mobile-entries" key={selectedMonth}>
               {selectedGroup.map((app) => {
                 const stepsMap = buildStepsMap(app.step_events || []);
-                const completedSteps = STEPS.filter(s => stepsMap[s.id]);
-                const nextStepIdx = completedSteps.length < STEPS.length ? completedSteps.length : null;
-                const nextStepLabel = nextStepIdx !== null ? STEPS[nextStepIdx].label : null;
-                const statusLabel = app.is_complete ? "eCoPR ✓" : nextStepLabel ? `Waiting for ${nextStepLabel}` : "Submitted";
+                const appSteps = getVisibleSteps(app.stream);
+                const completedSteps = appSteps.filter(s => stepsMap[s.id]);
+                const nextStepDef = appSteps.find(s => s.id !== "submitted" && !stepsMap[s.id]);
+                const statusLabel = app.is_complete ? "eCoPR ✓" : nextStepDef ? `Waiting for ${nextStepDef.label}` : "Submitted";
                 const statusDone = app.is_complete;
                 const hasAor = !!stepsMap.aor;
                 const daysWaiting = stepsMap.submitted
@@ -536,14 +536,14 @@ export default function DashboardPage() {
                             {statusLabel}
                           </div>
                           <div className="text-[9px] text-sand-400 mb-1">
-                            {completedSteps.length}/{STEPS.length}{daysWaiting != null ? ` · Day ${daysWaiting}` : ""}
+                            {completedSteps.length}/{appSteps.length}{daysWaiting != null ? ` · Day ${daysWaiting}` : ""}
                           </div>
                         </>
                       )}
                       {/* Progress bar */}
                       <div className="w-full h-1 rounded-full bg-sand-100 overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-500 ${statusDone ? "bg-brand-500" : hasAor ? "bg-brand-400" : "bg-warn"}`}
-                          style={{ width: `${Math.round((completedSteps.length / STEPS.length) * 100)}%` }} />
+                          style={{ width: `${Math.round((completedSteps.length / appSteps.length) * 100)}%` }} />
                       </div>
                     </div>
                   </div>
@@ -797,7 +797,8 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
     notes: app.notes || "",
     submitted_date: stepsMap.submitted || "",
   });
-  const nextStep = getNextStep(app.current_step);
+  const nextStep = getNextStep(app.current_step, app.stream);
+  const visibleSteps = getVisibleSteps(app.stream);
 
   const eu = (f: string, v: string) => setEditForm(p => ({ ...p, [f]: v }));
 
@@ -851,7 +852,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
   };
 
   // Find the latest completed step index for showing undo button
-  const completedStepIds = STEPS.filter(s => stepsMap[s.id]).map(s => s.id);
+  const completedStepIds = visibleSteps.filter(s => stepsMap[s.id]).map(s => s.id);
   const latestCompletedId = completedStepIds.length > 0 ? completedStepIds[completedStepIds.length - 1] : null;
 
   return (
@@ -921,17 +922,18 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
       </div>
 
       <div className="space-y-1">
-        {STEPS.map((step, i) => {
+        {visibleSteps.map((step, i) => {
           const date = stepsMap[step.id];
-          const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
+          const prevStep = i > 0 ? visibleSteps[i - 1] : null;
+          const prevDate = prevStep ? stepsMap[prevStep.id] : null;
           const days = date && prevDate ? daysBetween(prevDate, date) : null;
-          const isNext = step.id === nextStep;
           const isDone = !!date;
+          const isIncomplete = !date && step.id !== "submitted";
 
           return (
             <React.Fragment key={step.id}>
-            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${isDone ? "bg-brand-50/50" : isNext ? "bg-warn-light/30" : "opacity-40"}`}>
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isDone ? "bg-brand-500" : isNext ? "bg-warn" : "bg-sand-200"}`} />
+            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${isDone ? "bg-brand-50/50" : isIncomplete ? "bg-white" : "opacity-40"}`}>
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isDone ? "bg-brand-500" : isIncomplete ? "bg-sand-200 border border-sand-400" : "bg-sand-200"}`} />
               <div className="flex-1">
                 <div className="text-sm font-medium text-sand-900">{step.label}</div>
                 {isDone && (
@@ -939,8 +941,9 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
                     {formatDate(date)}{days != null && i > 0 && <span className="text-brand-500 font-semibold ml-1">({days}d)</span>}
                   </div>
                 )}
+                {isIncomplete && <div className="text-[9px] text-sand-400">{step.hint}</div>}
               </div>
-              {isNext && (
+              {isIncomplete && isOwner && (
                 <div className="flex items-center gap-2">
                   {activeStep === step.id ? (
                     <input type="date" autoFocus className="text-xs px-2 py-1 border border-sand-200 rounded-md bg-white step-input-enter"
@@ -953,7 +956,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
                     <button className="text-xs bg-brand-500 text-white px-3 py-1 rounded-md font-medium hover:bg-brand-600 step-input-enter active:scale-95"
                       onClick={() => { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}>Save</button>
                   ) : activeStep !== step.id ? (
-                    <button className="text-xs bg-warn text-white px-3 py-1 rounded-md font-medium hover:bg-warn-dark"
+                    <button className="text-[10px] bg-sand-200 text-sand-700 px-2.5 py-1 rounded-md font-medium hover:bg-sand-300"
                       onClick={() => setActiveStep(step.id)}>Update</button>
                   ) : null}
                 </div>
@@ -961,9 +964,9 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
               {isDone && (
                 <div className="flex items-center gap-1">
                   <Reactions applicationId={app.id} stepId={step.id} compact />
-                  {isOwner && step.id !== "submitted" && step.id === latestCompletedId ? (
+                  {isOwner && step.id !== "submitted" ? (
                     <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
-                      className="text-[9px] px-1.5 py-0.5 rounded bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50">
+                      className="text-[10px] px-2 py-1 rounded-md bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50 min-h-[28px]">
                       {undoing ? "..." : "Undo"}
                     </button>
                   ) : (
