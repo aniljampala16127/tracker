@@ -377,34 +377,46 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
 
     const visSteps = getVisibleSteps(app.stream);
 
-    // Find the last completed step (highest with a date)
-    let lastCompletedIdx = -1;
-    for (let i = visSteps.length - 1; i >= 0; i--) {
-      if (stepsMap[visSteps[i].id]) { lastCompletedIdx = i; break; }
-    }
-    if (lastCompletedIdx < 0) return null;
-
-    // Find the next incomplete step after it
+    // Find the FIRST incomplete step by position (skipping submitted)
     let nextIdx = -1;
-    for (let i = lastCompletedIdx + 1; i < visSteps.length; i++) {
+    for (let i = 1; i < visSteps.length; i++) {
       if (!stepsMap[visSteps[i].id]) { nextIdx = i; break; }
     }
     if (nextIdx < 0) return null;
 
-    const currentStep = visSteps[lastCompletedIdx];
+    // Find the base: step right before the incomplete one, or walk back to find
+    // the most recent completed step with a date
+    let baseStep = null;
+    let baseDate: string | null = null;
+    for (let i = nextIdx - 1; i >= 0; i--) {
+      if (stepsMap[visSteps[i].id]) {
+        baseStep = visSteps[i];
+        baseDate = stepsMap[visSteps[i].id];
+        break;
+      }
+    }
+    if (!baseStep || !baseDate) return null;
+
+    // If we have a later completed step with a more recent date, use that instead
+    // (handles out-of-order: BG done Feb 27, but PA done March 13)
+    for (let i = nextIdx + 1; i < visSteps.length; i++) {
+      const d = stepsMap[visSteps[i].id];
+      if (d && d > baseDate) {
+        baseStep = visSteps[i];
+        baseDate = d;
+      }
+    }
+
     const nextStep = visSteps[nextIdx];
-    const currentDate = stepsMap[currentStep.id];
-    if (!currentDate) return null;
-
     const today = new Date().toISOString().split("T")[0];
-    const daysSinceCurrent = daysBetween(currentDate, today);
+    const daysSinceCurrent = daysBetween(baseDate, today);
 
-    // Calculate community average for current -> next step
+    // Calculate community average for base -> next step
     const durations: number[] = [];
     allApps.forEach(a => {
       if (a.stream !== app.stream) return;
       const s = buildStepsMap(a.step_events || []);
-      const from = s[currentStep.id];
+      const from = s[baseStep!.id];
       const to = s[nextStep.id];
       if (from && to) {
         const d = daysBetween(from, to);
@@ -416,12 +428,12 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
 
     const avgDays = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
     const daysLeft = avgDays - daysSinceCurrent;
-    const predictedDate = new Date(currentDate + "T00:00:00");
+    const predictedDate = new Date(baseDate + "T00:00:00");
     predictedDate.setDate(predictedDate.getDate() + avgDays);
     const predictedStr = predictedDate.toISOString().split("T")[0];
 
     return {
-      currentStep: currentStep.label,
+      currentStep: baseStep!.label,
       nextStep: nextStep.label,
       daysSinceCurrent,
       avgDays,
