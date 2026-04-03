@@ -32,6 +32,11 @@ export default function MyAppPage() {
   const [myApps, setMyApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+  }, []);
+
   const fetchApps = useCallback(async () => {
     const res = await fetch("/api/applications");
     const data = await res.json();

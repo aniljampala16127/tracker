@@ -97,10 +97,21 @@ export default function DashboardPage() {
   const [pinTarget, setPinTarget] = useState<Application | null>(null);
   const [claimTarget, setClaimTarget] = useState<Application | null>(null);
 
-  // Always scroll to top on mount (tab switch, refresh, navigate)
+  // Always scroll to top on mount — aggressive for iOS Safari
   useEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    const forceTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    forceTop();
+    requestAnimationFrame(forceTop);
+    const t1 = setTimeout(forceTop, 0);
+    const t2 = setTimeout(forceTop, 50);
+    const t3 = setTimeout(forceTop, 150);
+    const t4 = setTimeout(forceTop, 300);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
   const fetchApps = useCallback(async () => {

@@ -41,6 +41,11 @@ function getTodayStr(): string {
 export default function CalculatorPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+  }, []);
   const [submittedDate, setSubmittedDate] = useState("");
   const [stream, setStream] = useState("Outland");
   const [country, setCountry] = useState("");

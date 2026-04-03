@@ -54,6 +54,11 @@ function CollapsibleSection({ title, subtitle, children }: { title: string; subt
 export default function StatsPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+  }, []);
   const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
