@@ -12,6 +12,7 @@ import { TimelineExport } from "@/components/TimelineExport";
 import { MeSkeleton } from "@/components/Skeletons";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { Button } from "@/components/ui";
+import { AvatarIcon, AVATAR_OPTIONS, isAvatarKey } from "@/components/AvatarIcons";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -229,8 +230,15 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
       {/* 1. Header */}
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-12 h-12 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-lg">
-          {app.emoji ? <span className="text-2xl">{app.emoji}</span> : app.initials.slice(0, 2).toUpperCase()}
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+          app.emoji ? "bg-brand-50 border-2 border-brand-200 text-brand-600" : "bg-brand-500 text-white font-bold text-lg"
+        }`}>
+          {app.emoji && isAvatarKey(app.emoji)
+            ? <AvatarIcon icon={app.emoji} size={28} />
+            : app.emoji
+              ? <span className="text-2xl">{app.emoji}</span>
+              : app.initials.slice(0, 2).toUpperCase()
+          }
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -272,17 +280,17 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
                 value={editForm.initials} onChange={(e) => setEditForm(p => ({ ...p, initials: e.target.value }))} />
             </div>
             <div>
-              <label className="text-[10px] text-sand-500 font-medium mb-1.5 block">Avatar Emoji</label>
+              <label className="text-[10px] text-sand-500 font-medium mb-1.5 block">Avatar</label>
               <div className="flex flex-wrap gap-1.5">
-                {["", "🍁", "🇨🇦", "❤️", "🏠", "✈️", "🌟", "🦋", "🌻", "🐻", "🎯", "💪", "🙏", "😊", "🤞", "🕊️", "🌈"].map(e => (
-                  <button key={e} type="button"
-                    onClick={() => setEditForm(p => ({ ...p, emoji: e }))}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all ${
-                      editForm.emoji === e
-                        ? "bg-brand-100 border-2 border-brand-500 scale-110"
-                        : "bg-white border border-sand-200 hover:border-sand-300"
+                {AVATAR_OPTIONS.map(({ key, label }) => (
+                  <button key={key} type="button" title={label}
+                    onClick={() => setEditForm(p => ({ ...p, emoji: key }))}
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                      editForm.emoji === key
+                        ? "bg-brand-100 border-2 border-brand-500 scale-110 text-brand-600"
+                        : "bg-white border border-sand-200 hover:border-sand-300 text-sand-500"
                     }`}>
-                    {e || <span className="text-[9px] text-sand-400">None</span>}
+                    {key ? <AvatarIcon icon={key} size={20} /> : <span className="text-[9px] text-sand-400">None</span>}
                   </button>
                 ))}
               </div>

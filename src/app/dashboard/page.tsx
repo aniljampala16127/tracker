@@ -9,6 +9,7 @@ import { PlusIcon } from "@/components/icons";
 import { Button, Modal, Input, Select, SearchableSelect } from "@/components/ui";
 import { PinModal, PinInput } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
+import { AvatarIcon, isAvatarKey } from "@/components/AvatarIcons";
 import dynamic from "next/dynamic";
 import { FilterBar, Filters, EMPTY_FILTERS } from "@/components/FilterBar";
 const StepChart = dynamic(() => import("@/components/StepChart").then(m => ({ default: m.StepChart })), {
@@ -503,9 +504,15 @@ export default function DashboardPage() {
                   >
                     {/* Avatar */}
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold flex-shrink-0 ${
-                      isMe ? "bg-brand-500 text-white" : "bg-sand-100 text-sand-600"
+                      app.emoji ? "bg-brand-50 border border-brand-200 text-brand-600"
+                        : isMe ? "bg-brand-500 text-white" : "bg-sand-100 text-sand-600"
                     }`}>
-                      {app.emoji ? <span className="text-lg">{app.emoji}</span> : <span className="text-xs">{app.initials.slice(0, 2).toUpperCase()}</span>}
+                      {app.emoji && isAvatarKey(app.emoji)
+                        ? <AvatarIcon icon={app.emoji} size={20} />
+                        : app.emoji
+                          ? <span className="text-lg">{app.emoji}</span>
+                          : <span className="text-xs">{app.initials.slice(0, 2).toUpperCase()}</span>
+                      }
                     </div>
 
                     {/* Info */}

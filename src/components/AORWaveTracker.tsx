@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
+import { AvatarIcon, isAvatarKey } from "@/components/AvatarIcons";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmtDate(d: string) {
@@ -235,10 +236,16 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                     <div className="py-1">
                       {card.entries.slice(0, 30).map((a, i) => (
                         <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-[7px]">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white flex-shrink-0 ${
-                            a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold flex-shrink-0 ${
+                            a.emoji ? "bg-brand-50 border border-brand-200 text-brand-600"
+                              : a.stream === "Outland" ? "bg-brand-500 text-white" : "bg-warn text-white"
                           }`}>
-                            {a.emoji ? <span className="text-sm">{a.emoji}</span> : <span className="text-[9px]">{a.initials.slice(0, 2).toUpperCase()}</span>}
+                            {a.emoji && isAvatarKey(a.emoji)
+                              ? <AvatarIcon icon={a.emoji} size={16} />
+                              : a.emoji
+                                ? <span className="text-sm">{a.emoji}</span>
+                                : <span className="text-[9px]">{a.initials.slice(0, 2).toUpperCase()}</span>
+                            }
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-[12px] font-semibold text-sand-900 truncate leading-tight">{a.initials}</div>
