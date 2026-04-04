@@ -413,7 +413,6 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
     const ld = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     const todayStr = ld(now);
 
-    // Week = Monday to today
     const dow = now.getDay();
     const daysToMon = dow === 0 ? 6 : dow - 1;
     const wkStart = ld(new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToMon));
@@ -423,90 +422,52 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
       return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
     };
 
-    // Collect this week's milestones by step, with individual entries
-    const byStep: Record<string, { initials: string; subDate: string; stepDate: string; stream: string; days: number }[]> = {};
+    // Collect this week's milestones by step
+    const byStep: Record<string, { subDate: string; stepDate: string; stream: string; days: number }[]> = {};
 
     apps.forEach(a => {
       const s = buildStepsMap(a.step_events || []);
       (a.step_events || []).forEach(ev => {
         if (ev.step_id === "submitted") return;
-        if (ev.event_date > todayStr) return; // skip future dates
-        if (ev.event_date < wkStart) return; // only this week
+        if (ev.event_date > todayStr || ev.event_date < wkStart) return;
 
         const prevIdx = STEPS.findIndex(st => st.id === ev.step_id) - 1;
         const prevDate = prevIdx >= 0 ? s[STEPS[prevIdx].id] : s.submitted;
         const days = prevDate ? daysBetween(prevDate, ev.event_date) : 0;
-        if (days < 0 || days > getOutlierMax(a.province)) return; // skip outliers
+        if (days < 0 || days > getOutlierMax(a.province)) return;
 
         if (!byStep[ev.step_id]) byStep[ev.step_id] = [];
-        byStep[ev.step_id].push({
-          initials: a.initials,
-          subDate: s.submitted || "",
-          stepDate: ev.event_date,
-          stream: a.stream,
-          days,
-        });
+        byStep[ev.step_id].push({ subDate: s.submitted || "", stepDate: ev.event_date, stream: a.stream, days });
       });
     });
-
-    // Sort each step's entries by most recent first
-    Object.values(byStep).forEach(arr => arr.sort((a, b) => b.stepDate.localeCompare(a.stepDate)));
 
     const totalUpdates = Object.values(byStep).reduce((s, arr) => s + arr.length, 0);
     const waiting = apps.filter(a => !(a.step_events || []).some(e => e.step_id === "aor")).length;
 
-    // Build clean WhatsApp message
+    // Build compact message
     let msg = `*SponsorTrack — Weekly Update*\n`;
     msg += `${fmtDate(wkStart)} to ${fmtDate(todayStr)}\n`;
     msg += `${totalUpdates} milestones · ${apps.length} tracked · ${waiting} waiting\n`;
 
-    // Currently Processing — what sub dates are being processed per milestone
-    msg += `\n*Currently Processing*\n`;
-    STEPS.forEach(step => {
-      if (step.id === "submitted") return;
-      const entries = byStep[step.id];
-      if (!entries || entries.length === 0) return;
-      const allSubs = Array.from(new Set(entries.map(e => e.subDate).filter(Boolean))).sort();
-      if (allSubs.length === 0) return;
-      const earliest = fmtDate(allSubs[0]);
-      const latest = fmtDate(allSubs[allSubs.length - 1]);
-      const subInfo = allSubs.length === 1 ? earliest : `${earliest} to ${latest}`;
-      msg += `  ${step.label}: submitted ${subInfo}\n`;
-    });
-
+    // One line per step: count + avg days + submission range
     STEPS.forEach(step => {
       if (step.id === "submitted") return;
       const entries = byStep[step.id];
       if (!entries || entries.length === 0) return;
 
-      // Group by milestone date
-      const byDate: Record<string, { count: number; subDates: string[]; streams: { outland: number; inland: number } }> = {};
-      entries.forEach(e => {
-        if (!byDate[e.stepDate]) byDate[e.stepDate] = { count: 0, subDates: [], streams: { outland: 0, inland: 0 } };
-        byDate[e.stepDate].count++;
-        if (!byDate[e.stepDate].subDates.includes(e.subDate) && e.subDate) byDate[e.stepDate].subDates.push(e.subDate);
-        if (e.stream === "Outland") byDate[e.stepDate].streams.outland++;
-        else byDate[e.stepDate].streams.inland++;
-      });
-
-      // Avg days for this step this week
       const avgDays = Math.round(entries.reduce((s, e) => s + e.days, 0) / entries.length);
+      const outland = entries.filter(e => e.stream === "Outland").length;
+      const inland = entries.filter(e => e.stream === "Inland").length;
+      const streamInfo = outland > 0 && inland > 0 ? ` (${outland}O/${inland}I)` : inland > 0 ? " (Inland)" : "";
 
-      msg += `\n*${step.label}* — ${entries.length} received · avg ${avgDays}d\n`;
+      const allSubs = Array.from(new Set(entries.map(e => e.subDate).filter(Boolean))).sort();
+      const subRange = allSubs.length === 1 ? fmtDate(allSubs[0]) : allSubs.length > 1 ? `${fmtDate(allSubs[0])}–${fmtDate(allSubs[allSubs.length - 1])}` : "";
 
-      // Show each date
-      Object.keys(byDate).sort((a, b) => b.localeCompare(a)).forEach(date => {
-        const d = byDate[date];
-        d.subDates.sort();
-        const subList = d.subDates.map(s => fmtDate(s)).join(", ");
-        const streamInfo = d.streams.inland > 0 && d.streams.outland > 0
-          ? ` (${d.streams.outland} Outland, ${d.streams.inland} Inland)`
-          : d.streams.inland > 0 ? ` (Inland)` : "";
-        msg += `  ${fmtDate(date)} — ${d.count} received${streamInfo} · sub ${subList}\n`;
-      });
+      msg += `\n${step.label} — ${entries.length}${streamInfo} · avg ${avgDays}d`;
+      if (subRange) msg += ` · sub ${subRange}`;
     });
 
-    msg += `\nhttps://sponsortrack.online/dashboard`;
+    msg += `\n\nhttps://sponsortrack.online/dashboard`;
 
     return msg;
   }, [apps]);
