@@ -73,16 +73,6 @@ export function buildStepsMap(
     map[s.id] = getStepDate(stepEvents, s.id);
   });
 
-  // Auto-fill sub-steps for backwards compatibility.
-  // Only auto-fill when a LATER step proves the sub-step must have happened.
-  // e.g., if bil + sponsor_eligibility both exist → biometrics must be done
-  const hasLaterThanBio = !!(map.sponsor_eligibility || map.medical || map.pa_eligibility || map.background);
-  const hasLaterThanMedPassed = !!(map.pa_eligibility || map.pre_arrival || map.background);
-
-  if (map.bil && !map.biometrics_done && hasLaterThanBio) map.biometrics_done = map.bil;
-  if (map.medical && !map.medical_passed && hasLaterThanMedPassed) map.medical_passed = map.medical;
-  if (map.background && !map.background_started) map.background_started = map.background;
-
   return map as Record<StepId, string | null>;
 }
 
