@@ -166,7 +166,7 @@ export async function GET() {
             color: "#B0ADA6",
           }}
         >
-          tracker-lime-five.vercel.app
+          sponsortrack.online
         </div>
       </div>
     ),

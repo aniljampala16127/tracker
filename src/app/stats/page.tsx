@@ -506,7 +506,7 @@ function WeeklyDigest({ apps }: { apps: Application[] }) {
       });
     });
 
-    msg += `\nhttps://tracker-lime-five.vercel.app/dashboard`;
+    msg += `\nhttps://sponsortrack.online/dashboard`;
 
     return msg;
   }, [apps]);

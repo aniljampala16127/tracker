@@ -22,7 +22,7 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
     openGraph: {
       title: `${country} — Spousal Sponsorship Times | SponsorTrack`,
       description: `How long does ${country} spousal sponsorship take? Real data from the community.`,
-      images: ["https://tracker-lime-five.vercel.app/api/og"],
+      images: ["https://sponsortrack.online/api/og"],
     },
   };
 }

@@ -2,7 +2,7 @@ import { COMMON_COUNTRIES } from "@/lib/constants";
 import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://tracker-lime-five.vercel.app";
+  const base = "https://sponsortrack.online";
   const now = new Date().toISOString();
 
   const staticPages: MetadataRoute.Sitemap = [

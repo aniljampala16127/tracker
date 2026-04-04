@@ -239,7 +239,7 @@ export function TimelineExport({ app }: { app: Application }) {
     ctx.fillStyle = SAND_500;
     ctx.font = "9px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("SponsorTrack · tracker-lime-five.vercel.app", W / 2, fY + 18);
+    ctx.fillText("SponsorTrack · sponsortrack.online", W / 2, fY + 18);
 
     // Export
     canvas.toBlob((blob) => {

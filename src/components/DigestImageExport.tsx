@@ -227,13 +227,13 @@ export function DigestImageExport({ apps }: { apps: Application[] }) {
     ctx.fillStyle = "#A8A69E";
     ctx.font = "400 10px -apple-system, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("https://tracker-lime-five.vercel.app/dashboard", W / 2, y);
+    ctx.fillText("https://sponsortrack.online/dashboard", W / 2, y);
 
     // Export with URL text alongside image
     canvas.toBlob((blob) => {
       if (!blob) { setExporting(false); return; }
       const file = new File([blob], "sponsortrack-weekly.png", { type: "image/png" });
-      const shareText = "SponsorTrack — Weekly Update\nTrack yours: https://tracker-lime-five.vercel.app/dashboard";
+      const shareText = "SponsorTrack — Weekly Update\nTrack yours: https://sponsortrack.online/dashboard";
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         navigator.share({ files: [file], text: shareText, title: "SponsorTrack Weekly" }).catch(() => {}).finally(() => setExporting(false));
       } else {
