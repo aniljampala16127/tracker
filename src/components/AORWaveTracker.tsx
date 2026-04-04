@@ -23,7 +23,7 @@ const STEP_DOT_COLORS: Record<string, string> = {
   background: "#64748B", portal1: "#14B8A6", portal2: "#06B6D4", ecopr: "#CA8A04",
 };
 
-interface MilestoneEntry { initials: string; stepDate: string; subDate: string; stream: string; country: string; days: number; }
+interface MilestoneEntry { initials: string; emoji?: string | null; stepDate: string; subDate: string; stream: string; country: string; days: number; }
 interface MilestoneCard { stepId: string; label: string; entries: MilestoneEntry[]; thisWeek: number; }
 
 /* ── 60fps smooth vertical auto-scroll ── */
@@ -88,7 +88,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
         const pi = STEPS.findIndex(st => st.id === ev.step_id) - 1;
         const pd = pi >= 0 ? s[STEPS[pi].id] : s.submitted;
         const entry: MilestoneEntry = {
-          initials: a.initials, stepDate: ev.event_date, subDate: s.submitted || "",
+          initials: a.initials, emoji: a.emoji, stepDate: ev.event_date, subDate: s.submitted || "",
           stream: a.stream, country: a.country_origin, days: pd ? daysBetween(pd, ev.event_date) : 0,
         };
 
@@ -235,10 +235,10 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
                     <div className="py-1">
                       {card.entries.slice(0, 30).map((a, i) => (
                         <div key={`${a.initials}-${i}`} className="flex items-center gap-2.5 px-3 py-[7px]">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 ${
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white flex-shrink-0 ${
                             a.stream === "Outland" ? "bg-brand-500" : "bg-warn"
                           }`}>
-                            {a.initials.slice(0, 2).toUpperCase()}
+                            {a.emoji ? <span className="text-sm">{a.emoji}</span> : <span className="text-[9px]">{a.initials.slice(0, 2).toUpperCase()}</span>}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-[12px] font-semibold text-sand-900 truncate leading-tight">{a.initials}</div>

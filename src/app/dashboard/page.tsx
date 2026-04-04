@@ -502,10 +502,10 @@ export default function DashboardPage() {
                     }`}
                   >
                     {/* Avatar */}
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold flex-shrink-0 ${
                       isMe ? "bg-brand-500 text-white" : "bg-sand-100 text-sand-600"
                     }`}>
-                      {app.initials.slice(0, 2).toUpperCase()}
+                      {app.emoji ? <span className="text-lg">{app.emoji}</span> : <span className="text-xs">{app.initials.slice(0, 2).toUpperCase()}</span>}
                     </div>
 
                     {/* Info */}

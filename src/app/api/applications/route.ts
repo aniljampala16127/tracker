@@ -157,7 +157,7 @@ export async function PATCH(request: Request) {
   }
 
   // Only allow safe fields
-  const allowed = ["initials", "sponsor_status", "stream", "country_origin", "province", "subcategory", "notes", "mei_type", "visa_country"];
+  const allowed = ["initials", "sponsor_status", "stream", "country_origin", "province", "subcategory", "notes", "mei_type", "visa_country", "emoji"];
   const safeUpdates: Record<string, string | null> = {};
   for (const key of allowed) {
     if (key in updates) safeUpdates[key] = updates[key];

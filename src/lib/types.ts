@@ -16,6 +16,7 @@ export interface Application {
   is_complete: boolean;
   notes: string | null;
   pin_hash: string | null;
+  emoji: string | null;
   created_at: string;
   updated_at: string;
   step_events?: StepEvent[];

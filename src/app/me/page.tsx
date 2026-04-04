@@ -198,6 +198,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
     initials: app.initials, country_origin: app.country_origin,
     stream: app.stream as string, sponsor_status: app.sponsor_status as string,
     province: app.province || "Outside Quebec",
+    emoji: app.emoji || "",
   });
 
   const handleEditSave = async () => {
@@ -210,7 +211,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         id: app.id, pin_hash: pinHash || "",
         initials: editForm.initials.trim(), country_origin: editForm.country_origin,
         stream: editForm.stream, sponsor_status: editForm.sponsor_status,
-        province: editForm.province,
+        province: editForm.province, emoji: editForm.emoji || null,
       }),
     });
     if (!res.ok) {
@@ -229,7 +230,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       {/* 1. Header */}
       <div className="flex items-center gap-3 mb-3">
         <div className="w-12 h-12 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-lg">
-          {app.initials.slice(0, 2).toUpperCase()}
+          {app.emoji ? <span className="text-2xl">{app.emoji}</span> : app.initials.slice(0, 2).toUpperCase()}
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -269,6 +270,22 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
               <label className="text-[10px] text-sand-500 font-medium mb-1 block">Name</label>
               <input className="w-full px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
                 value={editForm.initials} onChange={(e) => setEditForm(p => ({ ...p, initials: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-[10px] text-sand-500 font-medium mb-1.5 block">Avatar Emoji</label>
+              <div className="flex flex-wrap gap-1.5">
+                {["", "🍁", "🇨🇦", "❤️", "🏠", "✈️", "🌟", "🦋", "🌻", "🐻", "🎯", "💪", "🙏", "😊", "🤞", "🕊️", "🌈"].map(e => (
+                  <button key={e} type="button"
+                    onClick={() => setEditForm(p => ({ ...p, emoji: e }))}
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all ${
+                      editForm.emoji === e
+                        ? "bg-brand-100 border-2 border-brand-500 scale-110"
+                        : "bg-white border border-sand-200 hover:border-sand-300"
+                    }`}>
+                    {e || <span className="text-[9px] text-sand-400">None</span>}
+                  </button>
+                ))}
+              </div>
             </div>
             <div>
               <label className="text-[10px] text-sand-500 font-medium mb-1 block">PA Country</label>
