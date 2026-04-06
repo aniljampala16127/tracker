@@ -197,19 +197,9 @@ export default function DashboardPage() {
     }
   };
 
-  /** Row click - PIN check or claim */
+  /** Row click - always open detail view. PIN only for editing. */
   const handleRowClick = (app: Application) => {
-    if (!app.pin_hash) {
-      // No PIN - show claim modal
-      setClaimTarget(app);
-    } else {
-      const savedHash = getSavedPinHash(app.id);
-      if (savedHash === app.pin_hash) {
-        setEditApp(app);
-      } else {
-        setPinTarget(app);
-      }
-    }
+    setEditApp(app);
   };
 
   const handleMarkStep = async (appId: string, stepId: StepId, date: string) => {
@@ -787,6 +777,66 @@ export default function DashboardPage() {
 // ============================================
 // Edit modal
 // ============================================
+// Inline claim — shown inside the detail modal for unclaimed entries
+function InlineClaim({ appId, appInitials, onClaimed, onCancel }: {
+  appId: string; appInitials: string;
+  onClaimed: (hash: string) => void; onCancel: () => void;
+}) {
+  const [pin, setPin] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleClaim = async () => {
+    setClaiming(true);
+    setError("");
+    const { generatePin, hashPin, savePinForApp } = await import("@/lib/pin");
+    const newPin = generatePin();
+    const hash = await hashPin(newPin);
+    const res = await fetch("/api/applications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: appId, claim_pin_hash: hash }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error || "Failed to claim");
+      setClaiming(false);
+      return;
+    }
+    savePinForApp(appId, hash);
+    setPin(newPin);
+    setClaiming(false);
+  };
+
+  if (pin) {
+    return (
+      <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 mb-3 text-center">
+        <p className="text-xs text-sand-600 mb-2">Your PIN for <strong>{appInitials}</strong>:</p>
+        <div className="flex justify-center gap-2 mb-2">
+          {pin.split("").map((d, i) => (
+            <div key={i} className="w-10 h-10 rounded-lg bg-white border-2 border-brand-300 flex items-center justify-center text-lg font-bold text-brand-700">{d}</div>
+          ))}
+        </div>
+        <p className="text-[9px] text-error mb-2">Save this PIN — it won&apos;t be shown again.</p>
+        <button onClick={() => onClaimed(pin)} className="px-4 py-2 bg-brand-500 text-white text-xs font-semibold rounded-lg">I&apos;ve saved it</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-warn-light/50 border border-warn/30 rounded-xl p-3 mb-3">
+      <p className="text-xs text-sand-700 mb-2"><strong>{appInitials}</strong> has no PIN. Claim it to edit and track.</p>
+      {error && <p className="text-[10px] text-error mb-2">{error}</p>}
+      <div className="flex gap-2">
+        <button onClick={handleClaim} disabled={claiming} className="px-4 py-1.5 bg-brand-500 text-white text-xs font-semibold rounded-lg disabled:opacity-50">
+          {claiming ? "..." : "Claim & Get PIN"}
+        </button>
+        <button onClick={onCancel} className="px-3 py-1.5 text-xs text-sand-500">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRefresh }: {
   app: Application; allApps: Application[]; onClose: () => void;
   onMarkStep: (appId: string, stepId: StepId, date: string) => void;
@@ -869,10 +919,27 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
   // Find the latest completed step index for showing undo button
   const completedStepIds = visibleSteps.filter(s => stepsMap[s.id]).map(s => s.id);
   const latestCompletedId = completedStepIds.length > 0 ? completedStepIds[completedStepIds.length - 1] : null;
+  const [claimMode, setClaimMode] = useState(false);
 
   return (
-    <Modal open={true} onClose={onClose} title={`${app.initials} - ${app.country_origin}`}>
+    <Modal open={true} onClose={onClose} title={`${app._real_initials || app.initials} · ${app.country_origin}`}>
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
+
+      {/* Non-owner banner */}
+      {!isOwner && !claimMode && (
+        <div className="bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 mb-3 flex items-center justify-between">
+          <span className="text-[10px] text-sand-500">Viewing {app.initials}&apos;s timeline</span>
+          {!app.pin_hash && (
+            <button onClick={() => setClaimMode(true)}
+              className="text-[10px] text-brand-500 font-semibold hover:underline">
+              Claim this entry
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Inline claim */}
+      {claimMode && <InlineClaim appId={app.id} appInitials={app.initials} onClaimed={(hash) => { setClaimMode(false); onRefresh(); }} onCancel={() => setClaimMode(false)} />}
 
       <div className="flex flex-wrap gap-2 text-xs text-sand-500 mb-3">
         <span>{app.sponsor_status}</span><span>·</span><span>{app.stream}</span>
@@ -916,7 +983,8 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
         </div>
       )}
 
-      {/* MEI / Medical Exam */}
+      {/* MEI / Medical Exam — owner only */}
+      {isOwner && (
       <div className="bg-sand-50 rounded-lg px-3 py-2.5 mb-3">
         <div className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider mb-1.5">Medical Exam (MEI)</div>
         <div className="flex gap-2">
@@ -935,6 +1003,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
           ))}
         </div>
       </div>
+      )}
 
       <div className="space-y-1">
         {visibleSteps.map((step, i) => {
