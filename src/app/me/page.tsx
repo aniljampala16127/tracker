@@ -13,6 +13,7 @@ import { MeSkeleton } from "@/components/Skeletons";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { Button } from "@/components/ui";
 import { AvatarIcon, AVATAR_OPTIONS, isAvatarKey } from "@/components/AvatarIcons";
+import { FindRepresentativeCard } from "@/components/FindRepresentativeCard";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -394,6 +395,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           </a>
         );
       })()}
+
+      {/* Find a Representative */}
+      <FindRepresentativeCard />
 
       {/* Support card */}
       <div className="bg-gradient-to-br from-sand-50 to-white border border-sand-200 rounded-xl p-4 mt-1">

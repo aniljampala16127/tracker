@@ -65,7 +65,7 @@ export function FindRepresentativeCard() {
         className="w-full flex items-center gap-3 px-4 py-3 text-left active:scale-[0.99] transition-transform"
       >
         <div className="w-8 h-8 rounded-lg bg-sand-100 flex items-center justify-center flex-shrink-0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#65635D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-sand-600" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21"/><circle cx="9" cy="7" r="4"/>
             <path d="M23 21V19C23 17.5 22 16.2 20.6 15.8"/><path d="M16.5 3.1C17.9 3.6 19 5 19 6.5C19 8 17.9 9.4 16.5 9.9"/>
           </svg>
@@ -75,7 +75,7 @@ export function FindRepresentativeCard() {
           <div className="text-[10px] text-sand-500">Find verified RCICs and lawyers</div>
         </div>
         <svg
-          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-sand-400" strokeWidth="2" strokeLinecap="round"
           style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
         >
           <path d="M6 9L12 15L18 9" />
@@ -120,7 +120,7 @@ export function FindRepresentativeCard() {
                     </div>
                     <div className="text-[10px] text-sand-500 mt-0.5 leading-relaxed">{r.description}</div>
                   </div>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#A8A69E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-1.5 text-sand-400">
                     <path d="M18 13V19C18 20.1 17.1 21 16 21H5C3.9 21 3 20.1 3 19V8C3 6.9 3.9 6 5 6H11"/>
                     <path d="M15 3H21V9"/><path d="M10 14L21 3"/>
                   </svg>
