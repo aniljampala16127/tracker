@@ -14,6 +14,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { Button } from "@/components/ui";
 import { AvatarIcon, AVATAR_OPTIONS, isAvatarKey } from "@/components/AvatarIcons";
 import { FindRepresentativeCard } from "@/components/FindRepresentativeCard";
+import { CommentsSection } from "@/components/CommentsSection";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -201,6 +202,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
     stream: app.stream as string, sponsor_status: app.sponsor_status as string,
     province: app.province || "Outside Quebec",
     emoji: app.emoji || "",
+    is_anonymous: app.is_anonymous || false,
   });
 
   const handleEditSave = async () => {
@@ -214,6 +216,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         initials: editForm.initials.trim(), country_origin: editForm.country_origin,
         stream: editForm.stream, sponsor_status: editForm.sponsor_status,
         province: editForm.province, emoji: editForm.emoji || null,
+        is_anonymous: editForm.is_anonymous,
       }),
     });
     if (!res.ok) {
@@ -238,12 +241,15 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
             ? <AvatarIcon icon={app.emoji} size={28} />
             : app.emoji
               ? <span className="text-2xl">{app.emoji}</span>
-              : app.initials.slice(0, 2).toUpperCase()
+              : (app._real_initials || app.initials).slice(0, 2).toUpperCase()
           }
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-sand-900">{app.initials}</h2>
+            <h2 className="text-lg font-bold text-sand-900">{app._real_initials || app.initials}</h2>
+            {app.is_anonymous && (
+              <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-sand-200 text-sand-600 font-semibold">Hidden</span>
+            )}
             <button onClick={() => { setEditing(!editing); if (!editing) setTimelineExpanded(false); }}
               className="text-[10px] text-brand-500 font-medium px-2 py-0.5 rounded-full border border-brand-200 hover:bg-brand-50 transition-colors">
               {editing ? "Cancel" : "Edit"}
@@ -324,6 +330,23 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
                 <option value="Outside Quebec">Outside Quebec</option><option value="Quebec">Inside Quebec</option>
               </select>
             </div>
+            {/* Anonymous toggle */}
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <div className="text-[10px] text-sand-500 font-medium">Hide my name</div>
+                <div className="text-[9px] text-sand-400">Others will see "Anonymous" instead of your name</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditForm(p => ({ ...p, is_anonymous: !p.is_anonymous }))}
+                className={`relative w-10 h-[22px] rounded-full transition-colors ${
+                  editForm.is_anonymous ? "bg-brand-500" : "bg-sand-300"
+                }`}>
+                <div className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-transform ${
+                  editForm.is_anonymous ? "translate-x-[20px]" : "translate-x-[2px]"
+                }`} />
+              </button>
+            </div>
             <div className="flex gap-2">
               <button onClick={handleEditSave} disabled={saving || !editForm.initials.trim() || !editForm.country_origin}
                 className="flex-1 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors disabled:opacity-50 active:scale-[0.98]">
@@ -395,6 +418,15 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           </a>
         );
       })()}
+
+      {/* Questions on your entry */}
+      <div className="bg-white border border-sand-200 rounded-xl p-4 mb-3">
+        <CommentsSection
+          applicationId={app.id}
+          comments={app.comments || []}
+          onRefresh={onRefresh}
+        />
+      </div>
 
       {/* Find a Representative */}
       <FindRepresentativeCard />

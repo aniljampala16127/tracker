@@ -14,7 +14,7 @@ export async function GET() {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("applications")
-    .select("*, step_events(*)")
+    .select("*, step_events(*), comments(*)")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -23,9 +23,12 @@ export async function GET() {
   const today = new Date().toISOString().split("T")[0];
   const cleaned = (data || []).map(app => ({
     ...app,
-    // Normalize old province values → Outside Quebec / Quebec
     province: app.province === "Quebec" ? "Quebec" : "Outside Quebec",
     step_events: (app.step_events || []).filter((e: { event_date: string }) => e.event_date <= today),
+    // Hide name for anonymous users (keep initials as "Anonymous")
+    initials: app.is_anonymous ? "Anonymous" : app.initials,
+    _real_initials: app.initials, // kept for owner-only display
+    comments: (app.comments || []).sort((a: { created_at: string }, b: { created_at: string }) => a.created_at.localeCompare(b.created_at)),
   }));
 
   return NextResponse.json(cleaned, {
@@ -157,7 +160,7 @@ export async function PATCH(request: Request) {
   }
 
   // Only allow safe fields
-  const allowed = ["initials", "sponsor_status", "stream", "country_origin", "province", "subcategory", "notes", "mei_type", "visa_country", "emoji"];
+  const allowed = ["initials", "sponsor_status", "stream", "country_origin", "province", "subcategory", "notes", "mei_type", "visa_country", "emoji", "is_anonymous"];
   const safeUpdates: Record<string, string | null> = {};
   for (const key of allowed) {
     if (key in updates) safeUpdates[key] = updates[key];

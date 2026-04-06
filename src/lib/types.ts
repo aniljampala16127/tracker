@@ -17,9 +17,22 @@ export interface Application {
   notes: string | null;
   pin_hash: string | null;
   emoji: string | null;
+  is_anonymous: boolean;
+  _real_initials?: string;
   created_at: string;
   updated_at: string;
   step_events?: StepEvent[];
+  comments?: Comment[];
+}
+
+export interface Comment {
+  id: string;
+  application_id: string;
+  pin_hash: string;
+  author_name: string;
+  text: string;
+  parent_id: string | null;
+  created_at: string;
 }
 
 export interface StepEvent {

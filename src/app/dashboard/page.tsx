@@ -10,6 +10,7 @@ import { Button, Modal, Input, Select, SearchableSelect } from "@/components/ui"
 import { PinModal, PinInput } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
 import { AvatarIcon, isAvatarKey } from "@/components/AvatarIcons";
+import { CommentsSection } from "@/components/CommentsSection";
 import dynamic from "next/dynamic";
 import { FilterBar, Filters, EMPTY_FILTERS } from "@/components/FilterBar";
 const StepChart = dynamic(() => import("@/components/StepChart").then(m => ({ default: m.StepChart })), {
@@ -526,6 +527,12 @@ export default function DashboardPage() {
                           app.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
                         }`}>{app.stream}</span>
                         <ReactionsBadge applicationId={app.id} />
+                        {(app.comments?.length || 0) > 0 && (
+                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-sand-100 text-sand-500 font-semibold flex items-center gap-0.5">
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                            {app.comments!.length}
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-sand-500">
                         {app.country_origin} · {app.sponsor_status}
@@ -722,7 +729,7 @@ export default function DashboardPage() {
       </p>
 
       <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} existingApps={apps} />
-      {editApp && <EditModal app={editApp} allApps={apps} onClose={() => { setEditApp(null); fetchApps(); }} onMarkStep={handleMarkStep} onDelete={handleDelete} isOwner={!!editApp.pin_hash && getSavedPinHash(editApp.id) === editApp.pin_hash} />}
+      {editApp && <EditModal app={editApp} allApps={apps} onClose={() => { setEditApp(null); fetchApps(); }} onMarkStep={handleMarkStep} onDelete={handleDelete} isOwner={!!editApp.pin_hash && getSavedPinHash(editApp.id) === editApp.pin_hash} onRefresh={fetchApps} />}
 
       {/* PIN verification */}
       {pinTarget && pinTarget.pin_hash && (
@@ -780,11 +787,12 @@ export default function DashboardPage() {
 // ============================================
 // Edit modal
 // ============================================
-function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
+function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRefresh }: {
   app: Application; allApps: Application[]; onClose: () => void;
   onMarkStep: (appId: string, stepId: StepId, date: string) => void;
   onDelete: (appId: string) => void;
   isOwner: boolean;
+  onRefresh: () => void;
 }) {
   const stepsMap = buildStepsMap(app.step_events || []);
   const [stepDate, setStepDate] = useState("");
@@ -997,6 +1005,13 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner }: {
         <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Share this timeline</div>
         <ShareButtons app={app} />
       </div>
+
+      {/* Comments / Questions */}
+      <CommentsSection
+        applicationId={app.id}
+        comments={app.comments || []}
+        onRefresh={onRefresh}
+      />
 
       {isOwner && (
         <button onClick={() => onDelete(app.id)} className="mt-3 text-xs text-error hover:text-error-dark transition-colors">
