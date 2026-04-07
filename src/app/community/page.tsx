@@ -224,51 +224,9 @@ export default function CommunityPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {allThreads.map(({ comment, replies, label, type }) => (
-            <div key={comment.id} className="bg-white border border-sand-200 rounded-xl overflow-hidden">
-              <div className="px-4 pt-3 pb-1 flex items-center gap-2">
-                <div className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-brand-100 text-brand-700">{label}</div>
-                <span className="text-[9px] text-sand-400 ml-auto">{timeAgo(comment.created_at)}</span>
-              </div>
-              <div className="px-4 py-2">
-                <div className="text-[11px] font-semibold text-brand-600 mb-0.5">{comment.author_name}</div>
-                <p className="text-sm text-sand-800 leading-relaxed">{comment.text}</p>
-              </div>
-              {replies.length > 0 && (
-                <div className="mx-4 mb-2 space-y-1.5">
-                  {replies.map(r => (
-                    <div key={r.id} className="bg-sand-50 rounded-lg px-3 py-2">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[10px] font-semibold text-sand-700">{r.author_name}</span>
-                        <span className="text-[9px] text-sand-400">{timeAgo(r.created_at)}</span>
-                      </div>
-                      <p className="text-xs text-sand-700 leading-relaxed">{r.text}</p>
-                      {r.pin_hash === myPinHash && <button onClick={() => handleDelete(r.id)} className="text-[9px] text-sand-400 hover:text-error font-medium mt-1">Delete</button>}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="px-4 pb-3 flex items-center gap-3">
-                <button onClick={() => { setReplyTo(replyTo === comment.id ? null : comment.id); setText(""); setAnonymous(false); }} className="text-[10px] text-brand-500 font-semibold hover:underline">
-                  {replyTo === comment.id ? "Cancel" : `Reply${replies.length > 0 ? ` (${replies.length})` : ""}`}
-                </button>
-                {comment.pin_hash === myPinHash && <button onClick={() => handleDelete(comment.id)} className="text-[10px] text-sand-400 hover:text-error font-medium">Delete</button>}
-              </div>
-              {replyTo === comment.id && myPinHash && (
-                <div className="px-4 pb-3">
-                  <div className="flex gap-1.5">
-                    <input value={text} onChange={(e) => setText(e.target.value.slice(0, 500))} onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handleReply(comment.id, comment.application_id, comment.cohort_month); }}
-                      placeholder="Write a reply..." autoFocus className="flex-1 px-2.5 py-2 text-xs rounded-lg border border-sand-200 bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
-                    <button onClick={() => handleReply(comment.id, comment.application_id, comment.cohort_month)} disabled={!text.trim() || posting}
-                      className="px-3 py-2 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">{posting ? "..." : "Reply"}</button>
-                  </div>
-                  <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
-                    <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="w-3.5 h-3.5 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
-                    <span className="text-[10px] text-sand-400">Post anonymously</span>
-                  </label>
-                </div>
-              )}
-            </div>
+          {allThreads.map(({ comment, replies, label }) => (
+            <ThreadCard key={comment.id} comment={comment} replies={replies} label={label}
+              myPinHash={myPinHash} onDelete={handleDelete} onReply={handleReply} onRefresh={fetchData} />
           ))}
         </div>
       )}
@@ -278,5 +236,128 @@ export default function CommunityPage() {
       )}
     </div>
     </PullToRefresh>
+  );
+}
+
+// Collapsible thread card
+function ThreadCard({ comment, replies, label, myPinHash, onDelete, onReply, onRefresh }: {
+  comment: Comment; replies: Comment[]; label: string;
+  myPinHash: string | null;
+  onDelete: (id: string) => void;
+  onReply: (parentId: string, appId?: string | null, cohortMonth?: string | null) => void;
+  onRefresh: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [text, setText] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [anonymous, setAnonymous] = useState(false);
+  const [showReply, setShowReply] = useState(false);
+
+  const handleReply = async () => {
+    if (!text.trim() || !myPinHash) return;
+    setPosting(true);
+    await fetch("/api/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        application_id: comment.application_id || undefined,
+        cohort_month: comment.cohort_month || undefined,
+        pin_hash: myPinHash, text: text.trim(),
+        parent_id: comment.id, anonymous,
+      }),
+    });
+    setText(""); setShowReply(false); setAnonymous(false); setPosting(false);
+    onRefresh();
+  };
+
+  return (
+    <div className="bg-white border border-sand-200 rounded-xl overflow-hidden">
+      {/* Collapsed header — always visible, tap to expand */}
+      <button onClick={() => setExpanded(!expanded)}
+        className="w-full px-4 py-3 text-left active:bg-sand-50/50 transition-colors">
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-brand-100 text-brand-700">{label}</div>
+          {replies.length > 0 && (
+            <span className="text-[9px] text-sand-400 flex items-center gap-0.5">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              {replies.length}
+            </span>
+          )}
+          <span className="text-[9px] text-sand-400 ml-auto">{timeAgo(comment.created_at)}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+            className="text-sand-300 flex-shrink-0 transition-transform duration-300"
+            style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+            <path d="M6 9L12 15L18 9" />
+          </svg>
+        </div>
+        <div className="flex items-start gap-1.5">
+          <span className="text-[11px] font-semibold text-brand-600 flex-shrink-0">{comment.author_name}</span>
+          <p className={`text-sm text-sand-800 leading-snug ${expanded ? "" : "line-clamp-2"}`}>{comment.text}</p>
+        </div>
+      </button>
+
+      {/* Expanded content */}
+      <div style={{
+        maxHeight: expanded ? "2000px" : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div style={{ opacity: expanded ? 1 : 0, transition: "opacity 0.25s ease", transitionDelay: expanded ? "0.1s" : "0s" }}>
+          {/* Replies */}
+          {replies.length > 0 && (
+            <div className="mx-4 mb-2 space-y-1.5">
+              {replies.map(r => (
+                <div key={r.id} className="bg-sand-50 rounded-lg px-3 py-2">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[10px] font-semibold text-sand-700">{r.author_name}</span>
+                    <span className="text-[9px] text-sand-400">{timeAgo(r.created_at)}</span>
+                  </div>
+                  <p className="text-xs text-sand-700 leading-relaxed">{r.text}</p>
+                  {r.pin_hash === myPinHash && (
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(r.id); }}
+                      className="text-[9px] text-sand-400 hover:text-error font-medium mt-1">Delete</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="px-4 pb-2 flex items-center gap-3">
+            {myPinHash && (
+              <button onClick={(e) => { e.stopPropagation(); setShowReply(!showReply); setText(""); setAnonymous(false); }}
+                className="text-[10px] text-brand-500 font-semibold hover:underline">
+                {showReply ? "Cancel" : "Reply"}
+              </button>
+            )}
+            {comment.pin_hash === myPinHash && (
+              <button onClick={(e) => { e.stopPropagation(); onDelete(comment.id); }}
+                className="text-[10px] text-sand-400 hover:text-error font-medium">Delete</button>
+            )}
+          </div>
+
+          {/* Reply input */}
+          {showReply && myPinHash && (
+            <div className="px-4 pb-3">
+              <div className="flex gap-1.5">
+                <input value={text} onChange={(e) => setText(e.target.value.slice(0, 500))}
+                  onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handleReply(); }}
+                  placeholder="Write a reply..." autoFocus
+                  className="flex-1 px-2.5 py-2 text-xs rounded-lg border border-sand-200 bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+                <button onClick={handleReply} disabled={!text.trim() || posting}
+                  className="px-3 py-2 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">
+                  {posting ? "..." : "Reply"}
+                </button>
+              </div>
+              <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
+                <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
+                <span className="text-[10px] text-sand-400">Post anonymously</span>
+              </label>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
