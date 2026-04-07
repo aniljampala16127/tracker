@@ -2,11 +2,89 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { PlaneIcon, BarChartIcon, ClockIcon, UsersIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 import { ActivityPanel } from "@/components/ActivityFeed";
+
+// Track unread comments for the logged-in user
+function useUnreadComments(pathname: string): number {
+  const [count, setCount] = useState(0);
+
+  const check = useCallback(async () => {
+    if (typeof window === "undefined") return;
+
+    // Get user's PIN hash
+    let myPinHash: string | null = null;
+    try {
+      const raw = localStorage.getItem("sponsortrack-pins");
+      if (!raw) return;
+      const store = JSON.parse(raw);
+      const values = Object.values(store) as string[];
+      myPinHash = values[0] || null;
+    } catch { return; }
+    if (!myPinHash) return;
+
+    // Get last seen timestamp
+    const lastSeen = localStorage.getItem("community-last-seen") || "2000-01-01T00:00:00Z";
+
+    // Fetch apps + cohort comments
+    try {
+      const [appsRes, commentsRes] = await Promise.all([
+        fetch("/api/applications"),
+        fetch("/api/comments"),
+      ]);
+      const apps = await appsRes.json();
+      const cohortComments = await commentsRes.json();
+      if (!Array.isArray(apps) || !Array.isArray(cohortComments)) return;
+
+      let unread = 0;
+
+      // Find user's app IDs
+      const myAppIds = new Set(
+        apps.filter((a: { id: string; pin_hash: string }) => a.pin_hash === myPinHash).map((a: { id: string }) => a.id)
+      );
+
+      // Check entry-level comments on my entries
+      apps.forEach((a: { id: string; comments?: { created_at: string; pin_hash: string }[] }) => {
+        if (!myAppIds.has(a.id) || !a.comments) return;
+        a.comments.forEach(c => {
+          if (c.pin_hash !== myPinHash && c.created_at > lastSeen) unread++;
+        });
+      });
+
+      // Check cohort comments — replies to my posts
+      cohortComments.forEach((c: { pin_hash: string; parent_id: string | null; created_at: string }) => {
+        if (c.pin_hash !== myPinHash && c.created_at > lastSeen && c.parent_id) {
+          // Check if parent is mine
+          const parent = cohortComments.find((p: { id: string }) => p.id === c.parent_id);
+          if (parent && (parent as { pin_hash: string }).pin_hash === myPinHash) unread++;
+        }
+      });
+
+      setCount(unread);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { check(); }, [check]);
+
+  // Clear when visiting community page
+  useEffect(() => {
+    if (pathname.startsWith("/community")) {
+      localStorage.setItem("community-last-seen", new Date().toISOString());
+      setCount(0);
+    }
+  }, [pathname]);
+
+  // Re-check periodically (every 60s)
+  useEffect(() => {
+    const interval = setInterval(check, 60000);
+    return () => clearInterval(interval);
+  }, [check]);
+
+  return count;
+}
 
 function MeIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
@@ -41,7 +119,7 @@ const BOTTOM_NAV = [
 ];
 
 /** Desktop top nav with sliding pill */
-function DesktopTabs({ pathname }: { pathname: string }) {
+function DesktopTabs({ pathname, unreadCount }: { pathname: string; unreadCount: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pill, setPill] = useState({ left: 0, width: 0 });
   const activeIdx = DESKTOP_NAV.findIndex(item => pathname.startsWith(item.href));
@@ -78,6 +156,11 @@ function DesktopTabs({ pathname }: { pathname: string }) {
           >
             <item.icon size={13} />
             <span>{item.label}</span>
+            {item.href === "/community" && unreadCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-error text-white text-[8px] font-bold flex items-center justify-center leading-none">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -86,7 +169,7 @@ function DesktopTabs({ pathname }: { pathname: string }) {
 }
 
 /** Mobile bottom nav with sliding pill + haptic tap */
-function MobileBottomNav({ pathname }: { pathname: string }) {
+function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCount: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pill, setPill] = useState({ left: 0, width: 0 });
   const [tapped, setTapped] = useState<string | null>(null);
@@ -132,7 +215,7 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
               )}
             >
               <div className={cn(
-                "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300",
+                "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300 relative",
                 active ? "bg-brand-500 shadow-[0_2px_8px_rgba(45,106,79,0.3)]" : ""
               )}>
                 <item.icon
@@ -142,6 +225,11 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
                     active ? "text-white" : "text-sand-400"
                   )}
                 />
+                {item.href === "/community" && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-error text-white text-[7px] font-bold flex items-center justify-center leading-none border-2 border-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </div>
               <span className={cn(
                 "text-[9px] font-semibold transition-colors duration-200",
@@ -192,6 +280,7 @@ function ThemeToggle() {
 
 export function Nav() {
   const pathname = usePathname();
+  const unreadCount = useUnreadComments(pathname);
 
   // Force scroll to top on every route change — aggressive approach
   useEffect(() => {
@@ -221,7 +310,7 @@ export function Nav() {
               SponsorTrack
             </span>
           </Link>
-          <DesktopTabs pathname={pathname} />
+          <DesktopTabs pathname={pathname} unreadCount={unreadCount} />
           <div className="flex items-center gap-1">
             <ThemeToggle />
             <ActivityPanel />
@@ -229,7 +318,7 @@ export function Nav() {
           </div>
         </div>
       </header>
-      <MobileBottomNav pathname={pathname} />
+      <MobileBottomNav pathname={pathname} unreadCount={unreadCount} />
     </>
   );
 }
