@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { Application, StepId, StepDefinition } from "@/lib/types";
 import { STEPS, getStepIndex, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
-import { getSavedPinHash, hashPin } from "@/lib/pin";
+import { getSavedPinHash, hashPin, removeSavedPin } from "@/lib/pin";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
 import { playMilestoneSound } from "@/lib/sounds";
@@ -253,6 +253,15 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
             <button onClick={() => { setEditing(!editing); if (!editing) setTimelineExpanded(false); }}
               className="text-[10px] text-brand-500 font-medium px-2 py-0.5 rounded-full border border-brand-200 hover:bg-brand-50 transition-colors">
               {editing ? "Cancel" : "Edit"}
+            </button>
+            <button onClick={() => {
+              if (confirm("Disconnect this entry from your device? You can reconnect later with your PIN.")) {
+                removeSavedPin(app.id);
+                onRefresh();
+              }
+            }}
+              className="text-[10px] text-sand-400 font-medium px-2 py-0.5 rounded-full border border-sand-200 hover:text-error hover:border-error/30 transition-colors">
+              Disconnect
             </button>
           </div>
           <p className="text-xs text-sand-500">
