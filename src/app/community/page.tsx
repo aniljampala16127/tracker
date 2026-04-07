@@ -214,7 +214,7 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* Threads */}
+      {/* Threads grouped by cohort */}
       {threads.length === 0 ? (
         <div className="bg-white border border-sand-200 rounded-xl p-8 text-center">
           <div className="w-12 h-12 rounded-xl bg-sand-100 flex items-center justify-center mx-auto mb-3">
@@ -224,10 +224,39 @@ export default function CommunityPage() {
           <p className="text-xs text-sand-400">Be the first to ask your submission month cohort!</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {threads.map(t => (
-            <ThreadCard key={t.root.id} thread={t} myPinHash={myPinHash} onRefresh={fetchData} lastSeen={lastSeen} />
-          ))}
+        <div className="space-y-4">
+          {(() => {
+            // Group threads by label (cohort month)
+            const groups: Record<string, ThreadData[]> = {};
+            threads.forEach(t => {
+              const key = t.label;
+              if (!groups[key]) groups[key] = [];
+              groups[key].push(t);
+            });
+            // Sort groups by newest thread in each
+            const sortedKeys = Object.keys(groups).sort((a, b) => {
+              const aLatest = groups[a][0].root.created_at;
+              const bLatest = groups[b][0].root.created_at;
+              return bLatest.localeCompare(aLatest);
+            });
+            return sortedKeys.map(key => {
+              const groupThreads = groups[key];
+              const totalInGroup = groupThreads.reduce((s, t) => s + t.allComments.length, 0);
+              const unreadInGroup = groupThreads.reduce((s, t) => s + t.allComments.filter(c => c.created_at > lastSeen).length, 0);
+              return (
+                <CohortGroup
+                  key={key}
+                  label={key}
+                  threads={groupThreads}
+                  totalComments={totalInGroup}
+                  unreadCount={unreadInGroup}
+                  myPinHash={myPinHash}
+                  onRefresh={fetchData}
+                  lastSeen={lastSeen}
+                />
+              );
+            });
+          })()}
         </div>
       )}
 
@@ -274,7 +303,6 @@ function ThreadCard({ thread, myPinHash, onRefresh, lastSeen }: {
       <button onClick={() => setExpanded(!expanded)}
         className="w-full px-4 py-3 text-left active:bg-sand-50/50 transition-colors">
         <div className="flex items-center gap-2 mb-1">
-          <div className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-brand-100 text-brand-700">{label}</div>
           {isRootNew && (
             <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-error text-white leading-none">NEW</span>
           )}
@@ -432,6 +460,68 @@ function ReplyInput({ parentId, comment, myPinHash, onRefresh, compact }: {
           className="w-3 h-3 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
         <span className="text-[9px] text-sand-400">Anonymous</span>
       </label>
+    </div>
+  );
+}
+
+// Collapsible cohort group
+function CohortGroup({ label, threads, totalComments, unreadCount, myPinHash, onRefresh, lastSeen }: {
+  label: string;
+  threads: ThreadData[];
+  totalComments: number;
+  unreadCount: number;
+  myPinHash: string | null;
+  onRefresh: () => void;
+  lastSeen: string;
+}) {
+  const [expanded, setExpanded] = useState(unreadCount > 0);
+
+  return (
+    <div>
+      {/* Cohort header */}
+      <button onClick={() => setExpanded(!expanded)}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors active:scale-[0.99] ${
+          expanded ? "bg-brand-500 text-white" : "bg-white border border-sand-200 text-sand-900"
+        }`}>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold ${
+          expanded ? "bg-white/20 text-white" : "bg-brand-100 text-brand-700"
+        }`}>
+          {label.replace(" cohort", "").split(" ")[0]?.slice(0, 3)}
+        </div>
+        <div className="flex-1 text-left">
+          <div className="text-sm font-semibold">{label}</div>
+          <div className={`text-[10px] ${expanded ? "text-white/70" : "text-sand-400"}`}>
+            {threads.length} {threads.length === 1 ? "thread" : "threads"} · {totalComments} {totalComments === 1 ? "comment" : "comments"}
+          </div>
+        </div>
+        {unreadCount > 0 && (
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+            expanded ? "bg-white/20 text-white" : "bg-error text-white"
+          }`}>{unreadCount} new</span>
+        )}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+          className={`flex-shrink-0 transition-transform duration-300 ${expanded ? "text-white/70" : "text-sand-300"}`}
+          style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M6 9L12 15L18 9" />
+        </svg>
+      </button>
+
+      {/* Threads */}
+      <div style={{
+        maxHeight: expanded ? `${threads.length * 500}px` : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div className="space-y-2 pt-2" style={{
+          opacity: expanded ? 1 : 0,
+          transition: "opacity 0.25s ease",
+          transitionDelay: expanded ? "0.1s" : "0s",
+        }}>
+          {threads.map(t => (
+            <ThreadCard key={t.root.id} thread={t} myPinHash={myPinHash} onRefresh={onRefresh} lastSeen={lastSeen} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
