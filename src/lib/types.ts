@@ -27,7 +27,8 @@ export interface Application {
 
 export interface Comment {
   id: string;
-  application_id: string;
+  application_id: string | null;
+  cohort_month: string | null;
   pin_hash: string;
   author_name: string;
   text: string;

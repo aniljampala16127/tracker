@@ -14,10 +14,13 @@ function getSupabase() {
 export async function POST(request: Request) {
   const supabase = getSupabase();
   const body = await request.json();
-  const { application_id, pin_hash, text, parent_id, anonymous } = body;
+  const { application_id, cohort_month, pin_hash, text, parent_id, anonymous } = body;
 
-  if (!application_id || !pin_hash || !text?.trim()) {
+  if (!pin_hash || !text?.trim()) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+  if (!application_id && !cohort_month) {
+    return NextResponse.json({ error: "Need application_id or cohort_month" }, { status: 400 });
   }
 
   if (text.trim().length > 500) {
@@ -38,7 +41,8 @@ export async function POST(request: Request) {
   }
 
   const { data, error } = await supabase.from("comments").insert({
-    application_id,
+    application_id: application_id || null,
+    cohort_month: cohort_month || null,
     pin_hash,
     author_name: authorName,
     text: text.trim().slice(0, 500),
@@ -75,4 +79,17 @@ export async function DELETE(request: Request) {
 
   await supabase.from("comments").delete().eq("id", id);
   return NextResponse.json({ success: true });
+}
+
+// GET — fetch cohort comments
+export async function GET() {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("comments")
+    .select("*")
+    .not("cohort_month", "is", null)
+    .order("created_at", { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data || []);
 }
