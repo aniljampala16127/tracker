@@ -16,11 +16,19 @@ function MeIcon({ size = 16, className = "" }: { size?: number; className?: stri
   );
 }
 
+function ChatIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+    </svg>
+  );
+}
+
 const DESKTOP_NAV = [
   { href: "/dashboard", label: "Tracker", icon: PlaneIcon },
   { href: "/stats", label: "Stats", icon: BarChartIcon },
   { href: "/calculator", label: "Estimator", icon: ClockIcon },
-  { href: "/compare", label: "Compare", icon: UsersIcon },
+  { href: "/community", label: "Community", icon: ChatIcon },
   { href: "/me", label: "Me", icon: MeIcon },
 ];
 
@@ -28,6 +36,7 @@ const BOTTOM_NAV = [
   { href: "/dashboard", label: "Tracker", icon: PlaneIcon },
   { href: "/stats", label: "Stats", icon: BarChartIcon },
   { href: "/calculator", label: "Estimator", icon: ClockIcon },
+  { href: "/community", label: "Community", icon: ChatIcon },
   { href: "/me", label: "Me", icon: MeIcon },
 ];
 
