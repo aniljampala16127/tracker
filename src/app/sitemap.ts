@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/stats`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${base}/calculator`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
     { url: `${base}/me`, lastModified: now, changeFrequency: "daily", priority: 0.5 },
+    { url: `${base}/community`, lastModified: now, changeFrequency: "hourly", priority: 0.7 },
   ];
 
   const countryPages: MetadataRoute.Sitemap = COMMON_COUNTRIES

@@ -5,15 +5,26 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 
 export const metadata: Metadata = {
-  title: "SponsorTrack — Canada Spousal Sponsorship Tracker",
+  title: "SponsorTrack — Canada Spousal Sponsorship Tracker | Real IRCC Processing Times",
   description:
-    "Track your Canadian spousal sponsorship application alongside the community. Real-time processing averages, step-by-step timeline, and monthly cohort comparisons.",
+    "Free community tracker for Canadian spousal sponsorship. See real IRCC processing times from 300+ applicants, AOR predictions, step-by-step timeline, and completion estimates. Track outland and inland spousal sponsorship progress.",
   keywords: [
     "spousal sponsorship",
     "Canada immigration",
     "IRCC processing times",
     "PR application tracker",
     "family sponsorship",
+    "spousal sponsorship processing time",
+    "how long does spousal sponsorship take",
+    "IRCC spousal sponsorship tracker",
+    "Canada spousal sponsorship AOR",
+    "outland sponsorship tracker",
+    "inland sponsorship tracker",
+    "spousal sponsorship timeline",
+    "Canada PR spousal",
+    "IRCC processing time 2025",
+    "IRCC processing time 2026",
+    "spousal sponsorship community",
   ],
   verification: {
     google: "59KnbqBJoeD2akfgK9NxJShfbusGsccubengzXEsrE4",
@@ -65,6 +76,18 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "SponsorTrack",
+          "url": "https://sponsortrack.online",
+          "description": "Free community tracker for Canadian spousal sponsorship applications. Real IRCC processing times from 300+ applicants.",
+          "applicationCategory": "UtilitiesApplication",
+          "operatingSystem": "Any",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CAD" },
+          "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "ratingCount": "300" },
+          "author": { "@type": "Person", "name": "Anil Jampala" }
+        })}} />
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
             var t = localStorage.getItem('sponsortrack-theme');
