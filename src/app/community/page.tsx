@@ -95,16 +95,22 @@ export default function CommunityPage() {
       });
     });
 
-    // Entry comments
+    // Entry comments — show cohort month, not the entry owner's name
     apps.forEach(app => {
       if (!app.comments || app.comments.length === 0) return;
+      const s = buildStepsMap(app.step_events || []);
+      let cohort = "General";
+      if (s.submitted) {
+        const d = new Date(s.submitted + "T00:00:00");
+        cohort = monthLabel(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`) + " cohort";
+      }
       const top = app.comments.filter(c => !c.parent_id);
       const rep = app.comments.filter(c => c.parent_id);
       top.forEach(c => {
         threads.push({
           comment: c,
           replies: rep.filter(r => r.parent_id === c.id),
-          label: `${app.initials} \u00b7 ${app.country_origin}`,
+          label: cohort,
           type: "entry",
         });
       });
@@ -221,7 +227,7 @@ export default function CommunityPage() {
           {allThreads.map(({ comment, replies, label, type }) => (
             <div key={comment.id} className="bg-white border border-sand-200 rounded-xl overflow-hidden">
               <div className="px-4 pt-3 pb-1 flex items-center gap-2">
-                <div className={`px-2 py-0.5 rounded-full text-[9px] font-semibold ${type === "cohort" ? "bg-brand-100 text-brand-700" : "bg-sand-100 text-sand-600"}`}>{label}</div>
+                <div className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-brand-100 text-brand-700">{label}</div>
                 <span className="text-[9px] text-sand-400 ml-auto">{timeAgo(comment.created_at)}</span>
               </div>
               <div className="px-4 py-2">
