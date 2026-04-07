@@ -47,6 +47,9 @@ export default function CommunityPage() {
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [anonymous, setAnonymous] = useState(false);
+  const [newQ, setNewQ] = useState(false);
+  const [newQApp, setNewQApp] = useState("");
+  const [newQText, setNewQText] = useState("");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -110,6 +113,28 @@ export default function CommunityPage() {
     fetchApps();
   };
 
+  const handleNewQuestion = async () => {
+    if (!newQText.trim() || !newQApp || !myPinHash) return;
+    setPosting(true);
+    await fetch("/api/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        application_id: newQApp,
+        pin_hash: myPinHash,
+        text: newQText.trim(),
+        parent_id: null,
+        anonymous,
+      }),
+    });
+    setNewQText("");
+    setNewQApp("");
+    setNewQ(false);
+    setAnonymous(false);
+    setPosting(false);
+    fetchApps();
+  };
+
   if (loading) {
     return (
       <div className="page-enter">
@@ -137,6 +162,62 @@ export default function CommunityPage() {
           {totalComments} {totalComments === 1 ? "comment" : "comments"} across {apps.filter(a => (a.comments?.length || 0) > 0).length} entries
         </p>
       </div>
+
+      {/* New Question Composer */}
+      {myPinHash && !newQ && (
+        <button onClick={() => setNewQ(true)}
+          className="w-full mb-4 px-4 py-3 bg-white border border-sand-200 rounded-xl text-left flex items-center gap-3 hover:bg-sand-50 transition-colors active:scale-[0.99]">
+          <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-brand-600">
+              <path d="M12 5V19M5 12H19"/>
+            </svg>
+          </div>
+          <span className="text-sm text-sand-400">Ask a question...</span>
+        </button>
+      )}
+
+      {myPinHash && newQ && (
+        <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
+          <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-3">New Question</div>
+          <div className="space-y-2.5">
+            <div>
+              <label className="text-[10px] text-sand-500 font-medium mb-1 block">Ask about</label>
+              <select value={newQApp} onChange={(e) => setNewQApp(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                <option value="">Select an entry...</option>
+                {apps.filter(a => a.pin_hash).map(a => (
+                  <option key={a.id} value={a.id}>{a.initials} · {a.country_origin} · {a.stream}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <textarea
+                value={newQText}
+                onChange={(e) => setNewQText(e.target.value.slice(0, 500))}
+                placeholder="What would you like to ask?"
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 resize-none"
+              />
+              <div className="text-[9px] text-sand-300 text-right">{newQText.length}/500</div>
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
+              <span className="text-[10px] text-sand-400">Post anonymously</span>
+            </label>
+            <div className="flex gap-2">
+              <button onClick={handleNewQuestion} disabled={!newQText.trim() || !newQApp || posting}
+                className="flex-1 py-2 bg-brand-500 text-white text-sm font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">
+                {posting ? "Posting..." : "Post Question"}
+              </button>
+              <button onClick={() => { setNewQ(false); setNewQText(""); setNewQApp(""); setAnonymous(false); }}
+                className="px-4 py-2 text-sm text-sand-500 rounded-lg border border-sand-200 hover:bg-sand-50">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {threads.length === 0 ? (
         <div className="bg-white border border-sand-200 rounded-xl p-8 text-center">
