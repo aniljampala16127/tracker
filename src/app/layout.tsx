@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     "spousal sponsorship community",
   ],
   verification: {
-    google: "59KnbqBJoeD2akfgK9NxJShfbusGsccubengzXEsrE4",
+    google: "rQ_KqoeFExJQLOe78nzhwijcI21dZ9iDmyipiw887U4",
   },
   manifest: "/manifest.json",
   appleWebApp: {
