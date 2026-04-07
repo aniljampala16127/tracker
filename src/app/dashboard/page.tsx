@@ -921,6 +921,17 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
   const latestCompletedId = completedStepIds.length > 0 ? completedStepIds[completedStepIds.length - 1] : null;
   const [claimMode, setClaimMode] = useState(false);
 
+  // Check if user already has their own entry (has any saved PIN)
+  const userHasEntry = (() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const raw = localStorage.getItem("sponsortrack-pins");
+      if (!raw) return false;
+      const store = JSON.parse(raw);
+      return Object.keys(store).length > 0;
+    } catch { return false; }
+  })();
+
   return (
     <Modal open={true} onClose={onClose} title={`${app._real_initials || app.initials} · ${app.country_origin}`}>
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
@@ -929,7 +940,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
       {!isOwner && !claimMode && (
         <div className="bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 mb-3 flex items-center justify-between">
           <span className="text-[10px] text-sand-500">Viewing {app.initials}&apos;s timeline</span>
-          {!app.pin_hash && (
+          {!app.pin_hash && !userHasEntry && (
             <button onClick={() => setClaimMode(true)}
               className="text-[10px] text-brand-500 font-semibold hover:underline">
               Claim this entry
