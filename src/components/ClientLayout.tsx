@@ -17,13 +17,16 @@ function useDomainMigration() {
       const raw = localStorage.getItem("sponsortrack-pins");
       if (raw) {
         try {
-          const encoded = btoa(raw);
-          window.location.replace(`https://${NEW_DOMAIN}?migrate=${encoded}`);
-          return;
+          const parsed = JSON.parse(raw);
+          if (Object.keys(parsed).length > 0) {
+            const encoded = btoa(raw);
+            window.location.replace(`https://${NEW_DOMAIN}?migrate=${encoded}`);
+            return;
+          }
         } catch { /* fall through to simple redirect */ }
       }
-      // No PINs — just redirect
-      window.location.replace(`https://${NEW_DOMAIN}${window.location.pathname}`);
+      // No PINs — redirect to homepage (has PIN reconnect input)
+      window.location.replace(`https://${NEW_DOMAIN}`);
       return;
     }
 
