@@ -30,6 +30,7 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [anonymous, setAnonymous] = useState(false);
 
   // Find the user's pin_hash from any of their saved entries
   const getMyPinHash = (): string | null => {
@@ -57,6 +58,7 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
         pin_hash: myPinHash,
         text: text.trim(),
         parent_id: replyTo,
+        anonymous,
       }),
     });
     setText("");
@@ -125,18 +127,25 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
 
               {/* Reply input */}
               {replyTo === c.id && myPinHash && (
-                <div className="ml-4 mt-1.5 flex gap-1.5">
-                  <input
-                    value={text}
-                    onChange={(e) => setText(e.target.value.slice(0, 500))}
-                    onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(); }}
-                    placeholder="Write a reply..."
-                    className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                  />
-                  <button onClick={handlePost} disabled={!text.trim() || posting}
-                    className="px-3 py-1.5 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50">
-                    {posting ? "..." : "Reply"}
-                  </button>
+                <div className="ml-4 mt-1.5">
+                  <div className="flex gap-1.5">
+                    <input
+                      value={text}
+                      onChange={(e) => setText(e.target.value.slice(0, 500))}
+                      onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(); }}
+                      placeholder="Write a reply..."
+                      className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                    />
+                    <button onClick={handlePost} disabled={!text.trim() || posting}
+                      className="px-3 py-1.5 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50">
+                      {posting ? "..." : "Reply"}
+                    </button>
+                  </div>
+                  <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
+                    <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
+                    <span className="text-[10px] text-sand-400">Post anonymously</span>
+                  </label>
                 </div>
               )}
             </div>
@@ -148,18 +157,25 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
 
       {/* New comment input (top-level) */}
       {myPinHash && !replyTo && (
-        <div className="flex gap-1.5">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value.slice(0, 500))}
-            onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(); }}
-            placeholder="Ask a question..."
-            className="flex-1 px-2.5 py-2 text-xs rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-          />
-          <button onClick={handlePost} disabled={!text.trim() || posting}
-            className="px-3 py-2 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">
-            {posting ? "..." : "Post"}
-          </button>
+        <div>
+          <div className="flex gap-1.5">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value.slice(0, 500))}
+              onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(); }}
+              placeholder="Ask a question..."
+              className="flex-1 px-2.5 py-2 text-xs rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            />
+            <button onClick={handlePost} disabled={!text.trim() || posting}
+              className="px-3 py-2 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">
+              {posting ? "..." : "Post"}
+            </button>
+          </div>
+          <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
+            <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
+            <span className="text-[10px] text-sand-400">Post anonymously</span>
+          </label>
         </div>
       )}
 

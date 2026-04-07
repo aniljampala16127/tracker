@@ -14,7 +14,7 @@ function getSupabase() {
 export async function POST(request: Request) {
   const supabase = getSupabase();
   const body = await request.json();
-  const { application_id, pin_hash, text, parent_id } = body;
+  const { application_id, pin_hash, text, parent_id, anonymous } = body;
 
   if (!application_id || !pin_hash || !text?.trim()) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -24,16 +24,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Comment too long (max 500 chars)" }, { status: 400 });
   }
 
-  // Look up commenter's name from their PIN
-  const { data: commenterApps } = await supabase
-    .from("applications")
-    .select("initials, is_anonymous")
-    .eq("pin_hash", pin_hash)
-    .limit(1);
+  let authorName = "Anonymous";
+  if (!anonymous) {
+    const { data: commenterApps } = await supabase
+      .from("applications")
+      .select("initials, is_anonymous")
+      .eq("pin_hash", pin_hash)
+      .limit(1);
 
-  const authorName = commenterApps?.[0]?.is_anonymous
-    ? "Anonymous"
-    : commenterApps?.[0]?.initials || "Anonymous";
+    authorName = commenterApps?.[0]?.is_anonymous
+      ? "Anonymous"
+      : commenterApps?.[0]?.initials || "Anonymous";
+  }
 
   const { data, error } = await supabase.from("comments").insert({
     application_id,

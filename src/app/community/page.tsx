@@ -46,6 +46,7 @@ export default function CommunityPage() {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
+  const [anonymous, setAnonymous] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -94,6 +95,7 @@ export default function CommunityPage() {
         pin_hash: myPinHash,
         text: text.trim(),
         parent_id: parentId,
+        anonymous,
       }),
     });
     setText("");
@@ -200,19 +202,26 @@ export default function CommunityPage() {
 
               {/* Reply input */}
               {replyTo === comment.id && myPinHash && (
-                <div className="px-4 pb-3 flex gap-1.5">
-                  <input
-                    value={text}
-                    onChange={(e) => setText(e.target.value.slice(0, 500))}
-                    onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(appId, comment.id); }}
-                    placeholder="Write a reply..."
-                    autoFocus
-                    className="flex-1 px-2.5 py-2 text-xs rounded-lg border border-sand-200 bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                  />
-                  <button onClick={() => handlePost(appId, comment.id)} disabled={!text.trim() || posting}
-                    className="px-3 py-2 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">
-                    {posting ? "..." : "Reply"}
-                  </button>
+                <div className="px-4 pb-3">
+                  <div className="flex gap-1.5">
+                    <input
+                      value={text}
+                      onChange={(e) => setText(e.target.value.slice(0, 500))}
+                      onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(appId, comment.id); }}
+                      placeholder="Write a reply..."
+                      autoFocus
+                      className="flex-1 px-2.5 py-2 text-xs rounded-lg border border-sand-200 bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                    />
+                    <button onClick={() => handlePost(appId, comment.id)} disabled={!text.trim() || posting}
+                      className="px-3 py-2 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">
+                      {posting ? "..." : "Reply"}
+                    </button>
+                  </div>
+                  <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
+                    <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
+                    <span className="text-[10px] text-sand-400">Post anonymously</span>
+                  </label>
                 </div>
               )}
             </div>
