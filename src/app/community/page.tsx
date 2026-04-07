@@ -59,6 +59,18 @@ export default function CommunityPage() {
   const [posting, setPosting] = useState(false);
   const [anonymous, setAnonymous] = useState(false);
 
+  // Track last seen — read once on mount, update after 3s delay so user sees "NEW" badges
+  const [lastSeen, setLastSeen] = useState<string>("2000-01-01T00:00:00Z");
+  useEffect(() => {
+    const stored = localStorage.getItem("community-last-seen") || "2000-01-01T00:00:00Z";
+    setLastSeen(stored);
+    // Mark as seen after 3 seconds
+    const timer = setTimeout(() => {
+      localStorage.setItem("community-last-seen", new Date().toISOString());
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const fetchData = useCallback(async () => {
@@ -214,7 +226,7 @@ export default function CommunityPage() {
       ) : (
         <div className="space-y-3">
           {threads.map(t => (
-            <ThreadCard key={t.root.id} thread={t} myPinHash={myPinHash} onRefresh={fetchData} />
+            <ThreadCard key={t.root.id} thread={t} myPinHash={myPinHash} onRefresh={fetchData} lastSeen={lastSeen} />
           ))}
         </div>
       )}
@@ -243,21 +255,32 @@ function isDescendant(comment: Comment, rootId: string, allComments: Comment[]):
 }
 
 // Reddit-style thread card
-function ThreadCard({ thread, myPinHash, onRefresh }: {
+function ThreadCard({ thread, myPinHash, onRefresh, lastSeen }: {
   thread: ThreadData;
   myPinHash: string | null;
   onRefresh: () => void;
+  lastSeen: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const { root, allComments, label, totalReplies } = thread;
 
+  const isRootNew = root.created_at > lastSeen;
+  const newRepliesCount = allComments.filter(c => c.id !== root.id && c.created_at > lastSeen).length;
+  const hasUnread = isRootNew || newRepliesCount > 0;
+
   return (
-    <div className="bg-white border border-sand-200 rounded-xl overflow-hidden">
+    <div className={`bg-white border rounded-xl overflow-hidden ${hasUnread ? "border-brand-400 border-l-[3px]" : "border-sand-200"}`}>
       {/* Header — always visible */}
       <button onClick={() => setExpanded(!expanded)}
         className="w-full px-4 py-3 text-left active:bg-sand-50/50 transition-colors">
         <div className="flex items-center gap-2 mb-1">
           <div className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-brand-100 text-brand-700">{label}</div>
+          {isRootNew && (
+            <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-error text-white leading-none">NEW</span>
+          )}
+          {!isRootNew && newRepliesCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-brand-500 text-white leading-none">{newRepliesCount} new</span>
+          )}
           <span className="text-[9px] text-sand-400 ml-auto flex items-center gap-2">
             {totalReplies > 0 && (
               <span className="flex items-center gap-0.5 text-brand-500 font-semibold">
@@ -293,7 +316,7 @@ function ThreadCard({ thread, myPinHash, onRefresh }: {
 
           {/* Nested replies — Reddit style */}
           <div className="px-4 pb-3">
-            <CommentTree comments={allComments} parentId={root.id} depth={0} myPinHash={myPinHash} onRefresh={onRefresh} />
+            <CommentTree comments={allComments} parentId={root.id} depth={0} myPinHash={myPinHash} onRefresh={onRefresh} lastSeen={lastSeen} />
           </div>
 
           {/* Delete root */}
@@ -313,21 +336,24 @@ function ThreadCard({ thread, myPinHash, onRefresh }: {
 }
 
 // Recursive comment tree — Reddit-style nesting
-function CommentTree({ comments, parentId, depth, myPinHash, onRefresh }: {
+function CommentTree({ comments, parentId, depth, myPinHash, onRefresh, lastSeen }: {
   comments: Comment[]; parentId: string; depth: number;
-  myPinHash: string | null; onRefresh: () => void;
+  myPinHash: string | null; onRefresh: () => void; lastSeen: string;
 }) {
   const children = comments.filter(c => c.parent_id === parentId).sort((a, b) => a.created_at.localeCompare(b.created_at));
   if (children.length === 0) return null;
 
   return (
     <div className={depth > 0 ? "mt-1" : "mt-1"}>
-      {children.map(c => (
-        <div key={c.id} className={`${depth > 0 ? "ml-3 pl-3 border-l-2 border-sand-200" : ""}`}>
-          <div className="py-1.5">
+      {children.map(c => {
+        const isNew = c.created_at > lastSeen;
+        return (
+        <div key={c.id} className={`${depth > 0 ? "ml-3 pl-3 border-l-2" : ""} ${isNew && depth > 0 ? "border-brand-400" : depth > 0 ? "border-sand-200" : ""}`}>
+          <div className={`py-1.5 ${isNew ? "bg-brand-50/50 -mx-1.5 px-1.5 rounded-md" : ""}`}>
             <div className="flex items-center gap-2 mb-0.5">
               <span className="text-[10px] font-semibold text-sand-700">{c.author_name}</span>
               <span className="text-[9px] text-sand-400">{timeAgo(c.created_at)}</span>
+              {isNew && <span className="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0" />}
               {c.pin_hash === myPinHash && (
                 <button onClick={async () => {
                   await fetch(`/api/comments?id=${c.id}&pin_hash=${myPinHash}`, { method: "DELETE" });
@@ -341,9 +367,10 @@ function CommentTree({ comments, parentId, depth, myPinHash, onRefresh }: {
             )}
           </div>
           {/* Recurse into children */}
-          <CommentTree comments={comments} parentId={c.id} depth={depth + 1} myPinHash={myPinHash} onRefresh={onRefresh} />
+          <CommentTree comments={comments} parentId={c.id} depth={depth + 1} myPinHash={myPinHash} onRefresh={onRefresh} lastSeen={lastSeen} />
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
