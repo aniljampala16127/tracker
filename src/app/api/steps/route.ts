@@ -83,51 +83,6 @@ export async function POST(request: Request) {
 
   await recalcCurrentStep(supabase, application_id);
 
-  // Auto-celebrate milestones in Community
-  const CELEBRATIONS: Record<string, string> = {
-    aor: "received AOR",
-    ppr: "received PPR",
-    passport_received: "got Passport Stamped",
-    portal2: "completed Portal 2",
-    ecopr: "received eCoPR! Journey complete",
-  };
-
-  if (step_id in CELEBRATIONS) {
-    try {
-      const { data: appInfo } = await supabase
-        .from("applications")
-        .select("initials, is_anonymous, country_origin, stream, step_events(step_id, event_date)")
-        .eq("id", application_id)
-        .single();
-
-      if (appInfo) {
-        const name = appInfo.is_anonymous ? "Anonymous" : appInfo.initials;
-        const subEvent = (appInfo.step_events as { step_id: string; event_date: string }[])?.find(e => e.step_id === "submitted");
-        const subDate = subEvent?.event_date;
-        const totalDays = subDate ? Math.round((new Date(event_date).getTime() - new Date(subDate).getTime()) / (86400000)) : null;
-        const daysText = totalDays ? ` (${totalDays} days)` : "";
-
-        // Find cohort month from submission date
-        let cohortMonth: string | null = null;
-        if (subDate) {
-          const d = new Date(subDate + "T00:00:00");
-          cohortMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        }
-
-        const celebText = `🎉 ${name} from ${appInfo.country_origin} ${CELEBRATIONS[step_id]}${daysText}!`;
-
-        await supabase.from("comments").insert({
-          application_id: null,
-          cohort_month: cohortMonth,
-          pin_hash: pin_hash || "system",
-          author_name: "SponsorTrack",
-          text: celebText,
-          parent_id: null,
-        });
-      }
-    } catch { /* don't block step save if celebration fails */ }
-  }
-
   return NextResponse.json(event, { status: 201 });
 }
 
