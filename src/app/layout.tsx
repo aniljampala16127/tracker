@@ -113,8 +113,8 @@ export default function RootLayout({
         <Nav />
         <ClientLayout>{children}</ClientLayout>
         <PWAInstallBanner />
-        <footer className="border-t border-sand-200 mt-16" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
-          <div className="max-w-5xl mx-auto px-4 py-6 text-center text-[10px] text-sand-400">
+        <footer className="border-t border-sand-200 pb-20 sm:pb-0">
+          <div className="max-w-5xl mx-auto px-4 py-4 text-center text-[10px] text-sand-400">
             <div>SponsorTrack · Not affiliated with IRCC · Community-reported data</div>
             <a href="https://buymeacoffee.com/aniljampala" target="_blank" rel="noopener noreferrer"
               className="inline-block mt-1.5 text-sand-400 hover:text-brand-600 transition-colors">
