@@ -14,7 +14,6 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { Button } from "@/components/ui";
 import { AvatarIcon, AVATAR_OPTIONS, isAvatarKey } from "@/components/AvatarIcons";
 import { FindRepresentativeCard } from "@/components/FindRepresentativeCard";
-import { CommentsSection } from "@/components/CommentsSection";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -473,15 +472,6 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           </a>
         );
       })()}
-
-      {/* Questions on your entry */}
-      <div className="bg-white border border-sand-200 rounded-xl p-4 mb-3">
-        <CommentsSection
-          applicationId={app.id}
-          comments={app.comments || []}
-          onRefresh={onRefresh}
-        />
-      </div>
 
       {/* Find a Representative */}
       <FindRepresentativeCard />
