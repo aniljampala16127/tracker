@@ -193,10 +193,10 @@ function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCo
 
   return (
     <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-t border-sand-200 safe-area-bottom">
-      <div ref={containerRef} className="flex items-center justify-around px-2 py-3 relative">
+      <div ref={containerRef} className="flex items-center justify-around px-2 py-1.5 relative">
         {/* Sliding highlight */}
         <div
-          className="absolute top-2 h-[calc(100%-16px)] bg-brand-500/10 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+          className="absolute top-1 h-[calc(100%-8px)] bg-brand-500/10 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
           style={{ left: `${pill.left}px`, width: `${pill.width}px`, opacity: activeIdx >= 0 ? 1 : 0 }}
         />
         {BOTTOM_NAV.map((item) => {
@@ -210,16 +210,16 @@ function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCo
               data-btab
               onClick={() => { handleTap(item.href); window.scrollTo(0, 0); }}
               className={cn(
-                "relative z-10 flex flex-col items-center gap-1 px-4 py-2 min-w-[64px] transition-transform duration-150",
+                "relative z-10 flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] transition-transform duration-150",
                 isTapped ? "scale-90" : "scale-100"
               )}
             >
               <div className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 relative",
+                "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300 relative",
                 active ? "bg-brand-500 shadow-[0_2px_8px_rgba(45,106,79,0.3)]" : ""
               )}>
                 <item.icon
-                  size={20}
+                  size={16}
                   className={cn(
                     "transition-colors duration-200",
                     active ? "text-white" : "text-sand-400"
@@ -232,7 +232,7 @@ function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCo
                 )}
               </div>
               <span className={cn(
-                "text-[11px] font-semibold transition-colors duration-200",
+                "text-[9px] font-semibold transition-colors duration-200",
                 active ? "text-brand-600" : "text-sand-400"
               )}>
                 {item.label}

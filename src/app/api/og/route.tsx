@@ -60,12 +60,16 @@ export async function GET() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "white",
-                fontSize: "28px",
-                fontWeight: "bold",
+                position: "relative",
+                overflow: "hidden",
               }}
             >
-              S
+              {/* Three step dots */}
+              <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                <div style={{ width: "10px", height: "10px", borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.35)" }} />
+                <div style={{ width: "10px", height: "10px", borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.6)" }} />
+                <div style={{ width: "10px", height: "10px", borderRadius: "50%", border: "2px solid white" }} />
+              </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div
