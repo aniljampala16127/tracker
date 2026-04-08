@@ -56,7 +56,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   useDomainMigration();
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-6 flex-1">
+    <main className="max-w-5xl mx-auto px-4 py-6">
       <PageTransition>{children}</PageTransition>
     </main>
   );
