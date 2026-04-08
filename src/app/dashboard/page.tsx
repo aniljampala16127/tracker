@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, MEI_TYPES, getNextStep, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
@@ -88,8 +89,10 @@ export default function DashboardPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [showIntent, setShowIntent] = useState(false);
   const [editApp, setEditApp] = useState<Application | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
   
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [searchQuery, setSearchQuery] = useState("");
@@ -346,7 +349,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <button
-              onClick={() => setShowAdd(true)}
+              onClick={() => setShowIntent(true)}
               className="w-full px-4 py-2.5 bg-white text-brand-600 text-xs font-bold rounded-xl hover:bg-sand-50 transition-all active:scale-[0.98] shadow-lg"
             >
               Add Your Application — 30 seconds
@@ -371,7 +374,7 @@ export default function DashboardPage() {
           {isFiltered || searchQuery ? `${filteredApps.length} of ${apps.length} entries` : `${apps.length} entries`}
         </div>
         {!hasMyEntry && (
-          <Button onClick={() => setShowAdd(true)} size="sm">
+          <Button onClick={() => setShowIntent(true)} size="sm">
             <PlusIcon size={14} className="text-white" /> Add
           </Button>
         )}
@@ -419,7 +422,7 @@ export default function DashboardPage() {
               Clear All
             </Button>
           ) : (
-            <Button onClick={() => setShowAdd(true)} size="sm">
+            <Button onClick={() => setShowIntent(true)} size="sm">
               <PlusIcon size={14} className="text-white" /> Add First Entry
             </Button>
           )}
@@ -718,6 +721,13 @@ export default function DashboardPage() {
         Click any row to update steps · PIN required to edit · Unclaimed entries can be claimed
       </p>
 
+      <IntentModal
+        open={showIntent}
+        onClose={() => setShowIntent(false)}
+        onNewUser={() => { setShowIntent(false); setShowAdd(true); }}
+        apps={apps}
+        onReconnected={() => { setShowIntent(false); fetchApps(); router.push("/me"); }}
+      />
       <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} existingApps={apps} />
       {editApp && <EditModal app={editApp} allApps={apps} onClose={() => { setEditApp(null); fetchApps(); }} onMarkStep={handleMarkStep} onDelete={handleDelete} isOwner={!!editApp.pin_hash && getSavedPinHash(editApp.id) === editApp.pin_hash} onRefresh={fetchApps} />}
 
@@ -762,7 +772,7 @@ export default function DashboardPage() {
     {!hasMyEntry && (
       <div className="sm:hidden fixed left-4 right-4 z-40" style={{ bottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
         <button
-          onClick={() => setShowAdd(true)}
+          onClick={() => setShowIntent(true)}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-500 text-white text-sm font-bold rounded-2xl shadow-[0_4px_20px_rgba(45,106,79,0.4)] active:scale-[0.97] transition-transform"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5V19M5 12H19"/></svg>
@@ -1097,6 +1107,110 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
         <button onClick={() => onDelete(app.id)} className="mt-3 text-xs text-error hover:text-error-dark transition-colors">
           Delete this entry
         </button>
+      )}
+    </Modal>
+  );
+}
+
+// ============================================
+// Intent modal — New or Returning?
+// ============================================
+function IntentModal({ open, onClose, onNewUser, apps, onReconnected }: {
+  open: boolean; onClose: () => void;
+  onNewUser: () => void;
+  apps: Application[];
+  onReconnected: () => void;
+}) {
+  const [mode, setMode] = useState<"choose" | "pin">("choose");
+  const [claimPin, setClaimPin] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState("");
+
+  // Reset state when modal opens
+  React.useEffect(() => {
+    if (open) { setMode("choose"); setClaimPin(""); setClaimError(""); }
+  }, [open]);
+
+  const handleClaim = async () => {
+    if (claimPin.length !== 4) return;
+    setClaiming(true);
+    setClaimError("");
+    const pinHash = await hashPin(claimPin);
+    const matched = apps.filter(a => a.pin_hash === pinHash);
+    if (matched.length === 0) {
+      setClaimError("No entries found with this PIN");
+      setClaiming(false);
+      return;
+    }
+    matched.forEach(a => savePinForApp(a.id, pinHash));
+    setClaiming(false);
+    onReconnected();
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Get Started">
+      {mode === "choose" ? (
+        <div className="space-y-3">
+          <p className="text-sm text-sand-500 mb-4">Are you new here, or reconnecting a previous entry?</p>
+
+          <button
+            onClick={onNewUser}
+            className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-sand-200 bg-white hover:bg-brand-50 hover:border-brand-300 transition-all active:scale-[0.98] text-left"
+          >
+            <div className="w-11 h-11 rounded-xl bg-brand-500 flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M12 5V19M5 12H19"/></svg>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-sand-900">I&apos;m new</div>
+              <div className="text-[11px] text-sand-500">Add my application for the first time</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setMode("pin")}
+            className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-sand-200 bg-white hover:bg-brand-50 hover:border-brand-300 transition-all active:scale-[0.98] text-left"
+          >
+            <div className="w-11 h-11 rounded-xl bg-sand-200 flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#65635D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+              </svg>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-sand-900">I have a PIN</div>
+              <div className="text-[11px] text-sand-500">Reconnect my existing entry on this device</div>
+            </div>
+          </button>
+        </div>
+      ) : (
+        <div>
+          <button onClick={() => setMode("choose")} className="flex items-center gap-1 text-xs text-sand-500 hover:text-sand-800 mb-4 transition-colors">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5"/><path d="M12 19L5 12L12 5"/></svg>
+            Back
+          </button>
+          <p className="text-sm text-sand-500 mb-4">Enter your 4-digit PIN to reconnect your entry on this device.</p>
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="PIN"
+              value={claimPin}
+              autoFocus
+              onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
+              className="flex-1 px-3 py-3 text-lg text-center rounded-xl border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.4em] font-mono"
+            />
+            <button
+              onClick={handleClaim}
+              disabled={claimPin.length !== 4 || claiming}
+              className="px-6 py-3 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              {claiming ? "..." : "Reconnect"}
+            </button>
+          </div>
+          {claimError && <p className="text-xs text-error text-center">{claimError}</p>}
+          <p className="text-[10px] text-sand-400 text-center mt-3">This is the 4-digit PIN you set when you first added your application.</p>
+        </div>
       )}
     </Modal>
   );
