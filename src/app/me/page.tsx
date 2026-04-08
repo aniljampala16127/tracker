@@ -487,7 +487,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       <FindRepresentativeCard />
 
       {/* Support card */}
-      <div className="bg-gradient-to-br from-sand-50 to-white border border-sand-200 rounded-xl p-4 mt-1">
+      <div className="border border-sand-200 rounded-xl p-4 mt-1" style={{ background: "var(--surface-card)" }}>
         <div className="text-center">
           <div className="text-sm font-semibold text-sand-800 mb-1">Built for the sponsorship community</div>
           <p className="text-[11px] text-sand-500 mb-3 leading-relaxed">
@@ -497,7 +497,8 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
             href="https://buymeacoffee.com/aniljampala"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFDD00] text-[#000000] text-xs font-bold hover:bg-[#e6c800] transition-all active:scale-[0.98] shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm"
+            style={{ backgroundColor: "#FFDD00", color: "#1A1A18" }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
             Buy me a coffee
