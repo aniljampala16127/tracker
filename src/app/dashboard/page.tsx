@@ -760,7 +760,7 @@ export default function DashboardPage() {
 
     {/* Sticky floating CTA for new users — above bottom nav */}
     {!hasMyEntry && (
-      <div className="sm:hidden fixed bottom-[72px] left-4 right-4 z-40">
+      <div className="sm:hidden fixed left-4 right-4 z-40" style={{ bottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
         <button
           onClick={() => setShowAdd(true)}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-500 text-white text-sm font-bold rounded-2xl shadow-[0_4px_20px_rgba(45,106,79,0.4)] active:scale-[0.97] transition-transform"
