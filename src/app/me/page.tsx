@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { Application, StepId, StepDefinition } from "@/lib/types";
 import { STEPS, getStepIndex, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
-import { getSavedPinHash, hashPin, removeSavedPin } from "@/lib/pin";
+import { getSavedPinHash, hashPin, removeSavedPin, savePinForApp } from "@/lib/pin";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
 import { playMilestoneSound } from "@/lib/sounds";
@@ -54,6 +54,26 @@ export default function MyAppPage() {
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
+  const [claimPin, setClaimPin] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState("");
+
+  const handleClaim = async () => {
+    if (claimPin.length !== 4) return;
+    setClaiming(true);
+    setClaimError("");
+    const pinHash = await hashPin(claimPin);
+    const matched = apps.filter(a => a.pin_hash === pinHash);
+    if (matched.length === 0) {
+      setClaimError("No entries found with this PIN");
+      setClaiming(false);
+      return;
+    }
+    matched.forEach(a => savePinForApp(a.id, pinHash));
+    setClaiming(false);
+    fetchApps();
+  };
+
   if (loading) return <MeSkeleton />;
 
   if (myApps.length === 0) {
@@ -66,11 +86,39 @@ export default function MyAppPage() {
             </svg>
           </div>
           <h2 className="text-lg font-bold text-sand-900 mb-2">No entries linked to this device</h2>
-          <p className="text-sm text-sand-500 mb-4">
-            Add your application on the Tracker page, or claim an existing entry. Your personal dashboard will appear here automatically.
+          <p className="text-sm text-sand-500 mb-5">
+            Reconnect with your PIN, or add a new application on the Tracker.
           </p>
+
+          {/* PIN reconnect */}
+          <div className="bg-sand-50 border border-sand-200 rounded-xl p-4 mb-4 text-left">
+            <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2.5 text-center">Already tracking? Enter your PIN</div>
+            <div className="flex items-center gap-2">
+              <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="PIN"
+                value={claimPin}
+                onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
+                className="flex-1 px-3 py-2.5 text-sm text-center rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.3em] font-mono"
+              />
+              <button
+                onClick={handleClaim}
+                disabled={claimPin.length !== 4 || claiming}
+                className="px-5 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {claiming ? "..." : "Reconnect"}
+              </button>
+            </div>
+            {claimError && <p className="text-[10px] text-error mt-2 text-center">{claimError}</p>}
+          </div>
+
+          <div className="text-[10px] text-sand-400 mb-3">or</div>
+
           <a href="/dashboard">
-            <Button>Go to Tracker</Button>
+            <Button variant="secondary" className="w-full">Add New Application on Tracker</Button>
           </a>
         </div>
       </div>
