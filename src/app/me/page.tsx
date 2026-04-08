@@ -78,47 +78,45 @@ export default function MyAppPage() {
 
   if (myApps.length === 0) {
     return (
-      <div className="py-12">
-        <div className="text-center bg-white border border-sand-200 rounded-2xl p-8 max-w-md mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-brand-100 flex items-center justify-center mx-auto mb-4">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="py-6">
+        <div className="text-center bg-white border border-sand-200 rounded-2xl p-6 max-w-md mx-auto">
+          <div className="w-14 h-14 rounded-2xl bg-brand-100 flex items-center justify-center mx-auto mb-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 21V19C20 16.8 18.2 15 16 15H8C5.8 15 4 16.8 4 19V21" /><circle cx="12" cy="7" r="4" />
             </svg>
           </div>
-          <h2 className="text-lg font-bold text-sand-900 mb-2">No entries linked to this device</h2>
-          <p className="text-sm text-sand-500 mb-5">
-            Reconnect with your PIN, or add a new application on the Tracker.
+          <h2 className="text-base font-bold text-sand-900 mb-1">No entries linked to this device</h2>
+          <p className="text-xs text-sand-500 mb-4">
+            Reconnect with your PIN, or add a new application.
           </p>
 
           {/* PIN reconnect */}
           <div className="bg-sand-50 border border-sand-200 rounded-xl p-4 mb-4 text-left">
-            <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2.5 text-center">Already tracking? Enter your PIN</div>
-            <div className="flex items-center gap-2">
-              <input
-                type="tel"
-                inputMode="numeric"
-                maxLength={4}
-                placeholder="PIN"
-                value={claimPin}
-                onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
-                onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
-                className="flex-1 px-3 py-2.5 text-sm text-center rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.3em] font-mono"
-              />
-              <button
-                onClick={handleClaim}
-                disabled={claimPin.length !== 4 || claiming}
-                className="px-5 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-50"
-              >
-                {claiming ? "..." : "Reconnect"}
-              </button>
-            </div>
+            <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2.5 text-center">Enter your PIN</div>
+            <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="4-digit PIN"
+              value={claimPin}
+              onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
+              className="w-full px-4 py-3 text-lg text-center rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.4em] font-mono mb-2.5"
+            />
+            <button
+              onClick={handleClaim}
+              disabled={claimPin.length !== 4 || claiming}
+              className="w-full py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-40"
+            >
+              {claiming ? "Reconnecting..." : claimPin.length === 4 ? "Reconnect My Entry" : `Enter ${4 - claimPin.length} more digit${4 - claimPin.length === 1 ? "" : "s"}`}
+            </button>
             {claimError && <p className="text-[10px] text-error mt-2 text-center">{claimError}</p>}
           </div>
 
           <div className="text-[10px] text-sand-400 mb-3">or</div>
 
           <a href="/dashboard">
-            <Button variant="secondary" className="w-full">Add New Application on Tracker</Button>
+            <Button variant="secondary" className="w-full">Add New Application</Button>
           </a>
         </div>
       </div>
