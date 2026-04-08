@@ -111,17 +111,21 @@ export default function RootLayout({
       </head>
       <body className="bg-sand-50 text-sand-900 font-sans">
         <Nav />
-        <ClientLayout>{children}</ClientLayout>
-        <PWAInstallBanner />
-        <footer className="border-t border-sand-200 sm:pb-0" style={{ paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
-          <div className="max-w-5xl mx-auto px-4 py-4 text-center text-[10px] text-sand-400">
-            <div>SponsorTrack · Not affiliated with IRCC · Community-reported data</div>
-            <a href="https://buymeacoffee.com/aniljampala" target="_blank" rel="noopener noreferrer"
-              className="inline-block mt-1.5 text-sand-400 hover:text-brand-600 transition-colors">
-              Support this project
-            </a>
+        <div className="min-h-screen flex flex-col">
+          <div className="flex-1">
+            <ClientLayout>{children}</ClientLayout>
           </div>
-        </footer>
+          <PWAInstallBanner />
+          <footer className="border-t border-sand-200 sm:pb-0" style={{ paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
+            <div className="max-w-5xl mx-auto px-4 py-4 text-center text-[10px] text-sand-400">
+              <div>SponsorTrack · Not affiliated with IRCC · Community-reported data</div>
+              <a href="https://buymeacoffee.com/aniljampala" target="_blank" rel="noopener noreferrer"
+                className="inline-block mt-1.5 text-sand-400 hover:text-brand-600 transition-colors">
+                Support this project
+              </a>
+            </div>
+          </footer>
+        </div>
       </body>
     </html>
   );
