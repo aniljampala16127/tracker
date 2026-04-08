@@ -246,32 +246,54 @@ function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCo
 }
 
 function ThemeToggle() {
-  const [dark, setDark] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
 
   useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
+    const saved = localStorage.getItem("sponsortrack-theme") as "light" | "dark" | "system" | null;
+    setTheme(saved || "system");
   }, []);
 
-  const toggle = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("sponsortrack-theme", next ? "dark" : "light");
-    // Update theme-color meta tag
+  const applyTheme = useCallback((t: "light" | "dark" | "system") => {
+    const isDark = t === "dark" || (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", isDark);
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", next ? "#0E0E0D" : "#2D6A4F");
+    if (meta) meta.setAttribute("content", isDark ? "#0E0E0D" : "#2D6A4F");
+  }, []);
+
+  const cycle = () => {
+    const order: ("light" | "dark" | "system")[] = ["light", "dark", "system"];
+    const next = order[(order.indexOf(theme) + 1) % 3];
+    setTheme(next);
+    localStorage.setItem("sponsortrack-theme", next);
+    applyTheme(next);
   };
 
+  // Listen for OS theme changes when in system mode
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => {
+      if ((localStorage.getItem("sponsortrack-theme") || "system") === "system") {
+        applyTheme("system");
+      }
+    };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [applyTheme]);
+
   return (
-    <button onClick={toggle} className="w-8 h-8 rounded-lg flex items-center justify-center text-sand-500 hover:text-sand-800 hover:bg-sand-100 transition-all"
-      aria-label="Toggle dark mode">
-      {dark ? (
+    <button onClick={cycle} className="w-8 h-8 rounded-lg flex items-center justify-center text-sand-500 hover:text-sand-800 hover:bg-sand-100 transition-all"
+      aria-label="Toggle theme" title={`Theme: ${theme}`}>
+      {theme === "dark" ? (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="5"/><path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22"/>
         </svg>
-      ) : (
+      ) : theme === "light" ? (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
         </svg>
       )}
     </button>
