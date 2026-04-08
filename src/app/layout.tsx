@@ -109,7 +109,7 @@ export default function RootLayout({
           }
         `}} />
       </head>
-      <body className="min-h-screen bg-sand-50 text-sand-900 font-sans">
+      <body className="min-h-screen bg-sand-50 text-sand-900 font-sans flex flex-col">
         <Nav />
         <ClientLayout>{children}</ClientLayout>
         <PWAInstallBanner />
