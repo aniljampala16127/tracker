@@ -1188,28 +1188,26 @@ function IntentModal({ open, onClose, onNewUser, apps, onReconnected }: {
             Back
           </button>
           <p className="text-sm text-sand-500 mb-4">Enter your 4-digit PIN to reconnect your entry on this device.</p>
-          <div className="flex items-center gap-2 mb-3">
-            <input
-              type="tel"
-              inputMode="numeric"
-              maxLength={4}
-              placeholder="PIN"
-              value={claimPin}
-              autoFocus
-              onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
-              onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
-              className="flex-1 px-3 py-3 text-lg text-center rounded-xl border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.4em] font-mono"
-            />
-            <button
-              onClick={handleClaim}
-              disabled={claimPin.length !== 4 || claiming}
-              className="px-6 py-3 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              {claiming ? "..." : "Reconnect"}
-            </button>
-          </div>
-          {claimError && <p className="text-xs text-error text-center">{claimError}</p>}
-          <p className="text-[10px] text-sand-400 text-center mt-3">This is the 4-digit PIN you set when you first added your application.</p>
+          <input
+            type="tel"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="Enter 4-digit PIN"
+            value={claimPin}
+            autoFocus
+            onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
+            className="w-full px-4 py-4 text-xl text-center rounded-xl border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.5em] font-mono mb-3"
+          />
+          <button
+            onClick={handleClaim}
+            disabled={claimPin.length !== 4 || claiming}
+            className="w-full py-3 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-40 mb-2"
+          >
+            {claiming ? "Reconnecting..." : claimPin.length === 4 ? "Reconnect My Entry" : `Enter ${4 - claimPin.length} more digit${4 - claimPin.length === 1 ? "" : "s"}`}
+          </button>
+          {claimError && <p className="text-xs text-error text-center mb-2">{claimError}</p>}
+          <p className="text-[10px] text-sand-400 text-center">This is the 4-digit PIN you set when you first added your application.</p>
         </div>
       )}
     </Modal>
