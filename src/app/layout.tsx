@@ -99,7 +99,11 @@ export default function RootLayout({
           })();
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js');
+              navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                // Check for updates immediately and every 30 minutes
+                reg.update();
+                setInterval(function() { reg.update(); }, 30 * 60 * 1000);
+              });
             });
           }
         `}} />
