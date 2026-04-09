@@ -107,6 +107,7 @@ const DESKTOP_NAV = [
   { href: "/stats", label: "Stats", icon: BarChartIcon },
   { href: "/calculator", label: "Estimator", icon: ClockIcon },
   { href: "/community", label: "Community", icon: ChatIcon },
+  { href: "/me", label: "Me", icon: MeIcon },
 ];
 
 const BOTTOM_NAV = [
@@ -114,6 +115,7 @@ const BOTTOM_NAV = [
   { href: "/stats", label: "Stats", icon: BarChartIcon },
   { href: "/calculator", label: "Estimator", icon: ClockIcon },
   { href: "/community", label: "Community", icon: ChatIcon },
+  { href: "/me", label: "Me", icon: MeIcon },
 ];
 
 /** Desktop top nav with sliding pill */

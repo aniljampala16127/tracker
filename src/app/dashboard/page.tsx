@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Application, ApplicationFormData, StepId } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, MEI_TYPES, getNextStep, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
@@ -27,7 +28,6 @@ import { CohortAORAlert } from "@/components/CohortAORAlert";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { playMilestoneSound } from "@/lib/sounds";
-import { MyTrackerView } from "@/components/MyTracker";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -88,8 +88,10 @@ export default function DashboardPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [showIntent, setShowIntent] = useState(false);
   const [editApp, setEditApp] = useState<Application | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
   
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [searchQuery, setSearchQuery] = useState("");
@@ -302,29 +304,6 @@ export default function DashboardPage() {
 
   const isFiltered = Object.values(filters).some(Boolean);
   const hasMyEntry = apps.some(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
-  const myApps = useMemo(() => apps.filter(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash), [apps]);
-  const [showCommunity, setShowCommunity] = useState(false);
-
-  // PIN reconnect state (for not-logged-in users)
-  const [reconnectPin, setReconnectPin] = useState("");
-  const [reconnecting, setReconnecting] = useState(false);
-  const [reconnectError, setReconnectError] = useState("");
-
-  const handleReconnectPin = async () => {
-    if (reconnectPin.length !== 4) return;
-    setReconnecting(true);
-    setReconnectError("");
-    const pinHash = await hashPin(reconnectPin);
-    const matched = apps.filter(a => a.pin_hash === pinHash);
-    if (matched.length === 0) {
-      setReconnectError("No entries found with this PIN");
-      setReconnecting(false);
-      return;
-    }
-    matched.forEach(a => savePinForApp(a.id, pinHash));
-    setReconnecting(false);
-    fetchApps();
-  };
 
   // Compute teaser stats
   const aorDaysAll: number[] = [];
@@ -347,150 +326,107 @@ export default function DashboardPage() {
     <div ref={topRef} />
     <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
     <div className="page-enter">
-
-      {/* ===== LOGGED IN VIEW ===== */}
-      {hasMyEntry && (
-        <>
-          <MyTrackerView myApps={myApps} allApps={apps} onRefresh={fetchApps} />
-
-          {/* Community toggle */}
-          <div className="mt-4 mb-3">
-            <button
-              onClick={() => setShowCommunity(!showCommunity)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-white border border-sand-200 rounded-xl active:bg-sand-50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-sand-500">
-                  <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21"/><circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21V19C23 17.5 22 16.2 20.6 15.8"/><path d="M16.5 3.1C17.9 3.6 19 5 19 6.5C19 8 17.9 9.4 16.5 9.9"/>
-                </svg>
-                <span className="text-sm font-semibold text-sand-800">Community Entries</span>
-                <span className="text-[10px] bg-sand-100 text-sand-500 px-2 py-0.5 rounded-full font-medium">{apps.length}</span>
+      {/* CTA for new users — compact with live stats */}
+      {!hasMyEntry && (
+        <div className="mb-4 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 rounded-2xl p-4 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="relative z-10">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex-1">
+                <h3 className="text-sm font-bold mb-0.5">Track your spousal sponsorship</h3>
+                <p className="text-[10px] text-white/60">Join {apps.length}+ applicants · Get your predicted AOR date</p>
               </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                style={{ transition: "transform 0.3s ease", transform: showCommunity ? "rotate(180deg)" : "rotate(0deg)" }} className="text-sand-400">
-                <path d="M6 9L12 15L18 9" />
-              </svg>
+              <div className="flex gap-1.5 flex-shrink-0">
+                <div className="bg-white/10 rounded-lg px-2 py-1.5 text-center">
+                  <div className="text-sm font-bold">{avgAorAll || "—"}d</div>
+                  <div className="text-[7px] text-white/50 uppercase">Avg AOR</div>
+                </div>
+                <div className="bg-white/10 rounded-lg px-2 py-1.5 text-center">
+                  <div className="text-sm font-bold">{apps.length}</div>
+                  <div className="text-[7px] text-white/50 uppercase">Tracking</div>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowIntent(true)}
+              className="w-full px-4 py-2.5 bg-white text-brand-600 text-xs font-bold rounded-xl hover:bg-sand-50 transition-all active:scale-[0.98] shadow-lg"
+            >
+              Add Your Application — 30 seconds
             </button>
           </div>
-        </>
+        </div>
       )}
 
-      {/* ===== NOT LOGGED IN VIEW ===== */}
-      {!hasMyEntry && (
-        <>
-          {/* Hero */}
-          <div className="mb-4 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 rounded-2xl p-5 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="relative z-10">
-              <h2 className="text-base font-bold mb-1">Track Your Sponsorship Journey</h2>
-              <p className="text-[11px] text-white/60 mb-4">Join {apps.length}+ applicants tracking their Canadian spousal sponsorship in real time</p>
-              <div className="flex gap-2 mb-4">
-                <div className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-center">
-                  <div className="text-lg font-bold">{apps.length}</div>
-                  <div className="text-[8px] text-white/50 uppercase">Tracking</div>
-                </div>
-                <div className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-center">
-                  <div className="text-lg font-bold">{avgAorAll || "—"}d</div>
-                  <div className="text-[8px] text-white/50 uppercase">Avg AOR</div>
-                </div>
-                <div className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-center">
-                  <div className="text-lg font-bold">{waitingForAor}</div>
-                  <div className="text-[8px] text-white/50 uppercase">Waiting</div>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAdd(true)}
-                className="w-full px-4 py-3 bg-white text-brand-600 text-sm font-bold rounded-xl hover:bg-sand-50 transition-all active:scale-[0.98] shadow-lg mb-3"
-              >
-                Add Your Application
-              </button>
-              {/* PIN reconnect */}
-              <div className="bg-white/10 rounded-xl p-3">
-                <div className="text-[10px] text-white/60 text-center mb-2">Already have a PIN?</div>
-                <div className="flex gap-2">
-                  <input
-                    type="tel" inputMode="numeric" maxLength={4} value={reconnectPin}
-                    onChange={(e) => { setReconnectPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setReconnectError(""); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" && reconnectPin.length === 4) handleReconnectPin(); }}
-                    placeholder="4-digit PIN"
-                    className="flex-1 px-3 py-2.5 rounded-lg text-sm text-center tracking-[0.3em] font-mono bg-white/20 text-white placeholder:text-white/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/30"
-                  />
-                  <button onClick={handleReconnectPin} disabled={reconnectPin.length !== 4 || reconnecting}
-                    className="px-4 py-2.5 bg-white text-brand-600 text-xs font-bold rounded-lg disabled:opacity-40 active:scale-[0.98]">
-                    {reconnecting ? "..." : "Reconnect"}
-                  </button>
-                </div>
-                {reconnectError && <p className="text-[10px] text-red-300 text-center mt-1.5">{reconnectError}</p>}
-              </div>
-            </div>
-          </div>
-        </>
+      {/* Community widgets — only for returning users who have context */}
+      {hasMyEntry && <CelebrationWall apps={apps} />}
+      {hasMyEntry && apps.length > 0 && <NewSinceLastVisit apps={apps} />}
+      {hasMyEntry && apps.length > 0 && <CohortAORAlert apps={apps} />}
+
+      {/* AOR Wave Tracker */}
+      {apps.length > 0 && (
+        <AORWaveTracker apps={apps} />
       )}
 
-      {/* ===== COMMUNITY ENTRIES SECTION ===== */}
-      {(!hasMyEntry || showCommunity) && (
-        <>
-          {/* Community widgets */}
-          {hasMyEntry && <CelebrationWall apps={apps} />}
-          {hasMyEntry && apps.length > 0 && <NewSinceLastVisit apps={apps} />}
-          {hasMyEntry && apps.length > 0 && <CohortAORAlert apps={apps} />}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm text-sand-400">
+          {isFiltered || searchQuery ? `${filteredApps.length} of ${apps.length} entries` : `${apps.length} entries`}
+        </div>
+        {!hasMyEntry && (
+          <Button onClick={() => setShowIntent(true)} size="sm">
+            <PlusIcon size={14} className="text-white" /> Add
+          </Button>
+        )}
+      </div>
 
-          {/* AOR Wave Tracker */}
-          {apps.length > 0 && <AORWaveTracker apps={apps} />}
-
-          {/* Header */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-sm text-sand-400">
-              {isFiltered || searchQuery ? `${filteredApps.length} of ${apps.length} entries` : `${apps.length} entries`}
-            </div>
-            {!hasMyEntry && (
-              <Button onClick={() => setShowAdd(true)} size="sm">
-                <PlusIcon size={14} className="text-white" /> Add
-              </Button>
-            )}
-          </div>
-
-          {/* Search */}
-          {apps.length > 10 && (
-            <div className="relative mb-3">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-sand-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
-              <input
-                type="text"
-                placeholder="Search by name or country..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-sand-300"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-sand-400 hover:text-sand-600">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6L18 18"/></svg>
-                </button>
-              )}
-            </div>
+      {/* Search */}
+      {apps.length > 10 && (
+        <div className="relative mb-3">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-sand-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
+          <input
+            type="text"
+            placeholder="Search by name or country..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-sand-300"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-sand-400 hover:text-sand-600">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6L18 18"/></svg>
+            </button>
           )}
+        </div>
+      )}
 
-          {/* Filters */}
-          {apps.length > 0 && (
-            <FilterBar filters={filters} onChange={setFilters} availableCountries={availableCountries} />
+      {/* Filters */}
+      {apps.length > 0 && (
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          availableCountries={availableCountries}
+        />
+      )}
+
+      {/* Bar Chart — collapsible */}
+      {apps.length > 0 && <CollapsibleChart apps={filteredApps} />}
+
+      {/* Empty state */}
+      {filteredApps.length === 0 && (
+        <div className="text-center py-20 bg-white border border-sand-200 rounded-xl">
+          <p className="text-sand-500 text-sm mb-4">
+            {searchQuery ? `No results for "${searchQuery}"` : isFiltered ? "No entries match your filters" : "No entries yet"}
+          </p>
+          {(isFiltered || searchQuery) ? (
+            <Button onClick={() => { setFilters(EMPTY_FILTERS); setSearchQuery(""); }} size="sm" variant="secondary">
+              Clear All
+            </Button>
+          ) : (
+            <Button onClick={() => setShowIntent(true)} size="sm">
+              <PlusIcon size={14} className="text-white" /> Add First Entry
+            </Button>
           )}
-
-          {/* Bar Chart */}
-          {apps.length > 0 && <CollapsibleChart apps={filteredApps} />}
-
-          {/* Empty state */}
-          {filteredApps.length === 0 && (
-            <div className="text-center py-20 bg-white border border-sand-200 rounded-xl">
-              <p className="text-sand-500 text-sm mb-4">
-                {searchQuery ? `No results for "${searchQuery}"` : isFiltered ? "No entries match your filters" : "No entries yet"}
-              </p>
-              {(isFiltered || searchQuery) && (
-                <Button onClick={() => { setFilters(EMPTY_FILTERS); setSearchQuery(""); }} size="sm" variant="secondary">
-                  Clear All
-                </Button>
-              )}
-            </div>
-          )}
+        </div>
+      )}
 
       {/* Month pills */}
       {sortedMonths.length > 0 && (
@@ -781,11 +717,16 @@ export default function DashboardPage() {
 
 
       <p className="text-[9px] text-sand-400 mt-3 text-center">
-        Click any row to view steps{!hasMyEntry && " · PIN required to edit · Unclaimed entries can be claimed"}
+        Click any row to update steps · PIN required to edit · Unclaimed entries can be claimed
       </p>
-        </>
-      )}
 
+      <IntentModal
+        open={showIntent}
+        onClose={() => setShowIntent(false)}
+        onNewUser={() => { setShowIntent(false); setShowAdd(true); }}
+        apps={apps}
+        onReconnected={() => { setShowIntent(false); fetchApps(); router.push("/me"); }}
+      />
       <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} existingApps={apps} />
       {editApp && <EditModal app={editApp} allApps={apps} onClose={() => { setEditApp(null); fetchApps(); }} onMarkStep={handleMarkStep} onDelete={handleDelete} isOwner={!!editApp.pin_hash && getSavedPinHash(editApp.id) === editApp.pin_hash} onRefresh={fetchApps} />}
 
@@ -825,6 +766,19 @@ export default function DashboardPage() {
       )}
     </div>
     </PullToRefresh>
+
+    {/* Sticky floating CTA for new users — above bottom nav */}
+    {!hasMyEntry && (
+      <div className="sm:hidden fixed left-4 right-4 z-40" style={{ bottom: "calc(60px + env(safe-area-inset-bottom, 0px))" }}>
+        <button
+          onClick={() => setShowIntent(true)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-500 text-white text-sm font-bold rounded-2xl shadow-[0_4px_20px_rgba(45,106,79,0.4)] active:scale-[0.97] transition-transform"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5V19M5 12H19"/></svg>
+          Add Your Application
+        </button>
+      </div>
+    )}
     </>
   );
 }
@@ -1457,6 +1411,107 @@ function ForgotPinFlow({ app, onReset }: { app: Application; onReset: (pinHash: 
   );
 }
 
+// ============================================
+// Intent modal — New or Returning?
+// ============================================
+function IntentModal({ open, onClose, onNewUser, apps, onReconnected }: {
+  open: boolean; onClose: () => void;
+  onNewUser: () => void;
+  apps: Application[];
+  onReconnected: () => void;
+}) {
+  const [mode, setMode] = useState<"choose" | "pin">("choose");
+  const [claimPin, setClaimPin] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState("");
+
+  // Reset state when modal opens
+  React.useEffect(() => {
+    if (open) { setMode("choose"); setClaimPin(""); setClaimError(""); }
+  }, [open]);
+
+  const handleClaim = async () => {
+    if (claimPin.length !== 4) return;
+    setClaiming(true);
+    setClaimError("");
+    const pinHash = await hashPin(claimPin);
+    const matched = apps.filter(a => a.pin_hash === pinHash);
+    if (matched.length === 0) {
+      setClaimError("No entries found with this PIN");
+      setClaiming(false);
+      return;
+    }
+    matched.forEach(a => savePinForApp(a.id, pinHash));
+    setClaiming(false);
+    onReconnected();
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Get Started">
+      {mode === "choose" ? (
+        <div className="space-y-3">
+          <p className="text-sm text-sand-500 mb-4">Are you new here, or reconnecting a previous entry?</p>
+
+          <button
+            onClick={onNewUser}
+            className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-sand-200 bg-white hover:bg-brand-50 hover:border-brand-300 transition-all active:scale-[0.98] text-left"
+          >
+            <div className="w-11 h-11 rounded-xl bg-brand-500 flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M12 5V19M5 12H19"/></svg>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-sand-900">I&apos;m new</div>
+              <div className="text-[11px] text-sand-500">Add my application for the first time</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setMode("pin")}
+            className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-sand-200 bg-white hover:bg-brand-50 hover:border-brand-300 transition-all active:scale-[0.98] text-left"
+          >
+            <div className="w-11 h-11 rounded-xl bg-sand-200 flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#65635D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+              </svg>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-sand-900">I have a PIN</div>
+              <div className="text-[11px] text-sand-500">Reconnect my existing entry on this device</div>
+            </div>
+          </button>
+        </div>
+      ) : (
+        <div>
+          <button onClick={() => setMode("choose")} className="flex items-center gap-1 text-xs text-sand-500 hover:text-sand-800 mb-4 transition-colors">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5"/><path d="M12 19L5 12L12 5"/></svg>
+            Back
+          </button>
+          <p className="text-sm text-sand-500 mb-4">Enter your 4-digit PIN to reconnect your entry on this device.</p>
+          <input
+            type="tel"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="Enter 4-digit PIN"
+            value={claimPin}
+            autoFocus
+            onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
+            className="w-full px-4 py-4 text-xl text-center rounded-xl border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.5em] font-mono mb-3"
+          />
+          <button
+            onClick={handleClaim}
+            disabled={claimPin.length !== 4 || claiming}
+            className="w-full py-3 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-40 mb-2"
+          >
+            {claiming ? "Reconnecting..." : claimPin.length === 4 ? "Reconnect My Entry" : `Enter ${4 - claimPin.length} more digit${4 - claimPin.length === 1 ? "" : "s"}`}
+          </button>
+          {claimError && <p className="text-xs text-error text-center mb-2">{claimError}</p>}
+          <p className="text-[10px] text-sand-400 text-center">This is the 4-digit PIN you set when you first added your application.</p>
+        </div>
+      )}
+    </Modal>
+  );
+}
 
 // ============================================
 // Add modal (with PIN)
@@ -1613,9 +1668,9 @@ function CelebrationModal({ app, allApps, onClose }: {
         </div>
 
         <div className="space-y-2">
-          <button onClick={onClose} className="block w-full px-4 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98]">
-            View My Entry
-          </button>
+          <a href="/me" className="block w-full px-4 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98]">
+            View My Dashboard
+          </a>
           <button onClick={onClose} className="w-full px-4 py-2.5 text-sand-500 text-sm font-medium hover:text-sand-700 transition-colors">
             Stay on Tracker
           </button>

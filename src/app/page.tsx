@@ -42,7 +42,7 @@ export default function LandingPage() {
       setApps(data);
       if (!checked) {
         const hasEntry = data.some((a: Application) => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
-        if (hasEntry) { router.replace("/dashboard"); return; }
+        if (hasEntry) { router.replace("/me"); return; }
         setChecked(true);
       }
     }
@@ -65,7 +65,7 @@ export default function LandingPage() {
     }
     matched.forEach(a => savePinForApp(a.id, pinHash));
     setClaiming(false);
-    router.replace("/dashboard");
+    router.replace("/me");
   };
 
   const totalEntries = apps.length;
