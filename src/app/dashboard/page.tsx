@@ -1314,13 +1314,13 @@ function ForgotPinFlow({ app, onReset }: { app: Application; onReset: (pinHash: 
           <label className="text-[10px] text-sand-500 font-medium mb-1 block">Name (exactly as entered)</label>
           <input value={name} onChange={(e) => { setName(e.target.value); setError(""); }}
             className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-            placeholder="e.g. Navya" />
+            placeholder="Your name" />
         </div>
         <div>
           <label className="text-[10px] text-sand-500 font-medium mb-1 block">Country (exactly as entered)</label>
           <input value={country} onChange={(e) => { setCountry(e.target.value); setError(""); }}
             className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-            placeholder="e.g. India" />
+            placeholder="Your country" />
         </div>
         <div>
           <label className="text-[10px] text-sand-500 font-medium mb-1 block">Exact submission date</label>
