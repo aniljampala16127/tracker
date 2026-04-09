@@ -194,7 +194,7 @@ export default function DashboardPage() {
       if (fullApp) setCelebrateApp(fullApp);
     } else {
       const err = await res.json();
-      alert(err.error || "Failed to add");
+      alert(err.pin_exists ? "This PIN is already taken. Please choose a different 4-digit PIN." : (err.error || "Failed to add"));
       setSubmitting(false);
     }
   };
@@ -799,21 +799,29 @@ function InlineClaim({ appId, appInitials, onClaimed, onCancel }: {
     setClaiming(true);
     setError("");
     const { generatePin, hashPin, savePinForApp } = await import("@/lib/pin");
-    const newPin = generatePin();
-    const hash = await hashPin(newPin);
-    const res = await fetch("/api/applications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: appId, claim_pin_hash: hash }),
-    });
-    if (!res.ok) {
+    // Retry up to 5 times if PIN already taken
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const newPin = generatePin();
+      const hash = await hashPin(newPin);
+      const res = await fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, claim_pin_hash: hash }),
+      });
+      if (res.ok) {
+        savePinForApp(appId, hash);
+        setPin(newPin);
+        setClaiming(false);
+        return;
+      }
       const data = await res.json();
-      setError(data.error || "Failed to claim");
-      setClaiming(false);
-      return;
+      if (!data.pin_exists) {
+        setError(data.error || "Failed to claim");
+        setClaiming(false);
+        return;
+      }
     }
-    savePinForApp(appId, hash);
-    setPin(newPin);
+    setError("Could not generate a unique PIN. Please try again.");
     setClaiming(false);
   };
 
@@ -1297,31 +1305,40 @@ function ForgotPinFlow({ app, onReset }: { app: Application; onReset: (pinHash: 
     setError("");
 
     const { generatePin, hashPin, savePinForApp } = await import("@/lib/pin");
-    const pin = generatePin();
-    const hash = await hashPin(pin);
 
-    const res = await fetch("/api/reset-pin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: app.id,
-        initials: name.trim(),
-        country_origin: country.trim(),
-        submitted_date: subDate,
-        new_pin_hash: hash,
-      }),
-    });
+    // Retry up to 5 times if PIN already taken
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const pin = generatePin();
+      const hash = await hashPin(pin);
 
-    if (!res.ok) {
+      const res = await fetch("/api/reset-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: app.id,
+          initials: name.trim(),
+          country_origin: country.trim(),
+          submitted_date: subDate,
+          new_pin_hash: hash,
+        }),
+      });
+
+      if (res.ok) {
+        savePinForApp(app.id, hash);
+        setNewPin(pin);
+        setStep("newpin");
+        setLoading(false);
+        return;
+      }
+
       const data = await res.json();
-      setError(data.error || "Verification failed");
-      setLoading(false);
-      return;
+      if (!data.pin_exists) {
+        setError(data.error || "Verification failed");
+        setLoading(false);
+        return;
+      }
     }
-
-    savePinForApp(app.id, hash);
-    setNewPin(pin);
-    setStep("newpin");
+    setError("Could not generate a unique PIN. Please try again.");
     setLoading(false);
   };
 

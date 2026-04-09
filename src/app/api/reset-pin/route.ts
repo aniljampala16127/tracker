@@ -66,7 +66,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Details don't match. Check your name, country, and exact submission date." }, { status: 403 });
   }
 
-  // All verified — reset PIN
+  // All verified — check PIN uniqueness then reset
+  const { data: dup } = await supabase.from("applications").select("id").eq("pin_hash", new_pin_hash).neq("id", id).limit(1);
+  if (dup && dup.length > 0) {
+    return NextResponse.json({ error: "PIN already in use. Please try again.", pin_exists: true }, { status: 409 });
+  }
+
   const { error } = await supabase
     .from("applications")
     .update({ pin_hash: new_pin_hash })

@@ -55,24 +55,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "PIN is required" }, { status: 400 });
   }
 
-  // Limit entries per PIN — prevent spam/duplicates
+  // Ensure PIN is unique across all entries
   const { data: existing } = await supabase
     .from("applications")
-    .select("id, initials, step_events(event_date)")
-    .eq("pin_hash", pin_hash);
+    .select("id")
+    .eq("pin_hash", pin_hash)
+    .limit(1);
 
-  if (existing && existing.length >= 2) {
-    return NextResponse.json({ error: "Maximum 2 entries per PIN. Delete an existing entry first." }, { status: 429 });
-  }
-
-  // Block exact duplicate — same PIN + same submission date
   if (existing && existing.length > 0) {
-    const hasSameDate = existing.some(app =>
-      (app.step_events as { event_date: string }[])?.some(e => e.event_date === submitted_date)
-    );
-    if (hasSameDate) {
-      return NextResponse.json({ error: "You already have an entry with this submission date. Tap your existing entry to update it instead." }, { status: 409 });
-    }
+    return NextResponse.json({ error: "PIN already in use. Please try again.", pin_exists: true }, { status: 409 });
   }
 
   const { data: app, error: appError } = await supabase
@@ -149,6 +140,11 @@ export async function PATCH(request: Request) {
   if (claim_pin_hash) {
     if (app.pin_hash) {
       return NextResponse.json({ error: "This entry already has a PIN" }, { status: 409 });
+    }
+    // Ensure PIN is unique
+    const { data: dup } = await supabase.from("applications").select("id").eq("pin_hash", claim_pin_hash).limit(1);
+    if (dup && dup.length > 0) {
+      return NextResponse.json({ error: "PIN already in use. Please try again.", pin_exists: true }, { status: 409 });
     }
     const { error } = await supabase.from("applications").update({ pin_hash: claim_pin_hash }).eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
