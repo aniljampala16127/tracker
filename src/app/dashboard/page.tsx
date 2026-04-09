@@ -19,7 +19,6 @@ const StepChart = dynamic(() => import("@/components/StepChart").then(m => ({ de
   ssr: false,
 });
 import { Reactions, ReactionsBadge } from "@/components/Reactions";
-import { ShareButtons } from "@/components/ShareButtons";
 
 import { Confetti } from "@/components/Confetti";
 import { AORWaveTracker } from "@/components/AORWaveTracker";
@@ -1114,10 +1113,20 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
         })}
       </div>
 
-      {/* Share */}
+      {/* Forgot PIN / Claim entry */}
       <div className="mt-4 pt-3 border-t border-sand-100">
-        <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Share this timeline</div>
-        <ShareButtons app={app} />
+        {!isOwner && app.pin_hash && (
+          <ForgotPinFlow app={app} onReset={(pinHash) => { onRefresh(); }} />
+        )}
+        {!isOwner && !app.pin_hash && !claimMode && (
+          <button onClick={() => setClaimMode(true)}
+            className="flex items-center gap-2 text-xs text-brand-500 font-medium hover:underline">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+            </svg>
+            Claim this entry
+          </button>
+        )}
       </div>
 
       {/* Comments / Questions */}
@@ -1215,6 +1224,122 @@ function GCKeyGuideInline({ appId, isOwner, onDone }: { appId: string; isOwner: 
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================
+// Forgot PIN — verify by personal details to reset
+// ============================================
+function ForgotPinFlow({ app, onReset }: { app: Application; onReset: (pinHash: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"verify" | "newpin">("verify");
+  const [name, setName] = useState("");
+  const [country, setCountry] = useState("");
+  const [subDate, setSubDate] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [newPin, setNewPin] = useState("");
+
+  const handleVerify = async () => {
+    if (!name.trim() || !country.trim() || !subDate) return;
+    setLoading(true);
+    setError("");
+
+    const { generatePin, hashPin, savePinForApp } = await import("@/lib/pin");
+    const pin = generatePin();
+    const hash = await hashPin(pin);
+
+    const res = await fetch("/api/reset-pin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: app.id,
+        initials: name.trim(),
+        country_origin: country.trim(),
+        submitted_date: subDate,
+        new_pin_hash: hash,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error || "Verification failed");
+      setLoading(false);
+      return;
+    }
+
+    savePinForApp(app.id, hash);
+    setNewPin(pin);
+    setStep("newpin");
+    setLoading(false);
+  };
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)}
+        className="flex items-center gap-2 text-xs text-sand-500 font-medium hover:text-brand-500 transition-colors">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16V12M12 8H12.01"/>
+        </svg>
+        Forgot PIN? Reset it here
+      </button>
+    );
+  }
+
+  if (step === "newpin") {
+    return (
+      <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 text-center">
+        <div className="text-xs text-sand-600 mb-2">Your new PIN for <strong>{app.initials}</strong>:</div>
+        <div className="flex justify-center gap-2 mb-2">
+          {newPin.split("").map((d, i) => (
+            <div key={i} className="w-10 h-10 rounded-lg bg-white border-2 border-brand-300 flex items-center justify-center text-lg font-bold text-brand-700">{d}</div>
+          ))}
+        </div>
+        <p className="text-[9px] text-error mb-3">Save this PIN — it won&apos;t be shown again.</p>
+        <button onClick={() => { setOpen(false); setStep("verify"); setNewPin(""); onReset(newPin); }}
+          className="px-4 py-2 bg-brand-500 text-white text-xs font-semibold rounded-lg active:scale-[0.98]">
+          I&apos;ve saved it
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-sand-50 border border-sand-200 rounded-xl p-4">
+      <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Reset PIN</div>
+      <p className="text-[11px] text-sand-500 mb-3">Verify your identity by entering the details you used when adding this entry.</p>
+      <div className="space-y-2.5">
+        <div>
+          <label className="text-[10px] text-sand-500 font-medium mb-1 block">Name (exactly as entered)</label>
+          <input value={name} onChange={(e) => { setName(e.target.value); setError(""); }}
+            className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            placeholder="e.g. Navya" />
+        </div>
+        <div>
+          <label className="text-[10px] text-sand-500 font-medium mb-1 block">Country (exactly as entered)</label>
+          <input value={country} onChange={(e) => { setCountry(e.target.value); setError(""); }}
+            className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            placeholder="e.g. India" />
+        </div>
+        <div>
+          <label className="text-[10px] text-sand-500 font-medium mb-1 block">Exact submission date</label>
+          <input type="date" value={subDate} onChange={(e) => { setSubDate(e.target.value); setError(""); }}
+            className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+        </div>
+        {error && <p className="text-[10px] text-error">{error}</p>}
+        <div className="flex gap-2">
+          <button onClick={handleVerify} disabled={loading || !name.trim() || !country.trim() || !subDate}
+            className="flex-1 py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-lg disabled:opacity-40 active:scale-[0.98]">
+            {loading ? "Verifying..." : "Verify & Reset PIN"}
+          </button>
+          <button onClick={() => { setOpen(false); setError(""); }}
+            className="px-4 py-2.5 text-xs text-sand-500 rounded-lg border border-sand-200 hover:bg-sand-50">
+            Cancel
+          </button>
+        </div>
+      </div>
+      <p className="text-[8px] text-sand-400 mt-2">Limited to 3 attempts per hour per entry.</p>
     </div>
   );
 }
