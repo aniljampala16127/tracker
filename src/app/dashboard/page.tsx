@@ -1113,10 +1113,10 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
         })}
       </div>
 
-      {/* Forgot PIN / Claim entry */}
+      {/* Reconnect / Forgot PIN / Claim entry */}
       <div className="mt-4 pt-3 border-t border-sand-100">
         {!isOwner && app.pin_hash && (
-          <ForgotPinFlow app={app} onReset={(pinHash) => { onRefresh(); }} />
+          <ReconnectOrReset app={app} onReconnected={onRefresh} />
         )}
         {!isOwner && !app.pin_hash && !claimMode && (
           <button onClick={() => setClaimMode(true)}
@@ -1231,6 +1231,56 @@ function GCKeyGuideInline({ appId, isOwner, onDone }: { appId: string; isOwner: 
 // ============================================
 // Forgot PIN — verify by personal details to reset
 // ============================================
+// ============================================
+// Reconnect with PIN or Reset — for non-owners viewing PIN-protected entries
+// ============================================
+function ReconnectOrReset({ app, onReconnected }: { app: Application; onReconnected: () => void }) {
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
+
+  const handleReconnect = async () => {
+    if (pin.length !== 4) return;
+    const hash = await hashPin(pin);
+    if (hash === app.pin_hash) {
+      savePinForApp(app.id, hash);
+      onReconnected();
+    } else {
+      setError("Wrong PIN");
+    }
+  };
+
+  if (showForgot) {
+    return <ForgotPinFlow app={app} onReset={onReconnected} />;
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your entry? Reconnect with PIN</div>
+      <div className="flex gap-2">
+        <input
+          type="tel" inputMode="numeric" maxLength={4} value={pin}
+          onChange={(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setError(""); }}
+          placeholder="4-digit PIN"
+          className="flex-1 px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-white text-center tracking-[0.3em] font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+        />
+        <button onClick={handleReconnect} disabled={pin.length !== 4}
+          className="px-4 py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-lg disabled:opacity-40 active:scale-[0.98]">
+          Reconnect
+        </button>
+      </div>
+      {error && <p className="text-[10px] text-error">{error}</p>}
+      <button onClick={() => setShowForgot(true)}
+        className="flex items-center gap-1.5 text-[10px] text-sand-400 hover:text-sand-600 transition-colors">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16V12M12 8H12.01"/>
+        </svg>
+        Forgot PIN? Reset it here
+      </button>
+    </div>
+  );
+}
+
 function ForgotPinFlow({ app, onReset }: { app: Application; onReset: (pinHash: string) => void }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"verify" | "newpin">("verify");
