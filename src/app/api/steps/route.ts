@@ -68,6 +68,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid PIN" }, { status: 403 });
   }
 
+  // Validate: step date must be on or after submission date
+  const { data: subEvent } = await supabase
+    .from("step_events")
+    .select("event_date")
+    .eq("application_id", application_id)
+    .eq("step_id", "submitted")
+    .single();
+
+  if (subEvent && event_date < subEvent.event_date) {
+    return NextResponse.json({ error: "Date cannot be before your submission date" }, { status: 400 });
+  }
+
   const { data: event, error } = await supabase
     .from("step_events")
     .insert({ application_id, step_id, event_date, notes: notes || null })
