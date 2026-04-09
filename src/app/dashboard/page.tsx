@@ -874,6 +874,18 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
   });
   const nextStep = getNextStep(app.current_step, app.stream);
   const visibleSteps = getVisibleSteps(app.stream);
+  const [gckeyDone, setGckeyDone] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(`gckey-done-${app.id}`);
+    if (saved === "true") setGckeyDone(true);
+  }, [app.id]);
+
+  const toggleGckey = () => {
+    const next = !gckeyDone;
+    setGckeyDone(next);
+    localStorage.setItem(`gckey-done-${app.id}`, String(next));
+  };
 
   const eu = (f: string, v: string) => setEditForm(p => ({ ...p, [f]: v }));
 
@@ -1085,6 +1097,18 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
                 <Reactions applicationId={app.id} stepId={step.id} />
               </div>
             )}
+            {/* GCKey guide — after AOR */}
+            {step.id === "aor" && !!stepsMap.aor && (
+              gckeyDone ? (
+                <div className="flex items-center gap-3 px-3 py-2 rounded-lg mx-1 mt-1 mb-1 bg-brand-50/50">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-brand-500"><path d="M20 6L9 17L4 12" /></svg>
+                  <span className="text-xs text-brand-600 flex-1">GCKey & IRCC Tracker set up</span>
+                  {isOwner && <button onClick={toggleGckey} className="text-[9px] text-sand-400">Undo</button>}
+                </div>
+              ) : (
+                <GCKeyGuideInline appId={app.id} isOwner={isOwner} onDone={toggleGckey} />
+              )
+            )}
             </React.Fragment>
           );
         })}
@@ -1109,6 +1133,89 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
         </button>
       )}
     </Modal>
+  );
+}
+
+// ============================================
+// GCKey & IRCC Tracker setup guide (inline)
+// ============================================
+function GCKeyGuideInline({ appId, isOwner, onDone }: { appId: string; isOwner: boolean; onDone: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const GCKEY_STEPS = [
+    { text: "Go to IRCC account page → \"Sign in with GCKey\"", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/account.html" },
+    { text: "Create an account with your email" },
+    { text: "Complete all security questions" },
+    { text: "Click \"Link Application\" in the table" },
+    { text: "Select \"Application number and family name\"" },
+    { text: "Enter family name with a space in front", highlight: true },
+    { text: "Enter application number and other details" },
+    { text: "Enter 2 for \"number of people\"" },
+    { text: "Submit → should show \"account found\" → Link" },
+  ];
+
+  const TRACKER_STEPS = [
+    { text: "Go to IRCC Tracker registration", link: "https://ircc-tracker-suivi.apps.cic.gc.ca/en/register" },
+    { text: "Enter UCI (from your GCKey account)" },
+    { text: "Enter Application Number" },
+    { text: "Enter names and Date of Birth exactly as in application" },
+    { text: "Submit → application linked to tracker" },
+  ];
+
+  return (
+    <div className="mx-1 mt-1 mb-1 rounded-lg border border-brand-200 bg-brand-50/50 overflow-hidden">
+      <button onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
+        <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16V12M12 8H12.01"/></svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold text-brand-700">Set up GCKey & IRCC Tracker</div>
+          <div className="text-[9px] text-brand-500">Tap to see setup steps</div>
+        </div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8A8880" strokeWidth="2" strokeLinecap="round"
+          style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M6 9L12 15L18 9" />
+        </svg>
+      </button>
+      <div style={{
+        maxHeight: expanded ? "600px" : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
+        <div className="px-3 pb-3" style={{ opacity: expanded ? 1 : 0, transition: "opacity 0.2s ease", transitionDelay: expanded ? "0.1s" : "0s" }}>
+          <div className="text-[10px] font-bold text-brand-700 uppercase tracking-wider mb-1.5">1. GCKey Setup</div>
+          <div className="space-y-1 mb-3">
+            {GCKEY_STEPS.map((s, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-[9px] text-brand-400 mt-0.5 flex-shrink-0">{i + 1}.</span>
+                <div className="text-[10px] text-sand-800 leading-relaxed">
+                  {s.link ? <a href={s.link} target="_blank" rel="noopener noreferrer" className="underline">{s.text}</a> : s.text}
+                  {s.highlight && <span className="text-[8px] bg-warn-light text-warn-dark px-1 rounded ml-1">Important</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-[10px] font-bold text-brand-700 uppercase tracking-wider mb-1.5">2. IRCC Tracker</div>
+          <div className="space-y-1 mb-3">
+            {TRACKER_STEPS.map((s, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-[9px] text-brand-400 mt-0.5 flex-shrink-0">{i + 1}.</span>
+                <div className="text-[10px] text-sand-800 leading-relaxed">
+                  {s.link ? <a href={s.link} target="_blank" rel="noopener noreferrer" className="underline">{s.text}</a> : s.text}
+                </div>
+              </div>
+            ))}
+          </div>
+          {isOwner && (
+            <button onClick={onDone}
+              className="w-full text-center text-xs font-semibold text-white bg-brand-500 rounded-lg py-2 hover:bg-brand-600 transition-colors active:scale-[0.98]">
+              Mark as Done
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
