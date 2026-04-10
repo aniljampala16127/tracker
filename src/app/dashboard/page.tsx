@@ -627,9 +627,11 @@ export default function DashboardPage() {
                             }`}>{app.stream}</span>
                           </td>
                           <td className="px-1.5 py-2 text-xs text-sand-600 whitespace-nowrap">{formatDate(stepsMap.submitted)}</td>
-                          {STEPS.slice(1).map((step, stepIdx) => {
+                          {STEPS.slice(1)
+                            .filter(s => ["aor","bil","sponsor_eligibility","medical","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
+                            .map((step, stepIdx, filteredSteps) => {
                             const date = stepsMap[step.id];
-                            const prevStep = STEPS[STEPS.findIndex(s => s.id === step.id) - 1];
+                            const prevStep = stepIdx === 0 ? STEPS[0] : filteredSteps[stepIdx - 1];
                             const prevDate = stepsMap[prevStep.id];
                             const days = date && prevDate ? daysBetween(prevDate, date) : null;
 
@@ -684,8 +686,10 @@ export default function DashboardPage() {
                   <tfoot>
                     <tr className="bg-brand-50/50 border-t border-brand-200">
                       <td className="px-3 py-2 font-bold text-[10px] text-brand-700 sticky left-0 bg-brand-50/50" colSpan={7}>Avg</td>
-                      {STEPS.slice(1).map((step, i) => {
-                        const prev = STEPS[i];
+                      {STEPS.slice(1)
+                        .filter(s => ["aor","bil","sponsor_eligibility","medical","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
+                        .map((step, i, filteredSteps) => {
+                        const prev = i === 0 ? STEPS[0] : filteredSteps[i - 1];
                         const durations: number[] = [];
                         selectedGroup.forEach(a => {
                           const s = buildStepsMap(a.step_events || []);
