@@ -642,11 +642,11 @@ function GCKeyInlineStep({ appId, gckeyDone, toggleGckey }: {
 
   const GCKEY_STEPS = [
     { text: "Go to IRCC account page → \"Sign in with GCKey\"", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/account.html" },
-    { text: "Create an account with your email" },
+    { text: "Create an account with PA or representative's email" },
     { text: "Complete all security questions" },
     { text: "Click \"Link Application\" in the table" },
     { text: "Select \"Application number and family name\"" },
-    { text: "Enter family name with a space in front", highlight: true },
+    { text: "Enter PA's family name with a space in front", highlight: true },
     { text: "Enter application number and other details" },
     { text: "Enter 2 for \"number of people\"" },
     { text: "Submit → should show \"account found\" → Link" },
@@ -656,7 +656,7 @@ function GCKeyInlineStep({ appId, gckeyDone, toggleGckey }: {
     { text: "Go to IRCC Tracker registration", link: "https://ircc-tracker-suivi.apps.cic.gc.ca/en/register" },
     { text: "Enter UCI (from your GCKey account)" },
     { text: "Enter Application Number" },
-    { text: "Enter names and Date of Birth exactly as in application" },
+    { text: "Enter PA's names and Date of Birth exactly as in application" },
     { text: "Submit → application linked to tracker" },
   ];
 
