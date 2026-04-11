@@ -57,18 +57,26 @@ export default function CountryPageClient({ slug, country }: { slug: string; cou
 
     // Per-step averages for this country
     const stepAvgs: { step: string; avg: number | null; count: number }[] = [];
+    const aorIdx = STEPS.findIndex(s => s.id === "aor");
     STEPS.forEach((step, i) => {
       if (i === 0) return; // skip submitted
+      const isPostAor = i > aorIdx;
       const diffs: number[] = [];
       countryApps.forEach(a => {
         const s = buildStepsMap(a.step_events || []);
-        const prev = STEPS[i - 1].id;
-        if (s[prev] && s[step.id]) {
-          diffs.push(daysBetween(s[prev]!, s[step.id]!));
+        if (!s[step.id]) return;
+        let baseDate: string | null = null;
+        if (step.id === "aor") {
+          baseDate = s.submitted || null;
+        } else if (isPostAor) {
+          baseDate = s.aor || null;
+        } else {
+          baseDate = s.submitted || null;
         }
+        if (baseDate) diffs.push(daysBetween(baseDate, s[step.id]!));
       });
       stepAvgs.push({
-        step: step.label,
+        step: step.label + (isPostAor ? " (from AOR)" : ""),
         avg: diffs.length ? Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length) : null,
         count: diffs.length,
       });

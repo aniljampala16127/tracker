@@ -88,26 +88,29 @@ export default function StatsPage() {
 
   // Compute per-step community averages
   const stepAverages = useMemo(() => {
-    return STEPS.slice(1).map((step) => {
+    const aorIdx = STEPS.findIndex(s => s.id === "aor");
+    return STEPS.slice(1).map((step, idx) => {
       const outlandDays: number[] = [];
       const inlandDays: number[] = [];
+      const stepGlobalIdx = idx + 1;
+      const isPostAor = stepGlobalIdx > aorIdx;
 
       apps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
-        if (!s[step.id]) return; // user hasn't reached this step
+        if (!s[step.id]) return;
 
-        // Find user's most recent PREVIOUS completed step
-        const visSteps = getVisibleSteps(a.stream);
-        const stepIdx = visSteps.findIndex(vs => vs.id === step.id);
-        if (stepIdx <= 0) return;
-
-        let prevDate: string | null = null;
-        for (let i = stepIdx - 1; i >= 0; i--) {
-          if (s[visSteps[i].id]) { prevDate = s[visSteps[i].id]; break; }
+        // AOR: from submitted. Post-AOR: from AOR
+        let baseDate: string | null = null;
+        if (step.id === "aor") {
+          baseDate = s.submitted || null;
+        } else if (isPostAor) {
+          baseDate = s.aor || null;
+        } else {
+          baseDate = s.submitted || null;
         }
-        if (!prevDate) return;
+        if (!baseDate) return;
 
-        const d = daysBetween(prevDate, s[step.id]!);
+        const d = daysBetween(baseDate, s[step.id]!);
         if (d < 0 || d > getOutlierMax(a.province)) return;
         if (a.stream === "Outland") outlandDays.push(d);
         else inlandDays.push(d);
@@ -115,7 +118,7 @@ export default function StatsPage() {
 
       return {
         step: step.shortLabel,
-        fullLabel: step.label,
+        fullLabel: step.label + (isPostAor ? " (from AOR)" : ""),
         outland: outlandDays.length ? Math.round(outlandDays.reduce((a, b) => a + b, 0) / outlandDays.length) : null,
         inland: inlandDays.length ? Math.round(inlandDays.reduce((a, b) => a + b, 0) / inlandDays.length) : null,
         outlandReports: outlandDays.length,

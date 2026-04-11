@@ -24,20 +24,33 @@ interface ChartRow {
 export function StepChart({ apps }: StepChartProps) {
   const data = useMemo(() => {
     const rows: ChartRow[] = [];
+    const aorIdx = STEPS.findIndex(s => s.id === "aor");
 
     STEPS.slice(1).forEach((step, i) => {
-      const prev = STEPS[i];
+      const stepGlobalIdx = i + 1;
+      const isPostAor = stepGlobalIdx > aorIdx;
       const outlandDurations: number[] = [];
       const inlandDurations: number[] = [];
 
       apps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
-        if (s[prev.id] && s[step.id]) {
-          const d = daysBetween(s[prev.id]!, s[step.id]!);
-          if (d < 0 || d > getOutlierMax(a.province)) return;
-          if (a.stream === "Outland") outlandDurations.push(d);
-          else inlandDurations.push(d);
+        if (!s[step.id]) return;
+
+        // AOR: from submitted. Post-AOR: from AOR
+        let baseDate: string | null = null;
+        if (step.id === "aor") {
+          baseDate = s.submitted || null;
+        } else if (isPostAor) {
+          baseDate = s.aor || null;
+        } else {
+          baseDate = s.submitted || null;
         }
+        if (!baseDate) return;
+
+        const d = daysBetween(baseDate, s[step.id]!);
+        if (d < 0 || d > getOutlierMax(a.province)) return;
+        if (a.stream === "Outland") outlandDurations.push(d);
+        else inlandDurations.push(d);
       });
 
       rows.push({

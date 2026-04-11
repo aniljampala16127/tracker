@@ -182,45 +182,64 @@ export default function CalculatorPage() {
   // Step-by-step estimates — from each user's most recent previous completed step
   const stepEstimates = useMemo(() => {
     const streamApps = apps.filter(a => a.stream === stream);
+    const aorIdx = visibleSteps.findIndex(s => s.id === "aor");
     return visibleSteps.slice(1).map((step, idx) => {
       const durations: number[] = [];
+      const stepIdx = idx + 1; // offset for slice(1)
+      const isPostAor = aorIdx >= 0 && stepIdx > aorIdx;
       streamApps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
         if (!s[step.id]) return;
 
-        // Find user's most recent previous completed step
-        const stepIdx = idx + 1; // offset for slice(1)
-        let prevDate: string | null = null;
-        for (let i = stepIdx - 1; i >= 0; i--) {
-          if (s[visibleSteps[i].id]) { prevDate = s[visibleSteps[i].id]; break; }
+        let baseDate: string | null = null;
+        if (step.id === "aor") {
+          // AOR: days from submitted
+          baseDate = s.submitted || null;
+        } else if (isPostAor) {
+          // Post-AOR: days from AOR
+          baseDate = s.aor || null;
+        } else {
+          // Pre-AOR (e.g. BIL before AOR): days from submitted
+          baseDate = s.submitted || null;
         }
-        if (!prevDate) return;
+        if (!baseDate) return;
 
-        const d = daysBetween(prevDate, s[step.id]!);
+        const d = daysBetween(baseDate, s[step.id]!);
         const max = getOutlierMax(a.province); if (d >= 0 && d <= max) durations.push(d);
       });
       const rawAvg = durations.length >= 1 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
-      const communityAvg = rawAvg !== null && rawAvg <= 900 ? rawAvg : null; // double safety
-      // Fallback: midpoint of IRCC published week ranges
+      const communityAvg = rawAvg !== null && rawAvg <= 900 ? rawAvg : null;
       const weeksRange = stream === "Outland" ? step.avgWeeksOutland : step.avgWeeksInland;
       const irccFallback = weeksRange ? Math.round(((weeksRange[0] + weeksRange[1]) / 2) * 7) : null;
       const avg = communityAvg ?? irccFallback;
       const isIrccFallback = communityAvg === null && irccFallback !== null;
-      return { step, avg, reports: durations.length, isIrccFallback };
+      const isFromAor = isPostAor;
+      return { step, avg, reports: durations.length, isIrccFallback, isFromAor };
     });
   }, [apps, stream, visibleSteps]);
 
   // Timeline with actual dates for completed steps
   const timeline = useMemo(() => {
     if (!submittedDate) return null;
-    let cumDays = 0;
-    return stepEstimates.map(({ step, avg, isIrccFallback }) => {
+    // Find AOR date (actual or estimated)
+    const actualAorDate = myStepsMap?.aor;
+    const aorEstimate = stepEstimates.find(e => e.step.id === "aor");
+    const estimatedAorDate = aorEstimate?.avg != null ? addDays(submittedDate, aorEstimate.avg) : null;
+    const aorBaseDate = actualAorDate || estimatedAorDate;
+
+    return stepEstimates.map(({ step, avg, isIrccFallback, isFromAor }) => {
       const actualDate = myStepsMap ? myStepsMap[step.id] : null;
-      if (avg != null) cumDays += avg;
+      let estDate: string | null = null;
+      if (avg != null) {
+        if (isFromAor && aorBaseDate) {
+          estDate = addDays(aorBaseDate, avg);
+        } else {
+          estDate = addDays(submittedDate, avg);
+        }
+      }
       return {
         id: step.id, label: step.label, shortLabel: step.shortLabel,
-        estDate: avg != null ? addDays(submittedDate, cumDays) : null,
-        actualDate, avgDays: avg, cumDays, isIrccFallback,
+        estDate, actualDate, avgDays: avg, isIrccFallback, isFromAor,
       };
     });
   }, [submittedDate, stepEstimates, myStepsMap]);
@@ -491,12 +510,14 @@ export default function CalculatorPage() {
                 const isNextStep = myProgress && myProgress.nextStep && s.id === myProgress.nextStep.id;
                 const isPastEstimate = !isCompleted && s.estDate && new Date(s.estDate + "T00:00:00") <= new Date();
 
-                let daysFromPrev: number | null = null;
-                if (isCompleted && s.actualDate) {
-                  const prevIdx = visibleSteps.findIndex(st => st.id === s.id) - 1;
-                  if (prevIdx >= 0 && myStepsMap) {
-                    const prevDate = myStepsMap[visibleSteps[prevIdx].id];
-                    if (prevDate) daysFromPrev = daysBetween(prevDate, s.actualDate);
+                let daysFromBase: number | null = null;
+                let baseLabel = "";
+                if (isCompleted && s.actualDate && myStepsMap) {
+                  if (s.isFromAor && myStepsMap.aor) {
+                    daysFromBase = daysBetween(myStepsMap.aor, s.actualDate);
+                    baseLabel = " from AOR";
+                  } else if (s.id === "aor" && myStepsMap.submitted) {
+                    daysFromBase = daysBetween(myStepsMap.submitted, s.actualDate);
                   }
                 }
 
@@ -520,11 +541,11 @@ export default function CalculatorPage() {
                         {isCompleted && <span className="ml-1.5 text-[9px] text-white/70">Done</span>}
                         {!isCompleted && s.isIrccFallback && <span className="ml-1.5 text-[8px] text-sand-400 italic">IRCC est.</span>}
                       </div>
-                      {isCompleted && daysFromPrev != null && (
-                        <div className="text-[9px] text-white/60">{daysFromPrev}d from previous</div>
+                      {isCompleted && daysFromBase != null && (
+                        <div className="text-[9px] text-white/60">{daysFromBase}d{baseLabel}</div>
                       )}
                       {!isCompleted && s.avgDays != null && (
-                        <div className="text-[9px] text-sand-400">~{s.avgDays}d from previous</div>
+                        <div className="text-[9px] text-sand-400">~{s.avgDays}d {s.isFromAor ? "from AOR" : "from submitted"}</div>
                       )}
                     </div>
                     <div className="text-right">

@@ -506,6 +506,7 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
     if (app.is_complete) return null;
 
     const visSteps = getVisibleSteps(app.stream);
+    const aorIdx = visSteps.findIndex(s => s.id === "aor");
 
     // Find the FIRST incomplete step by position (skipping submitted)
     let nextIdx = -1;
@@ -514,51 +515,56 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
     }
     if (nextIdx < 0) return null;
 
-    // Find the base: step right before the incomplete one, or walk back to find
-    // the most recent completed step with a date
-    let baseStep = null;
+    const nextStep = visSteps[nextIdx];
+    const isPostAor = aorIdx >= 0 && nextIdx > aorIdx;
+
+    // Determine base: AOR for post-AOR steps, submitted for AOR itself
+    let baseStep: typeof visSteps[0] | null = null;
     let baseDate: string | null = null;
-    for (let i = nextIdx - 1; i >= 0; i--) {
-      if (stepsMap[visSteps[i].id]) {
-        baseStep = visSteps[i];
-        baseDate = stepsMap[visSteps[i].id];
-        break;
+    let baseLabel = "";
+
+    if (nextStep.id === "aor") {
+      baseDate = stepsMap.submitted || null;
+      baseStep = visSteps[0];
+      baseLabel = "Submitted";
+    } else if (isPostAor && stepsMap.aor) {
+      baseDate = stepsMap.aor;
+      baseStep = visSteps[aorIdx];
+      baseLabel = "AOR";
+    } else {
+      // Pre-AOR non-AOR step or no AOR yet — use most recent completed
+      for (let i = nextIdx - 1; i >= 0; i--) {
+        if (stepsMap[visSteps[i].id]) {
+          baseStep = visSteps[i];
+          baseDate = stepsMap[visSteps[i].id];
+          baseLabel = visSteps[i].label;
+          break;
+        }
       }
     }
     if (!baseStep || !baseDate) return null;
 
-    // If we have a later completed step with a more recent date, use that instead
-    // (handles out-of-order: BG done Feb 27, but PA done March 13)
-    for (let i = nextIdx + 1; i < visSteps.length; i++) {
-      const d = stepsMap[visSteps[i].id];
-      if (d && d > baseDate) {
-        baseStep = visSteps[i];
-        baseDate = d;
-      }
-    }
-
-    const nextStep = visSteps[nextIdx];
     const today = new Date().toISOString().split("T")[0];
     const daysSinceCurrent = daysBetween(baseDate, today);
 
-    // Calculate community average — from each user's actual previous step to nextStep
+    // Calculate community average — from AOR for post-AOR, from submitted for AOR
     const durations: number[] = [];
     allApps.forEach(a => {
       if (a.stream !== app.stream) return;
       const s = buildStepsMap(a.step_events || []);
       if (!s[nextStep.id]) return;
 
-      // Find this user's most recent previous completed step before nextStep
-      const aVisSteps = getVisibleSteps(a.stream);
-      const targetIdx = aVisSteps.findIndex(vs => vs.id === nextStep.id);
-      if (targetIdx <= 0) return;
-      let prevDate: string | null = null;
-      for (let i = targetIdx - 1; i >= 0; i--) {
-        if (s[aVisSteps[i].id]) { prevDate = s[aVisSteps[i].id]; break; }
+      let communityBase: string | null = null;
+      if (nextStep.id === "aor") {
+        communityBase = s.submitted || null;
+      } else if (isPostAor) {
+        communityBase = s.aor || null;
+      } else {
+        communityBase = s.submitted || null;
       }
-      if (!prevDate) return;
+      if (!communityBase) return;
 
-      const d = daysBetween(prevDate, s[nextStep.id]!);
+      const d = daysBetween(communityBase, s[nextStep.id]!);
       if (d >= 0 && d <= 200) durations.push(d);
     });
 
@@ -571,7 +577,7 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
     const predictedStr = predictedDate.toISOString().split("T")[0];
 
     return {
-      currentStep: baseStep!.label,
+      currentStep: baseLabel,
       nextStep: nextStep.label,
       daysSinceCurrent,
       avgDays,
@@ -826,9 +832,17 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
           <div className="space-y-1">
             {visibleSteps.map((step, i) => {
               const date = stepsMap[step.id];
-              const prevStep = i > 0 ? visibleSteps[i - 1] : null;
-              const prevDate = prevStep ? stepsMap[prevStep.id] : null;
-              const days = date && prevDate ? daysBetween(prevDate, date) : null;
+              const aorDate = stepsMap.aor;
+              // AOR and before: days from previous step. After AOR: days from AOR
+              const isPostAor = aorDate && step.id !== "submitted" && step.id !== "aor" && STEPS.findIndex(s => s.id === step.id) > STEPS.findIndex(s => s.id === "aor");
+              let days: number | null = null;
+              let daysLabel = "";
+              if (date && step.id === "aor" && stepsMap.submitted) {
+                days = daysBetween(stepsMap.submitted, date);
+              } else if (date && isPostAor && aorDate) {
+                days = daysBetween(aorDate, date);
+                daysLabel = " from AOR";
+              }
               const isDone = !!date;
               const isIncomplete = !date && step.id !== "submitted";
 
@@ -850,7 +864,7 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <div className="text-right">
                           <div className="text-xs font-medium text-sand-700">{formatNice(date!).replace(/, \d{4}/, "")}</div>
-                          {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d</div>}
+                          {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d{daysLabel}</div>}
                         </div>
                         {step.id !== "submitted" && (
                           <div className="flex items-center gap-1 flex-shrink-0">

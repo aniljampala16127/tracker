@@ -631,9 +631,16 @@ export default function DashboardPage() {
                             .filter(s => ["aor","bil","sponsor_eligibility","medical","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
                             .map((step, stepIdx, filteredSteps) => {
                             const date = stepsMap[step.id];
-                            const prevStep = stepIdx === 0 ? STEPS[0] : filteredSteps[stepIdx - 1];
-                            const prevDate = stepsMap[prevStep.id];
-                            const days = date && prevDate ? daysBetween(prevDate, date) : null;
+                            const aorDate = stepsMap.aor;
+                            // AOR: days from submitted. Post-AOR: days from AOR
+                            let days: number | null = null;
+                            if (date) {
+                              if (step.id === "aor" && stepsMap.submitted) {
+                                days = daysBetween(stepsMap.submitted, date);
+                              } else if (aorDate && step.id !== "aor") {
+                                days = daysBetween(aorDate, date);
+                              }
+                            }
 
                             // Insert MEI column after BIL
                             const meiCol = step.id === "sponsor_eligibility" ? (
@@ -689,11 +696,16 @@ export default function DashboardPage() {
                       {STEPS.slice(1)
                         .filter(s => ["aor","bil","sponsor_eligibility","medical","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
                         .map((step, i, filteredSteps) => {
-                        const prev = i === 0 ? STEPS[0] : filteredSteps[i - 1];
                         const durations: number[] = [];
                         selectedGroup.forEach(a => {
                           const s = buildStepsMap(a.step_events || []);
-                          if (s[prev.id] && s[step.id]) durations.push(daysBetween(s[prev.id]!, s[step.id]!));
+                          if (!s[step.id]) return;
+                          // AOR: from submitted. Post-AOR: from AOR
+                          if (step.id === "aor" && s.submitted) {
+                            durations.push(daysBetween(s.submitted, s[step.id]!));
+                          } else if (s.aor && step.id !== "aor") {
+                            durations.push(daysBetween(s.aor, s[step.id]!));
+                          }
                         });
                         const avg = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
 
@@ -1052,9 +1064,18 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
       <div className="space-y-1">
         {visibleSteps.map((step, i) => {
           const date = stepsMap[step.id];
-          const prevStep = i > 0 ? visibleSteps[i - 1] : null;
-          const prevDate = prevStep ? stepsMap[prevStep.id] : null;
-          const days = date && prevDate ? daysBetween(prevDate, date) : null;
+          const aorDate = stepsMap.aor;
+          const aorIdx = STEPS.findIndex(s => s.id === "aor");
+          const stepGlobalIdx = STEPS.findIndex(s => s.id === step.id);
+          const isPostAor = aorDate && stepGlobalIdx > aorIdx && step.id !== "submitted" && step.id !== "aor";
+          let days: number | null = null;
+          let daysLabel = "";
+          if (date && step.id === "aor" && stepsMap.submitted) {
+            days = daysBetween(stepsMap.submitted, date);
+          } else if (date && isPostAor) {
+            days = daysBetween(aorDate!, date);
+            daysLabel = " from AOR";
+          }
           const isDone = !!date;
           const isIncomplete = !date && step.id !== "submitted";
 
@@ -1066,7 +1087,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
                 <div className="text-sm font-medium text-sand-900">{step.label}</div>
                 {isDone && (
                   <div className="text-xs text-sand-500">
-                    {formatDate(date)}{days != null && i > 0 && <span className="text-brand-500 font-semibold ml-1">({days}d)</span>}
+                    {formatDate(date)}{days != null && i > 0 && <span className="text-brand-500 font-semibold ml-1">({days}d{daysLabel})</span>}
                   </div>
                 )}
                 {isIncomplete && <div className="text-[9px] text-sand-400">{step.hint}</div>}
