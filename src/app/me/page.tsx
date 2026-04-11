@@ -654,7 +654,7 @@ function GCKeyInlineStep({ appId, gckeyDone, toggleGckey }: {
 
   const TRACKER_STEPS = [
     { text: "Go to IRCC Tracker registration", link: "https://ircc-tracker-suivi.apps.cic.gc.ca/en/register" },
-    { text: "Enter UCI (from your GCKey account)" },
+    { text: "Enter PA's UCI (from your GCKey account)" },
     { text: "Enter Application Number" },
     { text: "Enter PA's names and Date of Birth exactly as in application" },
     { text: "Submit → application linked to tracker" },

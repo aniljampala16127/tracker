@@ -8,23 +8,23 @@ export function PostAORGuide() {
 
   const GCKEY_STEPS: { text: string; link?: string; highlight?: boolean }[] = [
     { text: "Go to the IRCC account page and click \"Sign in with GCKey\"", link: "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/account.html" },
-    { text: "Create an account using your preferred email" },
+    { text: "Create an account using PA's or representative's email" },
     { text: "Log in and complete all security questions" },
     { text: "Under the applications table (shows no active application), click \"Link Application\"" },
     { text: "Select \"Application number and family name\" as the method" },
-    { text: "Enter your family name exactly as in your application — add a space in front of it", highlight: true },
-    { text: "Enter your application number" },
-    { text: "Enter place of birth and all other requested details" },
+    { text: "Enter PA's family name exactly as in application — add a space in front", highlight: true },
+    { text: "Enter application number" },
+    { text: "Enter PA's place of birth and all other requested details" },
     { text: "Enter 2 under \"number of people under the application\"" },
     { text: "Submit — it should show \"account found\", then click \"Link account\"" },
   ];
 
   const TRACKER_STEPS: { text: string; link?: string; highlight?: boolean }[] = [
     { text: "Go to the IRCC Tracker registration page", link: "https://ircc-tracker-suivi.apps.cic.gc.ca/en/register" },
-    { text: "Enter UCI (found on your GCKey account after linking)" },
-    { text: "Enter your Application Number" },
-    { text: "Enter Given Names & Last Name exactly as in your application" },
-    { text: "Enter Date of Birth and Country of Birth" },
+    { text: "Enter PA's UCI (found on your GCKey account after linking)" },
+    { text: "Enter Application Number" },
+    { text: "Enter PA's Given Names & Last Name exactly as in application" },
+    { text: "Enter PA's Date of Birth and Country of Birth" },
     { text: "Submit — it should link your application to the tracker" },
   ];
 
