@@ -43,6 +43,7 @@ interface Stats {
   milestones: { initials: string; step: string; timeAgo: string }[];
   latestEntries: EntryInfo[];
   myEntries: EntryInfo[];
+  sameWeekEntries: EntryInfo[];
 }
 
 export default function LandingPage() {
@@ -112,6 +113,7 @@ export default function LandingPage() {
   const recentMilestones = stats?.milestones || [];
   const latestEntries = stats?.latestEntries || [];
   const myEntries = stats?.myEntries || [];
+  const sameWeekEntries = stats?.sameWeekEntries || [];
   const myEntry = myEntries[0];
 
   // =============================================
@@ -192,19 +194,52 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Latest 5 entries */}
+        {/* Your entry + same-week cohort */}
         <section className="max-w-5xl mx-auto px-4 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-bold text-sand-900">Latest entries</h2>
-            <Link href="/dashboard" className="text-[11px] text-brand-600 font-semibold">See all →</Link>
-          </div>
           <div className="bg-white border border-sand-200 rounded-xl overflow-hidden">
-            {latestEntries.map((entry, i) => (
+            {/* YOUR ENTRY — highlighted on top */}
+            {myEntry && (
+              <Link
+                href="/me"
+                className="flex items-center gap-3 px-4 py-3 bg-brand-500/5 border-b-2 border-brand-200 hover:bg-brand-500/10 transition-colors active:bg-brand-500/15"
+              >
+                <div className="w-10 h-10 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-white">{myEntry.initials}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-sand-900">{myEntry.initials}</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700">YOU</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                      myEntry.stream === "Inland" ? "bg-brand-100 text-brand-700" : "bg-warn/10 text-warn"
+                    }`}>{myEntry.stream}</span>
+                  </div>
+                  <p className="text-[10px] text-sand-500 truncate">{myEntry.country} · {myEntry.sponsorStatus} · Sub {myEntry.submittedDate}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-[10px] font-bold text-brand-600 leading-tight">{myEntry.status.replace("Waiting for ", "")}</p>
+                  <p className="text-[9px] text-sand-400">Day {myEntry.daysSince}</p>
+                </div>
+              </Link>
+            )}
+
+            {/* Same-week entries header */}
+            {sameWeekEntries.length > 0 && (
+              <div className="px-4 py-2 bg-sand-50 border-b border-sand-100">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-bold text-sand-500 uppercase tracking-wider">Submitted same week</p>
+                  <Link href="/dashboard" className="text-[10px] text-brand-600 font-semibold">See all →</Link>
+                </div>
+              </div>
+            )}
+
+            {/* Same-week entries */}
+            {sameWeekEntries.map((entry, i) => (
               <Link
                 key={entry.id}
                 href="/dashboard"
                 className={`flex items-center gap-3 px-4 py-3 hover:bg-sand-50 transition-colors active:bg-sand-100 ${
-                  i < latestEntries.length - 1 ? "border-b border-sand-100" : ""
+                  i < sameWeekEntries.length - 1 ? "border-b border-sand-100" : ""
                 }`}
               >
                 <div className="w-9 h-9 rounded-lg bg-sand-100 flex items-center justify-center flex-shrink-0">
@@ -225,6 +260,13 @@ export default function LandingPage() {
                 </div>
               </Link>
             ))}
+
+            {sameWeekEntries.length === 0 && !loading && (
+              <div className="px-4 py-6 text-center">
+                <p className="text-xs text-sand-400">No other entries submitted the same week</p>
+                <Link href="/dashboard" className="text-[11px] text-brand-600 font-semibold mt-1 inline-block">Browse all entries →</Link>
+              </div>
+            )}
           </div>
         </section>
 

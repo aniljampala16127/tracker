@@ -106,13 +106,44 @@ export async function GET(request: NextRequest) {
     return parse(a.timeAgo) - parse(b.timeAgo);
   });
 
-  // Latest 5 entries (for landing page preview)
-  const latestEntries = all.slice(0, 5).map(formatEntry);
-
   // User's own entries (if IDs provided)
   const myEntries = myIds.length > 0
     ? all.filter(a => myIds.includes(a.id)).map(formatEntry)
     : [];
+
+  // Same-week entries: 5 entries submitted within ±3 days of user's submission
+  let sameWeekEntries: ReturnType<typeof formatEntry>[] = [];
+  if (myEntries.length > 0 && myEntries[0].submittedDate) {
+    const mySubDate = new Date(myEntries[0].submittedDate).getTime();
+    const THREE_DAYS = 3 * 86400000;
+    sameWeekEntries = all
+      .filter(a => {
+        if (myIds.includes(a.id)) return false; // exclude self
+        const sub = (a.step_events || []).find((e: any) => e.step_id === "submitted");
+        if (!sub) return false;
+        const diff = Math.abs(new Date(sub.event_date).getTime() - mySubDate);
+        return diff <= THREE_DAYS;
+      })
+      .slice(0, 5)
+      .map(formatEntry);
+    // If fewer than 5, widen to ±7 days
+    if (sameWeekEntries.length < 5) {
+      const SEVEN_DAYS = 7 * 86400000;
+      sameWeekEntries = all
+        .filter(a => {
+          if (myIds.includes(a.id)) return false;
+          const sub = (a.step_events || []).find((e: any) => e.step_id === "submitted");
+          if (!sub) return false;
+          const diff = Math.abs(new Date(sub.event_date).getTime() - mySubDate);
+          return diff <= SEVEN_DAYS;
+        })
+        .slice(0, 5)
+        .map(formatEntry);
+    }
+  }
+
+  // Latest 5 entries (fallback for guests)
+  const latestEntries = all.slice(0, 5).map(formatEntry);
 
   return NextResponse.json({
     totalEntries,
@@ -122,6 +153,7 @@ export async function GET(request: NextRequest) {
     milestones: milestones.slice(0, 6),
     latestEntries,
     myEntries,
+    sameWeekEntries,
   }, {
     headers: {
       "Cache-Control": myIds.length > 0
