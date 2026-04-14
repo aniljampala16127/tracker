@@ -79,7 +79,7 @@ function useUnreadComments(pathname: string): number {
 
   // Re-check periodically (every 60s)
   useEffect(() => {
-    const interval = setInterval(check, 60000);
+    const interval = setInterval(check, 300000);
     return () => clearInterval(interval);
   }, [check]);
 

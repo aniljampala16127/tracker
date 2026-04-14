@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
 import { STEPS, getNextStep } from "@/lib/constants";
 import { buildStepsMap, daysBetween, formatDate } from "@/lib/utils";
@@ -57,19 +56,16 @@ interface CohortPerson {
 export default function CohortPage() {
   const { id } = useParams();
   const router = useRouter();
-  const supabase = createClient();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewPersonId, setViewPersonId] = useState<string | null>(null);
 
   const fetchApps = useCallback(async () => {
-    const { data } = await supabase
-      .from("applications")
-      .select("*, step_events(*)")
-      .order("created_at", { ascending: true });
-    if (data) setApps(data as Application[]);
+    const res = await fetch("/api/applications");
+    const data = await res.json();
+    if (Array.isArray(data)) setApps(data as Application[]);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 

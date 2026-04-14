@@ -5,7 +5,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, Cell, LineChart, Line,
 } from "recharts";
-import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
 import { STEPS, getVisibleSteps } from "@/lib/constants";
 import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
@@ -59,16 +58,13 @@ export default function StatsPage() {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
   }, []);
-  const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
-    const { data } = await supabase
-      .from("applications")
-      .select("*, step_events(*)")
-      .order("created_at", { ascending: true });
-    if (data) setApps(data as Application[]);
+    const res = await fetch("/api/applications");
+    const data = await res.json();
+    if (Array.isArray(data)) setApps(data as Application[]);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 

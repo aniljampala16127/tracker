@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap, daysBetween } from "@/lib/utils";
@@ -17,16 +16,13 @@ function fmt(d: string): string {
 export default function CountryPageClient({ slug, country }: { slug: string; country: string | null }) {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   const fetchApps = useCallback(async () => {
-    const { data } = await supabase
-      .from("applications")
-      .select("*, step_events(*)")
-      .order("created_at", { ascending: true });
-    if (data) setApps(data as Application[]);
+    const res = await fetch("/api/applications");
+    const data = await res.json();
+    if (Array.isArray(data)) setApps(data as Application[]);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 

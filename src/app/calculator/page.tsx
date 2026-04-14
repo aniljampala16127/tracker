@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Application, StepId } from "@/lib/types";
 import { STEPS, getVisibleSteps } from "@/lib/constants";
 import { buildStepsMap, daysBetween, getOutlierMax } from "@/lib/utils";
@@ -51,17 +50,14 @@ export default function CalculatorPage() {
   const [country, setCountry] = useState("");
   const [autoDetected, setAutoDetected] = useState(false);
   const [myStepsMap, setMyStepsMap] = useState<Record<StepId, string | null> | null>(null);
-  const supabase = createClient();
   const visibleSteps = useMemo(() => getVisibleSteps(stream as "Outland" | "Inland"), [stream]);
 
   const fetchApps = useCallback(async () => {
-    const { data } = await supabase
-      .from("applications")
-      .select("*, step_events(*)")
-      .order("created_at", { ascending: true });
-    if (data) setApps(data as Application[]);
+    const res = await fetch("/api/applications");
+    const data = await res.json();
+    if (Array.isArray(data)) setApps(data as Application[]);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
