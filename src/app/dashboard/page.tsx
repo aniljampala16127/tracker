@@ -327,16 +327,32 @@ export default function DashboardPage() {
   const selectedMonthLabel = selectedMonthParts.length === 2 ? `${MO[parseInt(selectedMonthParts[1]) - 1]} ${selectedMonthParts[0]}` : "";
 
   // Show 5 entries by default, expand on click. Always include user's own entry.
+  // When collapsed, prioritize entries submitted closest to user's date (same-week cohort).
   const INITIAL_VISIBLE = 5;
   const isMonthExpanded = expandedMonths.has(selectedMonth);
   const visibleGroup = (() => {
     if (isMonthExpanded || selectedGroup.length <= INITIAL_VISIBLE) return selectedGroup;
-    const first5 = selectedGroup.slice(0, INITIAL_VISIBLE);
-    // If user's entry is in this month but not in first 5, swap it in
-    if (myEntry && !first5.some(a => a.id === myEntry.id) && selectedGroup.some(a => a.id === myEntry.id)) {
-      first5[INITIAL_VISIBLE - 1] = selectedGroup.find(a => a.id === myEntry.id)!;
+
+    // If user has an entry in this group, show it first + 4 closest by submission date
+    if (myEntry && selectedGroup.some(a => a.id === myEntry.id)) {
+      const mySubEvent = myEntry.step_events?.find(e => e.step_id === "submitted");
+      const mySubTime = mySubEvent ? new Date(mySubEvent.event_date).getTime() : 0;
+      const others = selectedGroup.filter(a => a.id !== myEntry.id);
+
+      if (mySubTime > 0) {
+        // Sort by closest submission date to user's
+        others.sort((a, b) => {
+          const aSub = a.step_events?.find(e => e.step_id === "submitted");
+          const bSub = b.step_events?.find(e => e.step_id === "submitted");
+          const aDiff = aSub ? Math.abs(new Date(aSub.event_date).getTime() - mySubTime) : Infinity;
+          const bDiff = bSub ? Math.abs(new Date(bSub.event_date).getTime() - mySubTime) : Infinity;
+          return aDiff - bDiff;
+        });
+      }
+      return [myEntry, ...others.slice(0, INITIAL_VISIBLE - 1)];
     }
-    return first5;
+
+    return selectedGroup.slice(0, INITIAL_VISIBLE);
   })();
   const hiddenCount = selectedGroup.length - visibleGroup.length;
   const toggleMonthExpand = () => {
