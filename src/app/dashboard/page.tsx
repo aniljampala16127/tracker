@@ -316,7 +316,11 @@ export default function DashboardPage() {
   const waitingForAor = apps.filter(a => !a.step_events?.some(e => e.step_id === "aor")).length;
 
   // Selected month group data
-  const selectedGroup = selectedMonth ? monthGroups[selectedMonth] || [] : [];
+  const selectedGroupRaw = selectedMonth ? monthGroups[selectedMonth] || [] : [];
+  // Always put user's own entry at the top
+  const selectedGroup = myEntry && selectedGroupRaw.some(a => a.id === myEntry.id)
+    ? [selectedGroupRaw.find(a => a.id === myEntry.id)!, ...selectedGroupRaw.filter(a => a.id !== myEntry.id)]
+    : selectedGroupRaw;
   const selectedOutland = selectedGroup.filter(a => a.stream === "Outland").length;
   const selectedInland = selectedGroup.filter(a => a.stream === "Inland").length;
   const selectedMonthParts = selectedMonth ? selectedMonth.split("-") : [];
