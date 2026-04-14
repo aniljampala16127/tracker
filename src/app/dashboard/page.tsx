@@ -492,6 +492,45 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* GATE: Non-logged-in users see blurred preview + CTA */}
+            {!hasMyEntry && (
+              <div className="relative">
+                {/* Blurred preview — show first 2 entries faded */}
+                <div className="p-2 space-y-2 blur-[3px] opacity-40 pointer-events-none select-none" aria-hidden="true">
+                  {selectedGroup.slice(0, 3).map((app) => (
+                    <div key={app.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white border border-sand-200">
+                      <div className="w-9 h-9 rounded-lg bg-sand-100 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="h-3.5 w-20 bg-sand-200 rounded mb-1" />
+                        <div className="h-2.5 w-32 bg-sand-100 rounded" />
+                      </div>
+                      <div className="h-3 w-16 bg-sand-100 rounded" />
+                    </div>
+                  ))}
+                </div>
+                {/* CTA overlay */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
+                  <div className="bg-white/90 backdrop-blur-sm border border-sand-200 rounded-2xl p-5 text-center shadow-lg max-w-xs">
+                    <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center mx-auto mb-3">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
+                    </div>
+                    <p className="text-sm font-bold text-sand-900 mb-1">Add your application to unlock</p>
+                    <p className="text-[11px] text-sand-500 mb-3">See all {selectedGroup.length} entries, timelines, and community data for this month</p>
+                    <button
+                      onClick={() => setShowIntent(true)}
+                      className="w-full px-4 py-2.5 bg-brand-500 text-white text-xs font-bold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98]"
+                    >
+                      Add Your Application — 30 seconds
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Logged-in: show actual entries */}
+            {hasMyEntry && <>
             {/* Mobile card view */}
             <div className="sm:hidden max-h-[65vh] overflow-y-auto p-2 space-y-2 entries-stagger" id="mobile-entries" key={selectedMonth}>
               {visibleGroup.map((app) => {
@@ -772,9 +811,9 @@ export default function DashboardPage() {
                 )}
               </button>
             )}
+            </>}
           </div>
       )}
-
 
       <p className="text-[9px] text-sand-400 mt-3 text-center">
         Click any row to update steps · PIN required to edit · Unclaimed entries can be claimed

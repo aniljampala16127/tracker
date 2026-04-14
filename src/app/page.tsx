@@ -2,10 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Application } from "@/lib/types";
-import { STEPS } from "@/lib/constants";
-import { buildStepsMap, daysBetween } from "@/lib/utils";
-import { getSavedPinHash, hashPin, savePinForApp } from "@/lib/pin";
+import { hashPin, savePinForApp } from "@/lib/pin";
 import Link from "next/link";
 
 function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -26,81 +23,73 @@ function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
   return <>{count}{suffix}</>;
 }
 
+interface Stats {
+  totalEntries: number;
+  totalCountries: number;
+  totalWithAor: number;
+  avgAor: number;
+  milestones: { initials: string; step: string; timeAgo: string }[];
+}
+
 export default function LandingPage() {
-  const [apps, setApps] = useState<Application[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [checked, setChecked] = useState(false);
   const [claimPin, setClaimPin] = useState("");
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState("");
   const router = useRouter();
 
-  const fetchApps = useCallback(async () => {
-    const res = await fetch("/api/applications");
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      setApps(data);
-      if (!checked) {
-        const hasEntry = data.some((a: Application) => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
-        if (hasEntry) { router.replace("/me"); return; }
-        setChecked(true);
+  // Auto-redirect: check localStorage FIRST — no API call needed
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sponsortrack-pins");
+      if (raw) {
+        const pins = JSON.parse(raw);
+        if (Object.keys(pins).length > 0) {
+          router.replace("/me");
+          return;
+        }
       }
-    }
+    } catch { /* continue to landing */ }
+  }, [router]);
+
+  // Fetch lightweight stats (~500 bytes) instead of all apps (~300KB)
+  const fetchStats = useCallback(async () => {
+    const res = await fetch("/api/stats");
+    const data = await res.json();
+    if (data.totalEntries != null) setStats(data);
     setLoading(false);
-  }, [checked, router]);
+  }, []);
 
-  useEffect(() => { fetchApps(); }, [fetchApps]);
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
-  // Claim entries by PIN — for users switching from old domain
+  // PIN claim: server-side check via /api/reconnect
   const handleClaim = async () => {
     if (claimPin.length !== 4) return;
     setClaiming(true);
     setClaimError("");
     const pinHash = await hashPin(claimPin);
-    const matched = apps.filter(a => a.pin_hash === pinHash);
-    if (matched.length === 0) {
+    const res = await fetch("/api/reconnect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin_hash: pinHash }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.matched?.length) {
       setClaimError("No entries found with this PIN");
       setClaiming(false);
       return;
     }
-    matched.forEach(a => savePinForApp(a.id, pinHash));
+    data.matched.forEach((id: string) => savePinForApp(id, pinHash));
     setClaiming(false);
     router.replace("/me");
   };
 
-  const totalEntries = apps.length;
-  const totalCountries = new Set(apps.map(a => a.country_origin)).size;
-  const totalWithAor = apps.filter(a => a.step_events?.some(e => e.step_id === "aor")).length;
-
-  const aorDays: number[] = [];
-  apps.forEach(a => {
-    const s = buildStepsMap(a.step_events || []);
-    if (s.submitted && s.aor) aorDays.push(daysBetween(s.submitted, s.aor));
-  });
-  const avgAor = aorDays.length ? Math.round(aorDays.reduce((a, b) => a + b, 0) / aorDays.length) : 0;
-
-  // Recent milestones (7 days)
-  const recentMilestones: { initials: string; step: string; timeAgo: string }[] = [];
-  const now = Date.now();
-  apps.forEach(a => {
-    (a.step_events || []).forEach(e => {
-      if (e.step_id === "submitted") return;
-      const diff = now - new Date(e.created_at).getTime();
-      if (diff < 7 * 24 * 60 * 60 * 1000) {
-        const hours = Math.floor(diff / 3600000);
-        const days = Math.floor(diff / 86400000);
-        recentMilestones.push({
-          initials: a.initials,
-          step: STEPS.find(s => s.id === e.step_id)?.label || e.step_id,
-          timeAgo: days > 0 ? `${days}d ago` : hours > 0 ? `${hours}h ago` : "just now",
-        });
-      }
-    });
-  });
-  recentMilestones.sort((a, b) => {
-    const parse = (s: string) => { const n = parseInt(s); return s.includes("d") ? n * 24 : s.includes("h") ? n : 0; };
-    return parse(a.timeAgo) - parse(b.timeAgo);
-  });
+  const totalEntries = stats?.totalEntries || 0;
+  const totalCountries = stats?.totalCountries || 0;
+  const totalWithAor = stats?.totalWithAor || 0;
+  const avgAor = stats?.avgAor || 0;
+  const recentMilestones = stats?.milestones || [];
 
   return (
     <div className="-mx-4 -mt-6">
