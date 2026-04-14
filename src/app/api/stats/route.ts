@@ -1,13 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 const STEP_LABELS: Record<string, string> = {
-  aor: "AOR", bil: "BIL", sponsor_eligibility: "Sponsor Elig.",
+  submitted: "Submitted", aor: "AOR", bil: "BIL", sponsor_eligibility: "Sponsor Elig.",
   medical: "Medical", pa_eligibility: "PA Elig.", pre_arrival: "Pre-Arrival",
   background: "BG Complete", portal1: "Portal 1", portal2: "Portal 2", ecopr: "eCoPR",
+  biometrics_done: "Biometrics", medical_passed: "Medical Passed",
+  background_started: "BG Started", ppr: "PPR", passport_received: "Passport",
 };
+
+const STEP_ORDER = [
+  "submitted","aor","bil","sponsor_eligibility","medical","pa_eligibility",
+  "pre_arrival","background","portal1","portal2","ecopr",
+];
 
 function getSupabase() {
   return createClient(
@@ -16,13 +23,45 @@ function getSupabase() {
   );
 }
 
-export async function GET() {
+function getEntryStatus(stepEvents: any[]) {
+  const completed = new Set(stepEvents.map((e: any) => e.step_id));
+  if (completed.has("ecopr")) return "eCoPR ✓";
+  for (let i = STEP_ORDER.length - 1; i >= 0; i--) {
+    if (completed.has(STEP_ORDER[i]) && i < STEP_ORDER.length - 1) {
+      return `Waiting for ${STEP_LABELS[STEP_ORDER[i + 1]] || STEP_ORDER[i + 1]}`;
+    }
+  }
+  return "Submitted";
+}
+
+function formatEntry(a: any) {
+  const events = a.step_events || [];
+  const sub = events.find((e: any) => e.step_id === "submitted");
+  const subDate = sub?.event_date || "";
+  const now = new Date();
+  const daysSince = sub ? Math.floor((now.getTime() - new Date(sub.event_date).getTime()) / 86400000) : 0;
+  return {
+    id: a.id,
+    initials: a.initials,
+    country: a.country_origin,
+    stream: a.stream,
+    sponsorStatus: a.sponsor_status,
+    submittedDate: subDate,
+    daysSince,
+    status: getEntryStatus(events),
+    stepsCompleted: events.length,
+  };
+}
+
+export async function GET(request: NextRequest) {
   const supabase = getSupabase();
+  const { searchParams } = new URL(request.url);
+  const myIds = searchParams.get("ids")?.split(",").filter(Boolean) || [];
 
   // Fetch only what we need — no comments, minimal fields
   const { data: apps, error } = await supabase
     .from("applications")
-    .select("id, initials, country_origin, stream, step_events(step_id, event_date, created_at)")
+    .select("id, initials, country_origin, stream, sponsor_status, step_events(step_id, event_date, created_at)")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -67,16 +106,27 @@ export async function GET() {
     return parse(a.timeAgo) - parse(b.timeAgo);
   });
 
+  // Latest 5 entries (for landing page preview)
+  const latestEntries = all.slice(0, 5).map(formatEntry);
+
+  // User's own entries (if IDs provided)
+  const myEntries = myIds.length > 0
+    ? all.filter(a => myIds.includes(a.id)).map(formatEntry)
+    : [];
+
   return NextResponse.json({
     totalEntries,
     totalCountries,
     totalWithAor,
     avgAor,
     milestones: milestones.slice(0, 6),
+    latestEntries,
+    myEntries,
   }, {
     headers: {
-      // Cache 5 minutes — stats barely change
-      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      "Cache-Control": myIds.length > 0
+        ? "private, s-maxage=0, max-age=30"
+        : "public, s-maxage=300, stale-while-revalidate=600",
     },
   });
 }

@@ -23,47 +23,67 @@ function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
   return <>{count}{suffix}</>;
 }
 
+interface EntryInfo {
+  id: string;
+  initials: string;
+  country: string;
+  stream: string;
+  sponsorStatus: string;
+  submittedDate: string;
+  daysSince: number;
+  status: string;
+  stepsCompleted: number;
+}
+
 interface Stats {
   totalEntries: number;
   totalCountries: number;
   totalWithAor: number;
   avgAor: number;
   milestones: { initials: string; step: string; timeAgo: string }[];
+  latestEntries: EntryInfo[];
+  myEntries: EntryInfo[];
 }
 
 export default function LandingPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
   const [claimPin, setClaimPin] = useState("");
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState("");
   const router = useRouter();
 
-  // Auto-redirect: check localStorage FIRST — no API call needed
+  // Check localStorage for saved pins (no redirect)
   useEffect(() => {
     try {
       const raw = localStorage.getItem("sponsortrack-pins");
       if (raw) {
         const pins = JSON.parse(raw);
-        if (Object.keys(pins).length > 0) {
-          router.replace("/me");
-          return;
+        const ids = Object.keys(pins);
+        if (ids.length > 0) {
+          setIsLoggedIn(true);
+          setSavedIds(ids);
         }
       }
-    } catch { /* continue to landing */ }
-  }, [router]);
+    } catch { /* not logged in */ }
+  }, []);
 
-  // Fetch lightweight stats (~500 bytes) instead of all apps (~300KB)
+  // Fetch stats — include user's IDs if logged in
   const fetchStats = useCallback(async () => {
-    const res = await fetch("/api/stats");
+    const url = savedIds.length > 0
+      ? `/api/stats?ids=${savedIds.join(",")}`
+      : `/api/stats`;
+    const res = await fetch(url);
     const data = await res.json();
     if (data.totalEntries != null) setStats(data);
     setLoading(false);
-  }, []);
+  }, [savedIds]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
-  // PIN claim: server-side check via /api/reconnect
+  // PIN claim via server-side /api/reconnect
   const handleClaim = async () => {
     if (claimPin.length !== 4) return;
     setClaiming(true);
@@ -90,7 +110,158 @@ export default function LandingPage() {
   const totalWithAor = stats?.totalWithAor || 0;
   const avgAor = stats?.avgAor || 0;
   const recentMilestones = stats?.milestones || [];
+  const latestEntries = stats?.latestEntries || [];
+  const myEntries = stats?.myEntries || [];
+  const myEntry = myEntries[0];
 
+  // =============================================
+  // LOGGED-IN VIEW — personalized landing
+  // =============================================
+  if (isLoggedIn && !loading) {
+    return (
+      <div className="-mx-4 -mt-6">
+        {/* Welcome header */}
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 via-transparent to-warn/5" />
+          <div className="max-w-5xl mx-auto px-4 pt-8 pb-6 relative">
+            {myEntry ? (
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/20">
+                  {myEntry.initials}
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-sand-900">Welcome back, {myEntry.initials}</h1>
+                  <p className="text-xs text-sand-500">{myEntry.country} · {myEntry.stream} · {myEntry.sponsorStatus}</p>
+                </div>
+              </div>
+            ) : (
+              <h1 className="text-xl font-bold text-sand-900 mb-4">Welcome back</h1>
+            )}
+
+            {/* My status card */}
+            {myEntry && (
+              <Link href="/me" className="block bg-white border border-sand-200 rounded-xl p-4 mb-3 hover:border-brand-300 transition-colors active:scale-[0.99]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold text-sand-400 uppercase tracking-wider">Your Application</span>
+                  <span className="text-[10px] text-brand-600 font-semibold">View details →</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-sand-900">{myEntry.status}</p>
+                    <p className="text-[11px] text-sand-500">Submitted {myEntry.submittedDate} · Day {myEntry.daysSince}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-brand-600">{myEntry.stepsCompleted}</p>
+                    <p className="text-[9px] text-sand-400">steps done</p>
+                  </div>
+                </div>
+              </Link>
+            )}
+
+            {/* Quick nav */}
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { href: "/me", label: "My App", icon: "M20 21V19C20 16.8 18.2 15 16 15H8C5.8 15 4 16.8 4 19V21" },
+                { href: "/dashboard", label: "Tracker", icon: "M9 12L11 14L15 10M3 3H21V21H3Z" },
+                { href: "/stats", label: "Stats", icon: "M18 20V10M12 20V4M6 20V14" },
+                { href: "/calculator", label: "Estimator", icon: "M12 6V12L16 14M12 22C17.5 22 22 17.5 22 12S17.5 2 12 2S2 6.5 2 12S6.5 22 12 22Z" },
+              ].map((item) => (
+                <Link key={item.href} href={item.href} className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-white border border-sand-200 hover:bg-sand-50 transition-colors active:scale-[0.97]">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={item.icon} /></svg>
+                  <span className="text-[10px] font-semibold text-sand-600">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Live stats strip */}
+        <section className="max-w-5xl mx-auto px-4 mb-4">
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: "Total", value: totalEntries },
+              { label: "Countries", value: totalCountries },
+              { label: "Avg AOR", value: avgAor, suffix: "d" },
+              { label: "Got AOR", value: totalWithAor },
+            ].map((s) => (
+              <div key={s.label} className="bg-white border border-sand-200 rounded-xl py-2.5 text-center">
+                <div className="text-lg font-bold text-sand-900">{s.value}{s.suffix || ""}</div>
+                <div className="text-[9px] text-sand-400 font-medium uppercase">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Latest 5 entries */}
+        <section className="max-w-5xl mx-auto px-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-bold text-sand-900">Latest entries</h2>
+            <Link href="/dashboard" className="text-[11px] text-brand-600 font-semibold">See all →</Link>
+          </div>
+          <div className="bg-white border border-sand-200 rounded-xl overflow-hidden">
+            {latestEntries.map((entry, i) => (
+              <Link
+                key={entry.id}
+                href="/dashboard"
+                className={`flex items-center gap-3 px-4 py-3 hover:bg-sand-50 transition-colors active:bg-sand-100 ${
+                  i < latestEntries.length - 1 ? "border-b border-sand-100" : ""
+                }`}
+              >
+                <div className="w-9 h-9 rounded-lg bg-sand-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-sand-600">{entry.initials}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-sand-900 truncate">{entry.initials}</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                      entry.stream === "Inland" ? "bg-brand-100 text-brand-700" : "bg-warn/10 text-warn"
+                    }`}>{entry.stream}</span>
+                  </div>
+                  <p className="text-[10px] text-sand-500 truncate">{entry.country} · {entry.sponsorStatus} · Sub {entry.submittedDate}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-[10px] font-semibold text-brand-600 leading-tight">{entry.status.replace("Waiting for ", "")}</p>
+                  <p className="text-[9px] text-sand-400">Day {entry.daysSince}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Recent milestones */}
+        {recentMilestones.length > 0 && (
+          <section className="max-w-5xl mx-auto px-4 mb-4">
+            <h2 className="text-sm font-bold text-sand-900 mb-2">Recent milestones</h2>
+            <div className="bg-white border border-sand-200 rounded-xl p-3 space-y-1.5">
+              {recentMilestones.slice(0, 4).map((m, i) => (
+                <div key={i} className="flex items-center gap-2.5 text-xs">
+                  <div className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12" /></svg>
+                  </div>
+                  <span className="text-sand-700">
+                    <span className="font-semibold">{m.initials}</span>
+                    <span className="text-sand-400"> → </span>
+                    <span className="font-semibold text-brand-600">{m.step}</span>
+                  </span>
+                  <span className="text-sand-400 ml-auto text-[10px]">{m.timeAgo}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="max-w-5xl mx-auto px-4 pb-6">
+          <div className="text-center text-[10px] text-sand-400 space-y-1">
+            <p>SponsorTrack is a free community tool. Not affiliated with IRCC or the Government of Canada.</p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // =============================================
+  // GUEST VIEW — current landing page (unchanged)
+  // =============================================
   return (
     <div className="-mx-4 -mt-6">
       {/* Hero */}
@@ -110,12 +281,10 @@ export default function LandingPage() {
               See real processing times from the community. Know where you stand. Get predicted dates for every step.
             </p>
             <div className="flex flex-col gap-3 max-w-sm mx-auto">
-              {/* New user */}
               <Link href="/dashboard" className="w-full px-6 py-3 bg-brand-500 text-white font-semibold text-sm rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-lg shadow-brand-500/20 text-center">
                 Add Your Application
               </Link>
 
-              {/* Returning user — claim by PIN */}
               <div className="w-full px-4 py-3 bg-white border border-sand-200 rounded-xl">
                 <p className="text-[11px] font-semibold text-sand-600 mb-2 text-center">Already tracking? Enter your PIN</p>
                 <div className="flex items-center gap-2">
