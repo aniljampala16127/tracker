@@ -97,6 +97,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [celebrateApp, setCelebrateApp] = useState<Application | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   // PIN state
   const [pinTarget, setPinTarget] = useState<Application | null>(null);
   const [claimTarget, setClaimTarget] = useState<Application | null>(null);
@@ -321,6 +322,28 @@ export default function DashboardPage() {
   const selectedMonthParts = selectedMonth ? selectedMonth.split("-") : [];
   const selectedMonthLabel = selectedMonthParts.length === 2 ? `${MO[parseInt(selectedMonthParts[1]) - 1]} ${selectedMonthParts[0]}` : "";
 
+  // Show 5 entries by default, expand on click. Always include user's own entry.
+  const INITIAL_VISIBLE = 5;
+  const isMonthExpanded = expandedMonths.has(selectedMonth);
+  const visibleGroup = (() => {
+    if (isMonthExpanded || selectedGroup.length <= INITIAL_VISIBLE) return selectedGroup;
+    const first5 = selectedGroup.slice(0, INITIAL_VISIBLE);
+    // If user's entry is in this month but not in first 5, swap it in
+    if (myEntry && !first5.some(a => a.id === myEntry.id) && selectedGroup.some(a => a.id === myEntry.id)) {
+      first5[INITIAL_VISIBLE - 1] = selectedGroup.find(a => a.id === myEntry.id)!;
+    }
+    return first5;
+  })();
+  const hiddenCount = selectedGroup.length - visibleGroup.length;
+  const toggleMonthExpand = () => {
+    setExpandedMonths(prev => {
+      const next = new Set(prev);
+      if (next.has(selectedMonth)) next.delete(selectedMonth);
+      else next.add(selectedMonth);
+      return next;
+    });
+  };
+
   return (
     <>
     <div ref={topRef} />
@@ -471,7 +494,7 @@ export default function DashboardPage() {
 
             {/* Mobile card view */}
             <div className="sm:hidden max-h-[65vh] overflow-y-auto p-2 space-y-2 entries-stagger" id="mobile-entries" key={selectedMonth}>
-              {selectedGroup.map((app) => {
+              {visibleGroup.map((app) => {
                 const stepsMap = buildStepsMap(app.step_events || []);
                 const appSteps = getVisibleSteps(app.stream);
                 const completedSteps = appSteps.filter(s => stepsMap[s.id]);
@@ -588,7 +611,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedGroup.map((app) => {
+                    {visibleGroup.map((app) => {
                       const stepsMap = buildStepsMap(app.step_events || []);
                       const hasPin = !!app.pin_hash;
                       const isOwner = hasPin && getSavedPinHash(app.id) === app.pin_hash;
@@ -728,6 +751,27 @@ export default function DashboardPage() {
                   </tfoot>
                 </table>
               </div>
+
+            {/* View More / Show Less toggle */}
+            {selectedGroup.length > INITIAL_VISIBLE && (
+              <button
+                onClick={toggleMonthExpand}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 border-t border-sand-100 text-xs font-medium transition-colors active:scale-[0.98] hover:bg-sand-50"
+              >
+                {isMonthExpanded ? (
+                  <>
+                    <span className="text-sand-500">Show less</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-sand-400"><path d="M18 15L12 9L6 15"/></svg>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-brand-600">View all {selectedGroup.length} entries</span>
+                    <span className="text-[9px] text-sand-400">(+{hiddenCount} more)</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-brand-500"><path d="M6 9L12 15L18 9"/></svg>
+                  </>
+                )}
+              </button>
+            )}
           </div>
       )}
 
