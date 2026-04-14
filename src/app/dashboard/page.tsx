@@ -340,13 +340,18 @@ export default function DashboardPage() {
       const others = selectedGroup.filter(a => a.id !== myEntry.id);
 
       if (mySubTime > 0) {
-        // Sort by closest submission date to user's
+        const ONE_DAY = 86400000;
+        // Tiered sort: 1) same date, 2) same week (±3d), 3) rest — then by proximity
         others.sort((a, b) => {
           const aSub = a.step_events?.find(e => e.step_id === "submitted");
           const bSub = b.step_events?.find(e => e.step_id === "submitted");
-          const aDiff = aSub ? Math.abs(new Date(aSub.event_date).getTime() - mySubTime) : Infinity;
-          const bDiff = bSub ? Math.abs(new Date(bSub.event_date).getTime() - mySubTime) : Infinity;
-          return aDiff - bDiff;
+          const aDays = aSub ? Math.round(Math.abs(new Date(aSub.event_date).getTime() - mySubTime) / ONE_DAY) : 999;
+          const bDays = bSub ? Math.round(Math.abs(new Date(bSub.event_date).getTime() - mySubTime) / ONE_DAY) : 999;
+          // Tier: 0 = same date, 1 = same week, 2 = rest
+          const aTier = aDays === 0 ? 0 : aDays <= 3 ? 1 : 2;
+          const bTier = bDays === 0 ? 0 : bDays <= 3 ? 1 : 2;
+          if (aTier !== bTier) return aTier - bTier;
+          return aDays - bDays;
         });
       }
       return [myEntry, ...others.slice(0, INITIAL_VISIBLE - 1)];
