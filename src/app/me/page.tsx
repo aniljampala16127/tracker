@@ -473,6 +473,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         );
       })()}
 
+      {/* Visitor Visa Documentation Guide */}
+      <VisitorVisaChecklist />
+
       {/* Find a Representative */}
       <FindRepresentativeCard />
 
@@ -495,6 +498,67 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
           </a>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Visitor Visa Documentation Checklist for PA
+function VisitorVisaChecklist() {
+  const [open, setOpen] = useState(false);
+  const items = [
+    { title: "Cover / Letter of Explanation (Dual Intent)", desc: "Explains the purpose of the visit and that PR is in process." },
+    { title: "Invitation Letter (From Sponsor)", desc: "Sponsor invites the PA to visit Canada." },
+    { title: "Sponsor PR Card", desc: "Copy of sponsor's PR card (both sides)." },
+    { title: "Sponsor Employment Letter", desc: "Confirms sponsor's job, position, and salary." },
+    { title: "Sponsor Pay Stubs", desc: "Last 3 pay stubs from sponsor's employer." },
+    { title: "Sponsor Bank Statements", desc: "Recent bank statements showing financial stability." },
+    { title: "IRCC Sponsor Eligibility Letter", desc: "Proof that sponsor eligibility was approved." },
+    { title: "PR Application Status / Tracker", desc: "Screenshot or printout showing PR application is in progress." },
+    { title: "Marriage Certificate", desc: "Official marriage certificate (translated if not in English/French)." },
+    { title: "Wedding Photos", desc: "A few photos as proof of genuine relationship." },
+    { title: "Applicant Employment Letter", desc: "Shows ties to home country. If unemployed, any letter from a business or self-employment proof works — IRCC wants to see you'll return." },
+    { title: "Applicant Bank Statements", desc: "Recent statements showing applicant's financial situation." },
+    { title: "Travel Plan (Optional)", desc: "Round-trip itinerary showing intent to return." },
+  ];
+
+  return (
+    <div className="border border-sand-200 rounded-xl overflow-hidden mt-1" style={{ background: "var(--surface-card)" }}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-sand-50/50 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+          </div>
+          <div>
+            <span className="text-sm font-bold text-sand-900">Visitor Visa Documents</span>
+            <p className="text-[10px] text-sand-500">Documentation for PA's visitor visa application</p>
+          </div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`text-sand-400 transition-transform ${open ? "rotate-180" : ""}`}><path d="M6 9L12 15L18 9"/></svg>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-2">
+          <p className="text-[10px] text-sand-500 mb-2 leading-relaxed">
+            Checklist for Principal Applicant applying for a visitor visa while spousal sponsorship PR is in process (dual intent).
+          </p>
+          {items.map((item, i) => (
+            <div key={i} className="flex gap-2.5 items-start">
+              <span className="text-[10px] font-bold text-brand-600 mt-0.5 w-5 flex-shrink-0 text-right">{i + 1}.</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-semibold text-sand-900">{item.title}</span>
+                <p className="text-[10px] text-sand-500 leading-relaxed">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+          <div className="mt-3 pt-2 border-t border-sand-100">
+            <p className="text-[10px] text-sand-500 leading-relaxed">
+              <span className="font-semibold text-sand-700">Tip:</span> If the applicant is currently unemployed, a letter from any business confirming work or self-employment activity can help. IRCC wants to see the applicant has ties to their home country and will return after the visit.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
