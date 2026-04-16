@@ -580,52 +580,46 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
     if (nextIdx < 0) return null;
 
     const nextStep = visSteps[nextIdx];
-    const isPostAor = aorIdx >= 0 && nextIdx > aorIdx;
 
-    // Determine base: AOR for post-AOR steps, submitted for AOR itself
-    let baseStep: typeof visSteps[0] | null = null;
-    let baseDate: string | null = null;
+    // Determine correct base step for this next step
+    const STEP_BASE: Record<string, string> = {
+      aor: "submitted", bil: "aor",
+      biometrics_given: "bil", biometrics_done: "biometrics_given",
+      sponsor_eligibility: "aor", medical: "aor",
+      medicals_attended: "medical", medical_passed: "medicals_attended",
+      pa_eligibility: "aor", pre_arrival: "aor",
+      background_started: "aor", background: "aor",
+      portal1: "aor", portal2: "portal1",
+      ppr: "aor", passport_received: "ppr", ecopr: "aor",
+    };
+
+    const baseStepId = (STEP_BASE[nextStep.id] || "aor") as StepId;
+    let baseDate: string | null = stepsMap[baseStepId as StepId] || null;
     let baseLabel = "";
 
-    if (nextStep.id === "aor") {
-      baseDate = stepsMap.submitted || null;
-      baseStep = visSteps[0];
-      baseLabel = "Submitted";
-    } else if (isPostAor && stepsMap.aor) {
-      baseDate = stepsMap.aor;
-      baseStep = visSteps[aorIdx];
-      baseLabel = "AOR";
-    } else {
-      // Pre-AOR non-AOR step or no AOR yet — use most recent completed
-      for (let i = nextIdx - 1; i >= 0; i--) {
-        if (stepsMap[visSteps[i].id]) {
-          baseStep = visSteps[i];
-          baseDate = stepsMap[visSteps[i].id];
-          baseLabel = visSteps[i].label;
-          break;
-        }
-      }
-    }
-    if (!baseStep || !baseDate) return null;
+    if (baseStepId === "submitted") baseLabel = "Submitted";
+    else if (baseStepId === "aor") baseLabel = "AOR";
+    else if (baseStepId === "bil") baseLabel = "BIL";
+    else if (baseStepId === "biometrics_given") baseLabel = "Bio Given";
+    else if (baseStepId === "medical") baseLabel = "Med Req";
+    else if (baseStepId === "medicals_attended") baseLabel = "Med Attended";
+    else if (baseStepId === "portal1") baseLabel = "Portal 1";
+    else if (baseStepId === "ppr") baseLabel = "PPR";
+    else baseLabel = visSteps.find(s => s.id === baseStepId as StepId)?.label || baseStepId;
+
+    if (!baseDate) return null;
 
     const today = new Date().toISOString().split("T")[0];
     const daysSinceCurrent = daysBetween(baseDate, today);
 
-    // Calculate community average — from AOR for post-AOR, from submitted for AOR
+    // Calculate community average using same base step
     const durations: number[] = [];
     allApps.forEach(a => {
       if (a.stream !== app.stream) return;
       const s = buildStepsMap(a.step_events || []);
       if (!s[nextStep.id]) return;
 
-      let communityBase: string | null = null;
-      if (nextStep.id === "aor") {
-        communityBase = s.submitted || null;
-      } else if (isPostAor) {
-        communityBase = s.aor || null;
-      } else {
-        communityBase = s.submitted || null;
-      }
+      const communityBase = s[baseStepId as StepId] || null;
       if (!communityBase) return;
 
       const d = daysBetween(communityBase, s[nextStep.id]!);

@@ -175,26 +175,38 @@ export default function CalculatorPage() {
     return { total: cohort.length, gotAor: gotAor.length, pct: cohort.length > 0 ? Math.round((gotAor.length / cohort.length) * 100) : 0 };
   }, [apps, submittedDate, myProgress]);
 
-  // Step-by-step estimates — sequential: each step measured from its previous step
+  // Step-by-step estimates — correct base for each step type
+  // Applicant-action steps chain from their trigger step
+  // IRCC-initiated steps measure from AOR
+  const STEP_BASE: Record<string, string> = {
+    aor: "submitted",
+    bil: "aor",
+    biometrics_given: "bil",
+    biometrics_done: "biometrics_given",
+    sponsor_eligibility: "aor",
+    medical: "aor",
+    medicals_attended: "medical",
+    medical_passed: "medicals_attended",
+    pa_eligibility: "aor",
+    pre_arrival: "aor",
+    background_started: "aor",
+    background: "aor",
+    portal1: "aor",
+    portal2: "portal1",
+    ppr: "aor",
+    passport_received: "ppr",
+    ecopr: "aor",
+  };
+
   const stepEstimates = useMemo(() => {
     const streamApps = apps.filter(a => a.stream === stream);
-    return visibleSteps.slice(1).map((step, idx) => {
+    return visibleSteps.slice(1).map((step) => {
       const durations: number[] = [];
-      const stepIdx = idx + 1; // offset for slice(1)
-      // Find the previous step in the visible sequence
-      const prevStepDef = visibleSteps[stepIdx - 1];
+      const baseStepId = (STEP_BASE[step.id] || "aor") as StepId;
       streamApps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
         if (!s[step.id]) return;
-
-        let baseDate: string | null = null;
-        if (step.id === "aor") {
-          // AOR: days from submitted
-          baseDate = s.submitted || null;
-        } else {
-          // All other steps: days from previous step in sequence
-          baseDate = prevStepDef ? (s[prevStepDef.id] || null) : null;
-        }
+        const baseDate = s[baseStepId] || null;
         if (!baseDate) return;
 
         const d = daysBetween(baseDate, s[step.id]!);
@@ -206,7 +218,8 @@ export default function CalculatorPage() {
       const irccFallback = weeksRange ? Math.round(((weeksRange[0] + weeksRange[1]) / 2) * 7) : null;
       const avg = communityAvg ?? irccFallback;
       const isIrccFallback = communityAvg === null && irccFallback !== null;
-      return { step, avg, reports: durations.length, isIrccFallback, isFromAor: false };
+      const isFromAor = baseStepId === "aor" && step.id !== "aor";
+      return { step, avg, reports: durations.length, isIrccFallback, isFromAor, baseStepId };
     });
   }, [apps, stream, visibleSteps]);
 
@@ -214,30 +227,33 @@ export default function CalculatorPage() {
   const timeline = useMemo(() => {
     if (!submittedDate) return null;
 
-    // Build timeline sequentially: each estimate = previous estimate + avg days
-    let prevEstDate = submittedDate; // start from submission date
-    return stepEstimates.map(({ step, avg, isIrccFallback }) => {
+    // Build a map of actual + estimated dates for each step
+    const dateMap: Record<string, string> = { submitted: submittedDate };
+    if (myStepsMap) {
+      Object.entries(myStepsMap).forEach(([k, v]) => { if (v) dateMap[k] = v; });
+    }
+
+    return stepEstimates.map(({ step, avg, isIrccFallback, isFromAor, baseStepId }) => {
       const actualDate = myStepsMap ? myStepsMap[step.id] : null;
       let estDate: string | null = null;
 
-      if (avg != null) {
-        // Use actual date of previous step if available, otherwise use estimate
-        const baseForEst = actualDate ? null : prevEstDate;
-        if (baseForEst) {
-          estDate = addDays(baseForEst, avg);
+      if (!actualDate && avg != null) {
+        const baseDate = dateMap[baseStepId];
+        if (baseDate) {
+          estDate = addDays(baseDate, avg);
         }
       }
 
-      // For the next iteration, use actual date if completed, or estimated date
+      // Store actual or estimated date for downstream steps to use
       if (actualDate) {
-        prevEstDate = actualDate;
+        dateMap[step.id] = actualDate;
       } else if (estDate) {
-        prevEstDate = estDate;
+        dateMap[step.id] = estDate;
       }
 
       return {
         id: step.id, label: step.label, shortLabel: step.shortLabel,
-        estDate, actualDate, avgDays: avg, isIrccFallback, isFromAor: false,
+        estDate, actualDate, avgDays: avg, isIrccFallback, isFromAor,
       };
     });
   }, [submittedDate, stepEstimates, myStepsMap]);
