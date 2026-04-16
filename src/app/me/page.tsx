@@ -903,6 +903,12 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
               let daysLabel = "";
               if (date && step.id === "aor" && stepsMap.submitted) {
                 days = daysBetween(stepsMap.submitted, date);
+              } else if (date && step.id === "biometrics_given" && stepsMap.bil) {
+                days = daysBetween(stepsMap.bil, date);
+                daysLabel = " from BIL";
+              } else if (date && step.id === "medicals_attended" && stepsMap.medical) {
+                days = daysBetween(stepsMap.medical, date);
+                daysLabel = " from Med Req";
               } else if (date && isPostAor && aorDate) {
                 days = daysBetween(aorDate, date);
                 daysLabel = " from AOR";

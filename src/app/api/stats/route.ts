@@ -4,15 +4,18 @@ import { NextResponse, NextRequest } from "next/server";
 export const dynamic = "force-dynamic";
 
 const STEP_LABELS: Record<string, string> = {
-  submitted: "Submitted", aor: "AOR", bil: "BIL", sponsor_eligibility: "Sponsor Elig.",
-  medical: "Medical", pa_eligibility: "PA Elig.", pre_arrival: "Pre-Arrival",
+  submitted: "Submitted", aor: "AOR", bil: "BIL",
+  biometrics_given: "Bio Given", biometrics_done: "Bio Updated",
+  sponsor_eligibility: "Sponsor Elig.",
+  medical: "Medical Req", medicals_attended: "Med Attended", medical_passed: "Med Cleared",
+  pa_eligibility: "PA Elig.", pre_arrival: "Pre-Arrival",
   background: "BG Complete", portal1: "Portal 1", portal2: "Portal 2", ecopr: "eCoPR",
-  biometrics_done: "Biometrics", medical_passed: "Medical Passed",
   background_started: "BG Started", ppr: "PPR", passport_received: "Passport",
 };
 
 const STEP_ORDER = [
-  "submitted","aor","bil","sponsor_eligibility","medical","pa_eligibility",
+  "submitted","aor","bil","biometrics_given","biometrics_done","sponsor_eligibility",
+  "medical","medicals_attended","medical_passed","pa_eligibility",
   "pre_arrival","background","portal1","portal2","ecopr",
 ];
 

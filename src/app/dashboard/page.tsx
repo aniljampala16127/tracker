@@ -658,9 +658,11 @@ export default function DashboardPage() {
                       <th className="text-left px-1.5 py-2 bg-sand-50">Submitted</th>
                       <th className="text-center px-1 py-2 bg-sand-50">AOR</th>
                       <th className="text-center px-1 py-2 bg-sand-50">BIL</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Bio Given</th>
                       <th className="text-center px-1 py-2 bg-sand-50">MEI Req/Upfront</th>
                       <th className="text-center px-1 py-2 bg-sand-50">Sponsor Eligibility</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Medical Update</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Medical Req</th>
+                      <th className="text-center px-1 py-2 bg-sand-50">Med Attended</th>
                       <th className="text-center px-1 py-2 bg-sand-50">PA Eligibility</th>
                       <th className="text-center px-1 py-2 bg-sand-50">Pre-Arrival</th>
                       <th className="text-center px-1 py-2 bg-sand-50">Background Verification</th>
@@ -715,15 +717,19 @@ export default function DashboardPage() {
                           </td>
                           <td className="px-1.5 py-2 text-xs text-sand-600 whitespace-nowrap">{formatDate(stepsMap.submitted)}</td>
                           {STEPS.slice(1)
-                            .filter(s => ["aor","bil","sponsor_eligibility","medical","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
+                            .filter(s => ["aor","bil","biometrics_given","sponsor_eligibility","medical","medicals_attended","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
                             .map((step, stepIdx, filteredSteps) => {
                             const date = stepsMap[step.id];
                             const aorDate = stepsMap.aor;
-                            // AOR: days from submitted. Post-AOR: days from AOR
+                            // AOR: days from submitted. Bio Given: from BIL. Med Attended: from Medical Req. Post-AOR: from AOR
                             let days: number | null = null;
                             if (date) {
                               if (step.id === "aor" && stepsMap.submitted) {
                                 days = daysBetween(stepsMap.submitted, date);
+                              } else if (step.id === "biometrics_given" && stepsMap.bil) {
+                                days = daysBetween(stepsMap.bil, date);
+                              } else if (step.id === "medicals_attended" && stepsMap.medical) {
+                                days = daysBetween(stepsMap.medical, date);
                               } else if (aorDate && step.id !== "aor") {
                                 days = daysBetween(aorDate, date);
                               }
@@ -781,15 +787,19 @@ export default function DashboardPage() {
                     <tr className="bg-brand-50/50 border-t border-brand-200">
                       <td className="px-3 py-2 font-bold text-[10px] text-brand-700 sticky left-0 bg-brand-50/50" colSpan={7}>Avg</td>
                       {STEPS.slice(1)
-                        .filter(s => ["aor","bil","sponsor_eligibility","medical","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
+                        .filter(s => ["aor","bil","biometrics_given","sponsor_eligibility","medical","medicals_attended","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
                         .map((step, i, filteredSteps) => {
                         const durations: number[] = [];
                         selectedGroup.forEach(a => {
                           const s = buildStepsMap(a.step_events || []);
                           if (!s[step.id]) return;
-                          // AOR: from submitted. Post-AOR: from AOR
+                          // AOR: from submitted. Bio Given: from BIL. Med Attended: from Med Req. Post-AOR: from AOR
                           if (step.id === "aor" && s.submitted) {
                             durations.push(daysBetween(s.submitted, s[step.id]!));
+                          } else if (step.id === "biometrics_given" && s.bil) {
+                            durations.push(daysBetween(s.bil, s[step.id]!));
+                          } else if (step.id === "medicals_attended" && s.medical) {
+                            durations.push(daysBetween(s.medical, s[step.id]!));
                           } else if (s.aor && step.id !== "aor") {
                             durations.push(daysBetween(s.aor, s[step.id]!));
                           }
@@ -1180,6 +1190,12 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
           let daysLabel = "";
           if (date && step.id === "aor" && stepsMap.submitted) {
             days = daysBetween(stepsMap.submitted, date);
+          } else if (date && step.id === "biometrics_given" && stepsMap.bil) {
+            days = daysBetween(stepsMap.bil, date);
+            daysLabel = " from BIL";
+          } else if (date && step.id === "medicals_attended" && stepsMap.medical) {
+            days = daysBetween(stepsMap.medical, date);
+            daysLabel = " from Med Req";
           } else if (date && isPostAor) {
             days = daysBetween(aorDate!, date);
             daysLabel = " from AOR";
