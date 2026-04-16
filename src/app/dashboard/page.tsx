@@ -728,8 +728,12 @@ export default function DashboardPage() {
                                 days = daysBetween(stepsMap.submitted, date);
                               } else if (step.id === "biometrics_given" && stepsMap.bil) {
                                 days = daysBetween(stepsMap.bil, date);
+                              } else if (step.id === "biometrics_done" && stepsMap.biometrics_given) {
+                                days = daysBetween(stepsMap.biometrics_given, date);
                               } else if (step.id === "medicals_attended" && stepsMap.medical) {
                                 days = daysBetween(stepsMap.medical, date);
+                              } else if (step.id === "medical_passed" && stepsMap.medicals_attended) {
+                                days = daysBetween(stepsMap.medicals_attended, date);
                               } else if (aorDate && step.id !== "aor") {
                                 days = daysBetween(aorDate, date);
                               }
@@ -798,8 +802,12 @@ export default function DashboardPage() {
                             durations.push(daysBetween(s.submitted, s[step.id]!));
                           } else if (step.id === "biometrics_given" && s.bil) {
                             durations.push(daysBetween(s.bil, s[step.id]!));
+                          } else if (step.id === "biometrics_done" && s.biometrics_given) {
+                            durations.push(daysBetween(s.biometrics_given, s[step.id]!));
                           } else if (step.id === "medicals_attended" && s.medical) {
                             durations.push(daysBetween(s.medical, s[step.id]!));
+                          } else if (step.id === "medical_passed" && s.medicals_attended) {
+                            durations.push(daysBetween(s.medicals_attended, s[step.id]!));
                           } else if (s.aor && step.id !== "aor") {
                             durations.push(daysBetween(s.aor, s[step.id]!));
                           }
@@ -1193,9 +1201,15 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
           } else if (date && step.id === "biometrics_given" && stepsMap.bil) {
             days = daysBetween(stepsMap.bil, date);
             daysLabel = " from BIL";
+          } else if (date && step.id === "biometrics_done" && stepsMap.biometrics_given) {
+            days = daysBetween(stepsMap.biometrics_given, date);
+            daysLabel = " from Bio Given";
           } else if (date && step.id === "medicals_attended" && stepsMap.medical) {
             days = daysBetween(stepsMap.medical, date);
             daysLabel = " from Med Req";
+          } else if (date && step.id === "medical_passed" && stepsMap.medicals_attended) {
+            days = daysBetween(stepsMap.medicals_attended, date);
+            daysLabel = " from Med Attended";
           } else if (date && isPostAor) {
             days = daysBetween(aorDate!, date);
             daysLabel = " from AOR";

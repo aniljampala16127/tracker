@@ -906,9 +906,15 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
               } else if (date && step.id === "biometrics_given" && stepsMap.bil) {
                 days = daysBetween(stepsMap.bil, date);
                 daysLabel = " from BIL";
+              } else if (date && step.id === "biometrics_done" && stepsMap.biometrics_given) {
+                days = daysBetween(stepsMap.biometrics_given, date);
+                daysLabel = " from Bio Given";
               } else if (date && step.id === "medicals_attended" && stepsMap.medical) {
                 days = daysBetween(stepsMap.medical, date);
                 daysLabel = " from Med Req";
+              } else if (date && step.id === "medical_passed" && stepsMap.medicals_attended) {
+                days = daysBetween(stepsMap.medicals_attended, date);
+                daysLabel = " from Med Attended";
               } else if (date && isPostAor && aorDate) {
                 days = daysBetween(aorDate, date);
                 daysLabel = " from AOR";
