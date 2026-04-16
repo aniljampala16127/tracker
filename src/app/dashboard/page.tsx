@@ -520,35 +520,47 @@ export default function DashboardPage() {
             {/* GATE: Non-logged-in users see blurred preview + CTA */}
             {!hasMyEntry && (
               <div className="relative">
-                {/* Blurred preview — show first 2 entries faded */}
-                <div className="p-2 space-y-2 blur-[3px] opacity-40 pointer-events-none select-none" aria-hidden="true">
-                  {selectedGroup.slice(0, 3).map((app) => (
-                    <div key={app.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white border border-sand-200">
-                      <div className="w-9 h-9 rounded-lg bg-sand-100 flex-shrink-0" />
+                {/* Blurred preview — taller so cards extend beyond unlock card (peek-through) */}
+                <div className="p-2 space-y-2 blur-[5px] opacity-50 pointer-events-none select-none" aria-hidden="true">
+                  {selectedGroup.slice(0, 6).map((app) => (
+                    <div key={app.id} className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white border border-sand-200">
+                      <div className="w-9 h-9 rounded-lg bg-sand-200 flex-shrink-0" />
                       <div className="flex-1">
-                        <div className="h-3.5 w-20 bg-sand-200 rounded mb-1" />
-                        <div className="h-2.5 w-32 bg-sand-100 rounded" />
+                        <div className="h-3.5 w-24 bg-sand-300 rounded mb-1.5" />
+                        <div className="h-2.5 w-36 bg-sand-200 rounded" />
                       </div>
-                      <div className="h-3 w-16 bg-sand-100 rounded" />
+                      <div className="text-right">
+                        <div className="h-3 w-20 bg-sand-200 rounded mb-1" />
+                        <div className="h-2 w-12 bg-sand-100 rounded ml-auto" />
+                      </div>
                     </div>
                   ))}
                 </div>
-                {/* CTA overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
-                  <div className="bg-white/90 backdrop-blur-sm border border-sand-200 rounded-2xl p-5 text-center shadow-lg max-w-xs">
+                {/* CTA overlay — positioned at top so blurred cards peek through below */}
+                <div className="absolute inset-x-0 top-0 flex flex-col items-center pt-8 px-4">
+                  <div
+                    className="border rounded-2xl p-5 text-center shadow-xl max-w-xs w-full"
+                    style={{
+                      backgroundColor: "var(--surface-card)",
+                      borderColor: "var(--surface-card-border)",
+                    }}
+                  >
                     <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center mx-auto mb-3">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                       </svg>
                     </div>
-                    <p className="text-sm font-bold text-sand-900 mb-1">Add your application to unlock</p>
-                    <p className="text-[11px] text-sand-500 mb-3">See all {selectedGroup.length} entries, timelines, and community data for this month</p>
+                    <p className="text-base font-bold text-sand-900 mb-1">Unlock community data</p>
+                    <p className="text-[11px] text-sand-500 mb-4 leading-relaxed">
+                      See all <span className="font-bold text-sand-700">{selectedGroup.length} entries</span> for {selectedMonthLabel} — timelines, processing days, and predictions
+                    </p>
                     <button
                       onClick={() => setShowIntent(true)}
-                      className="w-full px-4 py-2.5 bg-brand-500 text-white text-xs font-bold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98]"
+                      className="w-full px-4 py-3 bg-brand-500 text-white text-xs font-bold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-lg shadow-brand-500/20"
                     >
-                      Add Your Application — 30 seconds
+                      Add Your Application — 30 sec
                     </button>
+                    <p className="text-[10px] text-sand-400 mt-2">Free · No sign-up · PIN protected</p>
                   </div>
                 </div>
               </div>
