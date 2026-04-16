@@ -490,6 +490,8 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
   const [showUpi, setShowUpi] = useState(false);
   const [copied, setCopied] = useState(false);
   const upiId = "8639938484-k29b@ybl";
+  const upiLink = `upi://pay?pa=${upiId}&pn=Anil%20Jampala&tn=Support%20SponsorTrack&cu=INR`;
+  const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=200&margin=1`;
 
   const handleCopy = async () => {
     try {
@@ -499,8 +501,12 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
     } catch { /* fallback */ }
   };
 
-  // Generate QR code as SVG using a simple encoding approach
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=Anil%20Jampala&tn=Support%20SponsorTrack&cu=INR`)}&bgcolor=ffffff&color=000000`;
+  const handleUpiClick = () => {
+    // Try to open UPI app directly on mobile
+    window.location.href = upiLink;
+    // Show QR modal as fallback after a short delay (if app didn't open)
+    setTimeout(() => setShowUpi(true), 1500);
+  };
 
   return (
     <>
@@ -510,7 +516,7 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
           <p className="text-[11px] text-sand-500 mb-3 leading-relaxed">
             SponsorTrack is free and always will be. If it helped ease your wait, consider supporting its development.
           </p>
-          <div className={`flex ${isIndian ? "gap-2" : ""} justify-center`}>
+          <div className={`flex ${isIndian ? "gap-2" : ""} justify-center flex-wrap`}>
             <a
               href="https://buymeacoffee.com/aniljampala"
               target="_blank"
@@ -523,15 +529,24 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
             </a>
             {isIndian && (
               <button
-                onClick={() => setShowUpi(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm"
-                style={{ backgroundColor: "#5f259f", color: "#FFFFFF" }}
+                onClick={handleUpiClick}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm border border-sand-200"
+                style={{ background: "var(--surface-card)", color: "var(--sand-800)" }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 4l5 16" stroke="#097939"/>
+                  <path d="M12 4l5 16" stroke="#F47920"/>
+                  <path d="M17 4l-5 8" stroke="#097939"/>
+                </svg>
                 Pay via UPI
               </button>
             )}
           </div>
+          {isIndian && (
+            <button onClick={() => setShowUpi(true)} className="text-[10px] text-sand-400 mt-2 hover:text-sand-600 transition-colors">
+              or scan QR code
+            </button>
+          )}
         </div>
       </div>
 
@@ -550,19 +565,19 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
 
             <div className="text-center">
               <div className="text-sm font-bold text-sand-900 mb-1">Support via UPI</div>
-              <p className="text-[10px] text-sand-500 mb-4">Scan QR with any UPI app</p>
+              <p className="text-[10px] text-sand-500 mb-4">Scan with any UPI app or copy the ID below</p>
 
               {/* QR Code */}
-              <div className="bg-white rounded-xl p-3 inline-block mb-4">
-                <img src={qrUrl} alt="UPI QR Code" width={180} height={180} className="rounded-lg" />
+              <div className="bg-white rounded-xl p-3 inline-block mb-4 shadow-sm">
+                <img src={qrUrl} alt="UPI QR Code" width={180} height={180} className="rounded-lg" style={{ imageRendering: "pixelated" }} />
               </div>
 
               {/* UPI ID + Copy */}
-              <div className="flex items-center gap-2 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 mb-3">
+              <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 mb-3" style={{ background: "var(--surface-input, #f5f3ef)", border: "1px solid var(--surface-card-border)" }}>
                 <span className="flex-1 text-xs font-mono text-sand-700 truncate">{upiId}</span>
                 <button
                   onClick={handleCopy}
-                  className="flex-shrink-0 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all active:scale-[0.95]"
+                  className="flex-shrink-0 px-3 py-1 rounded-md text-[10px] font-bold transition-all active:scale-[0.95]"
                   style={{
                     background: copied ? "#2D6A4F" : "#E8F5EC",
                     color: copied ? "white" : "#2D6A4F",
@@ -572,7 +587,16 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
                 </button>
               </div>
 
-              <p className="text-[9px] text-sand-400">Works with PhonePe, Google Pay, Paytm & all UPI apps</p>
+              {/* Open UPI app button */}
+              <a
+                href={upiLink}
+                className="block w-full px-4 py-2.5 rounded-xl text-xs font-bold text-center transition-all active:scale-[0.98] mb-2"
+                style={{ background: "#2D6A4F", color: "white" }}
+              >
+                Open UPI App
+              </a>
+
+              <p className="text-[9px] text-sand-400">PhonePe · Google Pay · Paytm · any UPI app</p>
             </div>
           </div>
         </div>
