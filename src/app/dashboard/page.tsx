@@ -456,7 +456,7 @@ export default function DashboardPage() {
       )}
 
       {/* Bar Chart — collapsible */}
-      {apps.length > 0 && <CollapsibleChart apps={filteredApps} />}
+      {/* Average Days per Step — moved to Stats tab */}
 
       {/* Empty state */}
       {filteredApps.length === 0 && (
