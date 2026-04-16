@@ -170,7 +170,7 @@ export default function CommunityPage() {
     <div className="page-enter">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-sand-900">Community</h1>
-        <p className="text-xs text-sand-500 mt-0.5">{totalComments} {totalComments === 1 ? "comment" : "comments"} \u00b7 Discuss by submission month</p>
+        <p className="text-xs text-sand-500 mt-0.5">{totalComments} {totalComments === 1 ? "comment" : "comments"} · Discuss by submission month</p>
       </div>
 
       {/* New Question */}
