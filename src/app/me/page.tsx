@@ -480,25 +480,104 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       <FindRepresentativeCard />
 
       {/* Support card */}
+      <SupportCard isIndian={app.country_origin === "India"} />
+    </div>
+  );
+}
+
+// Support Card — Buy Me a Coffee + UPI (India only)
+function SupportCard({ isIndian }: { isIndian: boolean }) {
+  const [showUpi, setShowUpi] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const upiId = "8639938484-k29b@ybl";
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(upiId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* fallback */ }
+  };
+
+  // Generate QR code as SVG using a simple encoding approach
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=Anil%20Jampala&tn=Support%20SponsorTrack&cu=INR`)}&bgcolor=ffffff&color=000000`;
+
+  return (
+    <>
       <div className="border border-sand-200 rounded-xl p-4 mt-1" style={{ background: "var(--surface-card)" }}>
         <div className="text-center">
           <div className="text-sm font-semibold text-sand-800 mb-1">Built for the sponsorship community</div>
           <p className="text-[11px] text-sand-500 mb-3 leading-relaxed">
             SponsorTrack is free and always will be. If it helped ease your wait, consider supporting its development.
           </p>
-          <a
-            href="https://buymeacoffee.com/aniljampala"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm"
-            style={{ backgroundColor: "#FFDD00", color: "#1A1A18" }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-            Buy me a coffee
-          </a>
+          <div className={`flex ${isIndian ? "gap-2" : ""} justify-center`}>
+            <a
+              href="https://buymeacoffee.com/aniljampala"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm"
+              style={{ backgroundColor: "#FFDD00", color: "#1A1A18" }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+              Buy me a coffee
+            </a>
+            {isIndian && (
+              <button
+                onClick={() => setShowUpi(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm"
+                style={{ backgroundColor: "#5f259f", color: "#FFFFFF" }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                Pay via UPI
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* UPI QR Modal */}
+      {showUpi && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setShowUpi(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-xs rounded-2xl p-5 shadow-2xl"
+            style={{ background: "var(--surface-card)", border: "1px solid var(--surface-card-border)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => setShowUpi(false)} className="absolute top-3 right-3 text-sand-400 hover:text-sand-700">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+
+            <div className="text-center">
+              <div className="text-sm font-bold text-sand-900 mb-1">Support via UPI</div>
+              <p className="text-[10px] text-sand-500 mb-4">Scan QR with any UPI app</p>
+
+              {/* QR Code */}
+              <div className="bg-white rounded-xl p-3 inline-block mb-4">
+                <img src={qrUrl} alt="UPI QR Code" width={180} height={180} className="rounded-lg" />
+              </div>
+
+              {/* UPI ID + Copy */}
+              <div className="flex items-center gap-2 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 mb-3">
+                <span className="flex-1 text-xs font-mono text-sand-700 truncate">{upiId}</span>
+                <button
+                  onClick={handleCopy}
+                  className="flex-shrink-0 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all active:scale-[0.95]"
+                  style={{
+                    background: copied ? "#2D6A4F" : "#E8F5EC",
+                    color: copied ? "white" : "#2D6A4F",
+                  }}
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+
+              <p className="text-[9px] text-sand-400">Works with PhonePe, Google Pay, Paytm & all UPI apps</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
