@@ -491,7 +491,7 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
   const [copied, setCopied] = useState(false);
   const upiId = "8639938484-k29b@ybl";
   const upiLink = `upi://pay?pa=${upiId}&pn=Anil%20Jampala&tn=Support%20SponsorTrack&cu=INR`;
-  const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=200&margin=1`;
+  const qrUrl = "/upi-qr.png";
 
   const handleCopy = async () => {
     try {
@@ -561,7 +561,7 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
 
               {/* QR Code */}
               <div className="bg-white rounded-xl p-3 inline-block mb-4 shadow-sm">
-                <img src={qrUrl} alt="UPI QR Code" width={180} height={180} className="rounded-lg" style={{ imageRendering: "pixelated" }} />
+                <img src={qrUrl} alt="UPI QR Code" width={180} height={180} className="rounded-lg" />
               </div>
 
               {/* UPI ID + Copy */}
