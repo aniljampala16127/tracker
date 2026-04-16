@@ -502,10 +502,7 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
   };
 
   const handleUpiClick = () => {
-    // Try to open UPI app directly on mobile
-    window.location.href = upiLink;
-    // Show QR modal as fallback after a short delay (if app didn't open)
-    setTimeout(() => setShowUpi(true), 1500);
+    setShowUpi(true);
   };
 
   return (
@@ -542,11 +539,6 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
               </button>
             )}
           </div>
-          {isIndian && (
-            <button onClick={() => setShowUpi(true)} className="text-[10px] text-sand-400 mt-2 hover:text-sand-600 transition-colors">
-              or scan QR code
-            </button>
-          )}
         </div>
       </div>
 
@@ -587,16 +579,7 @@ function SupportCard({ isIndian }: { isIndian: boolean }) {
                 </button>
               </div>
 
-              {/* Open UPI app button */}
-              <a
-                href={upiLink}
-                className="block w-full px-4 py-2.5 rounded-xl text-xs font-bold text-center transition-all active:scale-[0.98] mb-2"
-                style={{ background: "#2D6A4F", color: "white" }}
-              >
-                Open UPI App
-              </a>
-
-              <p className="text-[9px] text-sand-400">PhonePe · Google Pay · Paytm · any UPI app</p>
+              <p className="text-[9px] text-sand-400">Scan with PhonePe · Google Pay · Paytm · any UPI app</p>
             </div>
           </div>
         </div>
