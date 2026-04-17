@@ -91,14 +91,31 @@ export default function StatsPage() {
       const stepGlobalIdx = idx + 1;
       const isPostAor = stepGlobalIdx > aorIdx;
 
+      // Determine the label suffix based on what the step is measured from
+      let fromLabel = "";
+      if (step.id === "aor") fromLabel = "";
+      else if (step.id === "biometrics_given") fromLabel = " (from BIL)";
+      else if (step.id === "biometrics_done") fromLabel = " (from Bio Given)";
+      else if (step.id === "medicals_attended") fromLabel = " (from Med Req)";
+      else if (step.id === "medical_passed") fromLabel = " (from Med Attended)";
+      else if (isPostAor) fromLabel = " (from AOR)";
+
       apps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
         if (!s[step.id]) return;
 
-        // AOR: from submitted. Post-AOR: from AOR
+        // Each step measured from its logical trigger
         let baseDate: string | null = null;
         if (step.id === "aor") {
           baseDate = s.submitted || null;
+        } else if (step.id === "biometrics_given") {
+          baseDate = s.bil || null;
+        } else if (step.id === "biometrics_done") {
+          baseDate = s.biometrics_given || s.bil || null;
+        } else if (step.id === "medicals_attended") {
+          baseDate = s.medical || null;
+        } else if (step.id === "medical_passed") {
+          baseDate = s.medicals_attended || s.medical || null;
         } else if (isPostAor) {
           baseDate = s.aor || null;
         } else {
@@ -114,7 +131,7 @@ export default function StatsPage() {
 
       return {
         step: step.shortLabel,
-        fullLabel: step.label + (isPostAor ? " (from AOR)" : ""),
+        fullLabel: step.label + fromLabel,
         outland: outlandDays.length ? Math.round(outlandDays.reduce((a, b) => a + b, 0) / outlandDays.length) : null,
         inland: inlandDays.length ? Math.round(inlandDays.reduce((a, b) => a + b, 0) / inlandDays.length) : null,
         outlandReports: outlandDays.length,

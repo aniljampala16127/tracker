@@ -64,6 +64,14 @@ export default function CountryPageClient({ slug, country }: { slug: string; cou
         let baseDate: string | null = null;
         if (step.id === "aor") {
           baseDate = s.submitted || null;
+        } else if (step.id === "biometrics_given") {
+          baseDate = s.bil || null;
+        } else if (step.id === "biometrics_done") {
+          baseDate = s.biometrics_given || s.bil || null;
+        } else if (step.id === "medicals_attended") {
+          baseDate = s.medical || null;
+        } else if (step.id === "medical_passed") {
+          baseDate = s.medicals_attended || s.medical || null;
         } else if (isPostAor) {
           baseDate = s.aor || null;
         } else {
@@ -71,8 +79,17 @@ export default function CountryPageClient({ slug, country }: { slug: string; cou
         }
         if (baseDate) diffs.push(daysBetween(baseDate, s[step.id]!));
       });
+
+      let fromLabel = "";
+      if (step.id === "aor") fromLabel = "";
+      else if (step.id === "biometrics_given") fromLabel = " (from BIL)";
+      else if (step.id === "biometrics_done") fromLabel = " (from Bio Given)";
+      else if (step.id === "medicals_attended") fromLabel = " (from Med Req)";
+      else if (step.id === "medical_passed") fromLabel = " (from Med Attended)";
+      else if (isPostAor) fromLabel = " (from AOR)";
+
       stepAvgs.push({
-        step: step.label + (isPostAor ? " (from AOR)" : ""),
+        step: step.label + fromLabel,
         avg: diffs.length ? Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length) : null,
         count: diffs.length,
       });

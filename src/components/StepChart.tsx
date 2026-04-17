@@ -36,10 +36,18 @@ export function StepChart({ apps }: StepChartProps) {
         const s = buildStepsMap(a.step_events || []);
         if (!s[step.id]) return;
 
-        // AOR: from submitted. Post-AOR: from AOR
+        // Each step measured from its logical trigger
         let baseDate: string | null = null;
         if (step.id === "aor") {
           baseDate = s.submitted || null;
+        } else if (step.id === "biometrics_given") {
+          baseDate = s.bil || null;
+        } else if (step.id === "biometrics_done") {
+          baseDate = s.biometrics_given || s.bil || null;
+        } else if (step.id === "medicals_attended") {
+          baseDate = s.medical || null;
+        } else if (step.id === "medical_passed") {
+          baseDate = s.medicals_attended || s.medical || null;
         } else if (isPostAor) {
           baseDate = s.aor || null;
         } else {
