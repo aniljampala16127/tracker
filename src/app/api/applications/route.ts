@@ -10,6 +10,49 @@ function getSupabase() {
   );
 }
 
+// ============================================
+// Spam guards (in-memory, resets on cold start)
+// Good enough for casual abuse + double-click protection.
+// For durable limits, move to Upstash/Vercel KV or a DB table.
+// ============================================
+const recentSubmits: Record<string, number> = {};
+const ipSubmits: Record<string, { count: number; resetAt: number }> = {};
+
+const DEDUP_WINDOW_MS = 10 * 60 * 1000;      // 10 min
+const IP_WINDOW_MS = 60 * 60 * 1000;         // 1 hour
+const IP_MAX_SUBMITS = 5;                    // 5 new entries per IP per hour
+
+function isDuplicateSubmit(fingerprint: string): boolean {
+  const now = Date.now();
+  // Opportunistic cleanup to keep the map small
+  for (const k of Object.keys(recentSubmits)) {
+    if (now - recentSubmits[k] > DEDUP_WINDOW_MS) delete recentSubmits[k];
+  }
+  const last = recentSubmits[fingerprint];
+  if (last && now - last < DEDUP_WINDOW_MS) return true;
+  recentSubmits[fingerprint] = now;
+  return false;
+}
+
+function isIpRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = ipSubmits[ip];
+  if (!entry || now > entry.resetAt) {
+    ipSubmits[ip] = { count: 1, resetAt: now + IP_WINDOW_MS };
+    return false;
+  }
+  entry.count++;
+  return entry.count > IP_MAX_SUBMITS;
+}
+
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
 export async function GET() {
   const supabase = getSupabase();
   const { data, error } = await supabase
@@ -53,6 +96,30 @@ export async function POST(request: Request) {
 
   if (!pin_hash) {
     return NextResponse.json({ error: "PIN is required" }, { status: 400 });
+  }
+
+  // --- Spam guard 1: IP rate limit ---
+  const ip = getClientIp(request);
+  if (isIpRateLimited(ip)) {
+    return NextResponse.json(
+      { error: "Too many submissions from this network. Try again in an hour." },
+      { status: 429 }
+    );
+  }
+
+  // --- Spam guard 2: Fingerprint dedup (catches double-clicks and rapid resubmits) ---
+  const fingerprint = [
+    String(initials).trim().toLowerCase(),
+    country_origin,
+    stream,
+    sponsor_status,
+    submitted_date,
+  ].join("|");
+  if (isDuplicateSubmit(fingerprint)) {
+    return NextResponse.json(
+      { error: "Looks like you just submitted this. If it didn't appear, refresh and check." },
+      { status: 409 }
+    );
   }
 
   // Ensure PIN is unique across all entries
