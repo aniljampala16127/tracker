@@ -86,38 +86,38 @@ function StreamCard({ insight, color }: { insight: StreamInsight; color: "brand"
     : 0;
 
   const colorClasses = color === "brand"
-    ? { badge: "bg-brand-100 text-brand-700", bar: "bg-brand-500", light: "bg-brand-50 border-brand-100" }
-    : { badge: "bg-warn-light text-warn-dark", bar: "bg-warn", light: "bg-warn-light/50 border-warn/20" };
+    ? { badge: "bg-brand-500/15 text-brand-700", bar: "bg-brand-500", light: "bg-brand-500/[0.06] border-brand-500/20" }
+    : { badge: "bg-warn/15 text-warn-dark", bar: "bg-warn", light: "bg-warn/10 border-warn/25" };
 
   return (
-    <div className={`mb-3 last:mb-0`}>
+    <div className={`mb-4 last:mb-0 nums-tabular`}>
       <div className="flex items-center gap-2 mb-2">
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${colorClasses.badge}`}>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${colorClasses.badge}`}>
           {insight.stream}
         </span>
         <span className="text-[11px] text-sand-500">
-          {insight.totalWithAor} of {insight.totalEntries} got AOR ({pct}%)
+          <span className="font-bold text-sand-700">{insight.totalWithAor}</span> of {insight.totalEntries} got AOR · <span className="font-bold">{pct}%</span>
         </span>
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 bg-sand-100 rounded-full mb-2 overflow-hidden">
+      <div className="h-2 bg-sand-100 rounded-full mb-3 overflow-hidden">
         <div className={`h-full rounded-full ${colorClasses.bar} transition-all`} style={{ width: `${pct}%` }} />
       </div>
 
       {/* Insight cards */}
       <div className="grid grid-cols-2 gap-2">
-        <div className={`rounded-lg border p-2.5 ${colorClasses.light}`}>
-          <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider">AORs up to</div>
-          <div className="text-sm font-bold text-sand-900">
+        <div className={`rounded-lg border p-3 ${colorClasses.light}`}>
+          <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">AORs up to</div>
+          <div className="text-[13px] font-bold text-sand-900">
             {insight.latestAorSubDate ? `${fmt(insight.latestAorSubDate)} sub` : "—"}
           </div>
         </div>
-        <div className={`rounded-lg border p-2.5 ${colorClasses.light}`}>
-          <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider">Next expected</div>
-          <div className="text-sm font-bold text-sand-900">
+        <div className={`rounded-lg border p-3 ${colorClasses.light}`}>
+          <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Next expected</div>
+          <div className="text-[13px] font-bold text-sand-900">
             {insight.nextWaveDate
-              ? `${fmt(insight.nextWaveDate)} (${insight.nextWaveCount} waiting)`
+              ? <>{fmt(insight.nextWaveDate)} <span className="text-sand-500 font-medium">({insight.nextWaveCount} waiting)</span></>
               : "—"}
           </div>
         </div>
