@@ -283,7 +283,65 @@ function isDescendant(comment: Comment, rootId: string, allComments: Comment[]):
   return false;
 }
 
+// ─────────────────────────────────────────────────────────────
+// Reddit-style helpers
+// ─────────────────────────────────────────────────────────────
+
+function initialsOf(name: string): string {
+  if (!name) return "?";
+  const cleaned = name.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+  if (!cleaned) return "?";
+  const parts = cleaned.split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Stable 0–360 hue from a string — keeps avatars consistent per author. */
+function hashHue(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0xffffffff;
+  return Math.abs(h) % 360;
+}
+
+function Avatar({ name, size = 28, you = false, op = false }: { name: string; size?: number; you?: boolean; op?: boolean }) {
+  // "you" → brand fill. "OP" → warm gold fill. Otherwise stable-hashed pastel.
+  let bg: string, fg: string, ring = "";
+  if (you) { bg = "var(--brand-500)"; fg = "#fff"; ring = "ring-2 ring-brand-200"; }
+  else if (op) { bg = "var(--warn)"; fg = "#fff"; }
+  else {
+    const hue = hashHue(name);
+    bg = `hsl(${hue} 38% 92%)`;
+    fg = `hsl(${hue} 45% 30%)`;
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex items-center justify-center rounded-full flex-shrink-0 font-bold ${ring}`}
+      style={{ width: size, height: size, background: bg, color: fg, fontSize: Math.round(size * 0.42) }}
+    >
+      {initialsOf(name)}
+    </span>
+  );
+}
+
+function AuthorTag({ kind }: { kind: "OP" | "YOU" }) {
+  const isOp = kind === "OP";
+  return (
+    <span
+      className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none tracking-wider ${
+        isOp ? "bg-warn/15 text-warn-dark" : "bg-brand-500 text-white"
+      }`}
+    >
+      {kind}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Reddit-style thread card
+// Root = the "post" with its own header and a prominent meta row.
+// Children = nested CommentNode rows with a collapsible depth rail.
+// ─────────────────────────────────────────────────────────────
 function ThreadCard({ thread, myPinHash, onRefresh, lastSeen }: {
   thread: ThreadData;
   myPinHash: string | null;
@@ -291,70 +349,149 @@ function ThreadCard({ thread, myPinHash, onRefresh, lastSeen }: {
   lastSeen: string;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const { root, allComments, label, totalReplies } = thread;
+  const { root, allComments, totalReplies } = thread;
 
   const isRootNew = root.created_at > lastSeen;
   const newRepliesCount = allComments.filter(c => c.id !== root.id && c.created_at > lastSeen).length;
   const hasUnread = isRootNew || newRepliesCount > 0;
+  const isMine = root.pin_hash === myPinHash;
 
   return (
-    <div className={`bg-white border rounded-xl overflow-hidden ${hasUnread ? "border-brand-400 border-l-[3px]" : "border-sand-200"}`}>
-      {/* Header — always visible */}
-      <button onClick={() => setExpanded(!expanded)}
-        className="w-full px-4 py-3 text-left active:bg-sand-50/50 transition-colors">
-        <div className="flex items-center gap-2 mb-1">
-          {isRootNew && (
-            <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-error text-white leading-none">NEW</span>
-          )}
-          {!isRootNew && newRepliesCount > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-brand-500 text-white leading-none">{newRepliesCount} new</span>
-          )}
-          <span className="text-[9px] text-sand-400 ml-auto flex items-center gap-2">
-            {totalReplies > 0 && (
-              <span className="flex items-center gap-0.5 text-brand-500 font-semibold">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                {totalReplies}
-              </span>
-            )}
-            {timeAgo(root.created_at)}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-              className="text-sand-300 transition-transform duration-300"
-              style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
-              <path d="M6 9L12 15L18 9" />
-            </svg>
-          </span>
+    <div
+      className={`bg-white border rounded-xl overflow-hidden transition-shadow ${
+        hasUnread
+          ? "border-brand-300 border-l-[3px] shadow-[0_1px_2px_rgba(45,106,79,0.06)]"
+          : "border-sand-200"
+      }`}
+    >
+      {/* ─── POST header ─────────────────────────── */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={`w-full px-4 pt-3 pb-2.5 text-left transition-colors ${
+          isRootNew ? "bg-brand-50/60 hover:bg-brand-50" : "hover:bg-sand-50/50"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          <Avatar name={root.author_name} size={32} you={isMine} op />
+          <div className="flex-1 min-w-0">
+            {/* meta row */}
+            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+              <span className="text-[12px] font-bold text-sand-900 truncate">{root.author_name}</span>
+              {isMine && <AuthorTag kind="YOU" />}
+              <span className="text-[10px] text-sand-400">·</span>
+              <span className="text-[10px] text-sand-500 nums-tabular">{timeAgo(root.created_at)}</span>
+              {isRootNew && (
+                <span className="ml-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-error text-white leading-none tracking-wider">NEW</span>
+              )}
+              {!isRootNew && newRepliesCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-brand-500 text-white leading-none nums-tabular">
+                  {newRepliesCount} new
+                </span>
+              )}
+            </div>
+            {/* post body */}
+            <p
+              className={`text-[14px] text-sand-800 leading-relaxed whitespace-pre-wrap ${
+                expanded ? "" : "line-clamp-3"
+              }`}
+            >
+              {root.text}
+            </p>
+          </div>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            className="text-sand-300 transition-transform duration-300 mt-1 flex-shrink-0"
+            style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
+          >
+            <path d="M6 9L12 15L18 9" />
+          </svg>
         </div>
-        <div>
-          <span className="text-[11px] font-semibold text-brand-600">{root.author_name}</span>
-          <p className={`text-[13px] text-sand-800 leading-snug mt-0.5 ${expanded ? "" : "line-clamp-2"}`}>{root.text}</p>
+
+        {/* meta footer — reddit-style action bar */}
+        <div className="flex items-center gap-3 mt-2 pl-[44px] text-[11px] text-sand-500">
+          <span className="inline-flex items-center gap-1 font-semibold">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+            <span className="nums-tabular">{totalReplies}</span>
+            <span className="text-sand-400">{totalReplies === 1 ? "reply" : "replies"}</span>
+          </span>
+          <span className="text-sand-400">{expanded ? "Hide thread" : "View thread"}</span>
         </div>
       </button>
 
-      {/* Expanded — nested replies */}
-      <div style={{
-        maxHeight: expanded ? "5000px" : "0px",
-        overflow: "hidden",
-        transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}>
-        <div style={{ opacity: expanded ? 1 : 0, transition: "opacity 0.2s ease", transitionDelay: expanded ? "0.1s" : "0s" }}>
-          {/* Root reply action */}
-          <div className="px-4 pb-1">
+      {/* ─── POST body expanded (replies) ─────────────── */}
+      <div
+        style={{
+          maxHeight: expanded ? "8000px" : "0px",
+          overflow: "hidden",
+          transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        <div
+          style={{
+            opacity: expanded ? 1 : 0,
+            transition: "opacity 0.2s ease",
+            transitionDelay: expanded ? "0.1s" : "0s",
+          }}
+          className="border-t border-sand-100"
+        >
+          {/* "X new since your last visit" sticky banner */}
+          {newRepliesCount > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-brand-50 border-b border-brand-100 text-[11px] font-semibold text-brand-700">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-60 animate-ping" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
+              </span>
+              <span>
+                <span className="nums-tabular">{newRepliesCount}</span> new {newRepliesCount === 1 ? "reply" : "replies"} since your last visit
+              </span>
+            </div>
+          )}
+
+          {/* Root reply box */}
+          <div className="px-4 pt-3">
             <ReplyInput parentId={root.id} comment={root} myPinHash={myPinHash} onRefresh={onRefresh} />
           </div>
 
-          {/* Nested replies — Reddit style */}
-          <div className="px-4 pb-3">
-            <CommentTree comments={allComments} parentId={root.id} depth={0} myPinHash={myPinHash} onRefresh={onRefresh} lastSeen={lastSeen} />
-          </div>
+          {/* Nested replies — Reddit-style tree */}
+          {totalReplies > 0 ? (
+            <div className="px-3 pt-2 pb-3">
+              <CommentTree
+                comments={allComments}
+                parentId={root.id}
+                depth={0}
+                opPinHash={root.pin_hash}
+                myPinHash={myPinHash}
+                onRefresh={onRefresh}
+                lastSeen={lastSeen}
+              />
+            </div>
+          ) : (
+            <div className="px-4 pb-4 pt-2 text-[12px] text-sand-400 italic">
+              No replies yet — be the first.
+            </div>
+          )}
 
           {/* Delete root */}
-          {root.pin_hash === myPinHash && (
-            <div className="px-4 pb-3">
-              <button onClick={async (e) => {
-                e.stopPropagation();
-                await fetch(`/api/comments?id=${root.id}&pin_hash=${myPinHash}`, { method: "DELETE" });
-                onRefresh();
-              }} className="text-[9px] text-sand-400 hover:text-error font-medium">Delete post</button>
+          {isMine && (
+            <div className="px-4 pb-3 pt-1 border-t border-sand-100">
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await fetch(`/api/comments?id=${root.id}&pin_hash=${myPinHash}`, { method: "DELETE" });
+                  onRefresh();
+                }}
+                className="text-[10px] text-sand-400 hover:text-error font-semibold uppercase tracking-wider"
+              >
+                Delete post
+              </button>
             </div>
           )}
         </div>
@@ -363,42 +500,179 @@ function ThreadCard({ thread, myPinHash, onRefresh, lastSeen }: {
   );
 }
 
-// Recursive comment tree — Reddit-style nesting
-function CommentTree({ comments, parentId, depth, myPinHash, onRefresh, lastSeen }: {
-  comments: Comment[]; parentId: string; depth: number;
-  myPinHash: string | null; onRefresh: () => void; lastSeen: string;
+// ─────────────────────────────────────────────────────────────
+// Recursive comment tree — Reddit-style with collapsible rail.
+// Each row: depth rail (click to collapse) | avatar | header / body / actions
+// ─────────────────────────────────────────────────────────────
+function CommentTree({ comments, parentId, depth, opPinHash, myPinHash, onRefresh, lastSeen }: {
+  comments: Comment[];
+  parentId: string;
+  depth: number;
+  opPinHash: string;
+  myPinHash: string | null;
+  onRefresh: () => void;
+  lastSeen: string;
 }) {
-  const children = comments.filter(c => c.parent_id === parentId).sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const children = comments
+    .filter(c => c.parent_id === parentId)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+
   if (children.length === 0) return null;
 
   return (
-    <div className={depth > 0 ? "mt-1" : "mt-1"}>
-      {children.map(c => {
-        const isNew = c.created_at > lastSeen;
-        return (
-        <div key={c.id} className={`${depth > 0 ? "ml-3 pl-3 border-l-2" : ""} ${isNew && depth > 0 ? "border-brand-400" : depth > 0 ? "border-sand-200" : ""}`}>
-          <div className={`py-1.5 ${isNew ? "bg-brand-50/50 -mx-1.5 px-1.5 rounded-md" : ""}`}>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[10px] font-semibold text-sand-700">{c.author_name}</span>
-              <span className="text-[9px] text-sand-400">{timeAgo(c.created_at)}</span>
-              {isNew && <span className="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0" />}
-              {c.pin_hash === myPinHash && (
-                <button onClick={async () => {
-                  await fetch(`/api/comments?id=${c.id}&pin_hash=${myPinHash}`, { method: "DELETE" });
-                  onRefresh();
-                }} className="text-[9px] text-sand-400 hover:text-error font-medium ml-auto">delete</button>
-              )}
-            </div>
-            <p className="text-xs text-sand-700 leading-relaxed">{c.text}</p>
-            {depth < 4 && (
-              <ReplyInput parentId={c.id} comment={c} myPinHash={myPinHash} onRefresh={onRefresh} compact />
+    <div className="space-y-1">
+      {children.map(c => (
+        <CommentNode
+          key={c.id}
+          comment={c}
+          allComments={comments}
+          depth={depth}
+          opPinHash={opPinHash}
+          myPinHash={myPinHash}
+          onRefresh={onRefresh}
+          lastSeen={lastSeen}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CommentNode({ comment: c, allComments, depth, opPinHash, myPinHash, onRefresh, lastSeen }: {
+  comment: Comment;
+  allComments: Comment[];
+  depth: number;
+  opPinHash: string;
+  myPinHash: string | null;
+  onRefresh: () => void;
+  lastSeen: string;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const isNew = c.created_at > lastSeen;
+  const isMine = c.pin_hash === myPinHash;
+  const isOp = c.pin_hash === opPinHash;
+
+  // count descendants for collapsed-state summary
+  const childCount = useMemo(() => {
+    let n = 0;
+    const stack = [c.id];
+    while (stack.length) {
+      const id = stack.pop()!;
+      allComments.forEach(x => {
+        if (x.parent_id === id) { n++; stack.push(x.id); }
+      });
+    }
+    return n;
+  }, [c.id, allComments]);
+
+  const hasChildren = childCount > 0;
+
+  // Are there unread descendants? Used to keep the rail bright even if this
+  // comment itself is read but contains unread children below.
+  const hasUnreadDescendant = useMemo(
+    () => allComments.some(x => x.parent_id !== null && x.created_at > lastSeen && isDescendant(x, c.id, allComments)),
+    [c.id, allComments, lastSeen]
+  );
+  const railHot = isNew || hasUnreadDescendant;
+
+  return (
+    <div className="flex gap-2">
+      {/* ─── Depth rail (clickable to collapse) ──────── */}
+      <button
+        type="button"
+        aria-label={collapsed ? "Expand thread" : "Collapse thread"}
+        onClick={(e) => { e.stopPropagation(); setCollapsed(v => !v); }}
+        className="group flex-shrink-0 flex justify-center pt-1.5"
+        style={{ width: 14 }}
+      >
+        <span
+          className={`block h-full rounded-full transition-all ${
+            railHot
+              ? "w-[3px] bg-brand-500 group-hover:bg-brand-600 shadow-[0_0_4px_rgba(45,106,79,0.35)]"
+              : "w-[2px] bg-sand-200 group-hover:bg-sand-400"
+          }`}
+        />
+      </button>
+
+      <div className="flex-1 min-w-0">
+        {/* ─── Comment block — solid tinted background when unread ─── */}
+        <div className={`rounded-lg transition-colors ${
+          isNew
+            ? "bg-brand-50 ring-1 ring-brand-200 -mx-2 px-2 py-1.5"
+            : "py-0.5"
+        }`}>
+          {/* Header row */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Avatar name={c.author_name} size={20} you={isMine} op={isOp && !isMine} />
+            <span className="text-[12px] font-bold text-sand-900">{c.author_name}</span>
+            {isOp && <AuthorTag kind="OP" />}
+            {isMine && <AuthorTag kind="YOU" />}
+            {isNew && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-brand-500 text-white leading-none tracking-wider uppercase">
+                <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
+                New
+              </span>
+            )}
+            <span className="text-[10px] text-sand-400">·</span>
+            <span className="text-[10px] text-sand-500 nums-tabular">{timeAgo(c.created_at)}</span>
+            {hasChildren && (
+              <button
+                onClick={() => setCollapsed(v => !v)}
+                className="ml-auto text-[10px] text-sand-400 hover:text-brand-600 font-semibold nums-tabular"
+              >
+                {collapsed ? `[+] ${childCount} ${childCount === 1 ? "reply" : "replies"}` : "[–]"}
+              </button>
             )}
           </div>
-          {/* Recurse into children */}
-          <CommentTree comments={comments} parentId={c.id} depth={depth + 1} myPinHash={myPinHash} onRefresh={onRefresh} lastSeen={lastSeen} />
+
+          {/* Body + actions (hidden when collapsed) */}
+          {!collapsed && (
+            <div className="pl-[26px]">
+              <p className="text-[13px] text-sand-800 leading-relaxed whitespace-pre-wrap mt-0.5">
+                {c.text}
+              </p>
+
+              {/* action row */}
+              <div className="flex items-center gap-3 mt-1 text-[10px] font-semibold flex-wrap">
+                {depth < 4 && (
+                  <ReplyInput
+                    parentId={c.id}
+                    comment={c}
+                    myPinHash={myPinHash}
+                    onRefresh={onRefresh}
+                    compact
+                  />
+                )}
+                {isMine && (
+                  <button
+                    onClick={async () => {
+                      await fetch(`/api/comments?id=${c.id}&pin_hash=${myPinHash}`, { method: "DELETE" });
+                      onRefresh();
+                    }}
+                    className="text-sand-400 hover:text-error uppercase tracking-wider"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-        );
-      })}
+
+        {/* Recurse — sits outside the tinted block so descendants get their own treatment */}
+        {!collapsed && (
+          <div className="mt-1 pl-[26px]">
+            <CommentTree
+              comments={allComments}
+              parentId={c.id}
+              depth={depth + 1}
+              opPinHash={opPinHash}
+              myPinHash={myPinHash}
+              onRefresh={onRefresh}
+              lastSeen={lastSeen}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -433,32 +707,52 @@ function ReplyInput({ parentId, comment, myPinHash, onRefresh, compact }: {
   };
 
   if (!open) {
+    // In compact mode (inside a CommentNode action row), render as a plain
+    // inline link so it sits flush with sibling "Delete" / metadata.
+    if (compact) {
+      return (
+        <button
+          onClick={() => setOpen(true)}
+          className="text-sand-500 hover:text-brand-600 uppercase tracking-wider text-[10px] font-semibold"
+        >
+          Reply
+        </button>
+      );
+    }
+    // Root reply box (under a post header) — bigger, primary affordance.
     return (
-      <button onClick={() => setOpen(true)}
-        className={`text-[10px] text-brand-500 font-medium hover:underline ${compact ? "mt-0.5" : "mt-1"}`}>
-        Reply
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full px-3 py-2.5 rounded-lg border border-sand-200 bg-sand-50 hover:bg-white hover:border-brand-300 text-left text-[12px] text-sand-500 transition-colors"
+      >
+        Reply to this post…
       </button>
     );
   }
 
   return (
-    <div className={`${compact ? "mt-1" : "mt-2"}`}>
+    <div className={`${compact ? "mt-1 w-full" : "mt-1"}`}>
       <div className="flex gap-1.5">
         <input value={text} onChange={(e) => setText(e.target.value.slice(0, 500))}
           onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(); }}
-          placeholder="Write a reply..." autoFocus
-          className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-sand-200 bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+          placeholder="Write a reply…" autoFocus
+          className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
         <button onClick={handlePost} disabled={!text.trim() || posting}
-          className="px-2.5 py-1.5 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">
-          {posting ? "..." : "Reply"}
+          className="px-3 py-1.5 bg-brand-500 text-white text-[11px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98] hover:bg-brand-600">
+          {posting ? "…" : "Reply"}
         </button>
-        <button onClick={() => { setOpen(false); setText(""); }}
-          className="text-[10px] text-sand-400 px-1">x</button>
+        <button
+          onClick={() => { setOpen(false); setText(""); }}
+          className="px-2 text-sand-400 hover:text-sand-700 text-sm"
+          aria-label="Cancel reply"
+        >
+          ×
+        </button>
       </div>
-      <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
+      <label className="flex items-center gap-1.5 mt-1 cursor-pointer w-fit">
         <input type="checkbox" checked={anon} onChange={(e) => setAnon(e.target.checked)}
           className="w-3 h-3 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
-        <span className="text-[9px] text-sand-400">Anonymous</span>
+        <span className="text-[10px] text-sand-500">Post anonymously</span>
       </label>
     </div>
   );

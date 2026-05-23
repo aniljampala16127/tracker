@@ -165,6 +165,62 @@ body {
 
 .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
+/* ─── Design-system display helpers ──────────────────────────
+   Reusable type + layout primitives lifted from the design
+   system spec (see design-system/colors_and_type.css).        */
+
+/* Tabular numbers — for stat cards, tables, countdowns */
+.nums-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* The "eyebrow" label that appears across the product:
+   ALL-CAPS, tight tracking, muted color */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sand-500);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.eyebrow-xs {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sand-400);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Warm sand/brand corner glow — used behind heroes + welcome bands.
+   Almost invisible, adds warmth without drama (per design system). */
+.hero-glow {
+  position: relative;
+  isolation: isolate;
+}
+.hero-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 80% at 12% 0%, rgba(45,106,79,0.07), transparent 70%),
+    radial-gradient(50% 70% at 100% 100%, rgba(212,160,60,0.07), transparent 70%);
+}
+
+/* Tile gradient for the bottom CTA — brand to brand-dark with
+   a subtle warm corner so it doesn't read as flat fill. */
+.tile-brand {
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(212,160,60,0.18), transparent 60%),
+    linear-gradient(135deg, var(--brand-500) 0%, var(--brand-700) 100%);
+}
+
+/* Soft inner divider for stacked rows in a card */
+.row-divide > * + * { border-top: 1px solid var(--sand-100); }
+.dark .row-divide > * + * { border-top-color: var(--sand-200); }
+
 * { -webkit-tap-highlight-color: transparent; }
 a, button { touch-action: manipulation; }
 

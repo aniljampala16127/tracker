@@ -134,10 +134,10 @@ function DesktopTabs({ pathname, unreadCount }: { pathname: string; unreadCount:
   }, [activeIdx]);
 
   return (
-    <nav ref={containerRef} className="hidden sm:flex items-center gap-0.5 bg-sand-50 rounded-lg p-0.5 border border-sand-200 relative">
+    <nav ref={containerRef} className="hidden sm:flex items-center gap-0.5 bg-sand-50 rounded-xl p-1 border border-sand-200 relative shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
       {/* Sliding pill */}
       <div
-        className="absolute top-0.5 h-[calc(100%-4px)] bg-brand-500 rounded-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+        className="absolute top-1 h-[calc(100%-8px)] bg-brand-500 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0 shadow-[0_2px_8px_rgba(45,106,79,0.25)]"
         style={{ left: `${pill.left}px`, width: `${pill.width}px`, opacity: activeIdx >= 0 ? 1 : 0 }}
       />
       {DESKTOP_NAV.map((item) => {
@@ -150,14 +150,17 @@ function DesktopTabs({ pathname, unreadCount }: { pathname: string; unreadCount:
             onClick={() => window.scrollTo(0, 0)}
             data-tab
             className={cn(
-              "relative z-10 flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors duration-200",
+              "relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors duration-200",
               active ? "text-white" : "text-sand-500 hover:text-sand-800"
             )}
           >
-            <item.icon size={13} />
+            <item.icon size={14} />
             <span>{item.label}</span>
             {item.href === "/community" && unreadCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-error text-white text-[8px] font-bold flex items-center justify-center leading-none">
+              <span className={cn(
+                "w-4 h-4 rounded-full text-[8px] font-bold flex items-center justify-center leading-none",
+                active ? "bg-white text-brand-600" : "bg-error text-white"
+              )}>
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -325,22 +328,45 @@ export function Nav() {
 
   return (
     <>
-      <header className="bg-white border-b border-sand-200 sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 h-12 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="font-bold text-sm text-sand-900">
+      <header className="bg-white/85 backdrop-blur-md border-b border-sand-200 sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+          <Link href="/dashboard" className="flex items-center gap-2 group">
+            <BrandMark />
+            <span className="font-bold text-[15px] tracking-tight text-sand-900 group-hover:text-brand-600 transition-colors">
               SponsorTrack
             </span>
           </Link>
           <DesktopTabs pathname={pathname} unreadCount={unreadCount} />
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <ThemeToggle />
             <ActivityPanel />
-            
           </div>
         </div>
       </header>
       <MobileBottomNav pathname={pathname} unreadCount={unreadCount} />
     </>
+  );
+}
+
+/** Small inline brand mark — three progressing dots crossed by a gold arrow,
+ *  echoing assets/sponsortrack-icon.svg at chrome scale. */
+function BrandMark() {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex items-center justify-center w-7 h-7 rounded-[8px] bg-brand-500 shadow-[0_2px_6px_rgba(45,106,79,0.25)]"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        {/* progression dots, faint → bold */}
+        <circle cx="5" cy="12" r="1.8" fill="rgba(255,255,255,0.35)" />
+        <circle cx="12" cy="12" r="2.2" fill="rgba(255,255,255,0.65)" />
+        <circle cx="19" cy="12" r="2.6" fill="#FFFFFF" />
+        {/* gold arrow */}
+        <path d="M3 12 H21" stroke="#D4A03C" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M18 8.5 L21.5 12 L18 15.5" stroke="#D4A03C" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        {/* check on the last dot */}
+        <path d="M17.5 12 L18.6 13.1 L20.6 11" stroke="#2D6A4F" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </svg>
+    </span>
   );
 }
