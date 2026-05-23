@@ -272,6 +272,15 @@ export default function CalculatorPage() {
     bil: "aor",
     biometrics_given: "bil",
     biometrics_done: "biometrics_given",
+    // Each step's base = the step that immediately precedes it in the chain.
+    // The /me Timeline uses the same chained logic — keeping them in sync so
+    // "47d from BIL" on /me means the same thing as "47d from BIL" on
+    // /calculator. Without these entries, intermediate steps were falling
+    // back to the default "aor" and labelling incorrectly.
+    aor: "submitted",
+    bil: "aor",
+    biometrics_given: "bil",
+    biometrics_done: "biometrics_given",
     sponsor_eligibility: "aor",
     medical: "aor",
     medicals_attended: "medical",
@@ -343,6 +352,7 @@ export default function CalculatorPage() {
       return {
         id: step.id, label: step.label, shortLabel: step.shortLabel,
         estDate, actualDate, avgDays: avg, isIrccFallback, isFromAor,
+        baseStepId,
       };
     });
   }, [submittedDate, stepEstimates, myStepsMap]);
@@ -624,15 +634,25 @@ export default function CalculatorPage() {
                   const isNextStep = !!(myProgress && myProgress.nextStep && s.id === myProgress.nextStep.id);
                   const isPastEstimate = !isCompleted && !!s.estDate && new Date(s.estDate + "T00:00:00") <= new Date();
 
+                  // "X days from Y" — uses the same chained base map as /me
+                  // so labels are consistent across surfaces.
                   let daysFromBase: number | null = null;
                   let baseLabel = "";
                   if (isCompleted && s.actualDate && myStepsMap) {
-                    if (s.isFromAor && myStepsMap.aor) {
-                      daysFromBase = daysBetween(myStepsMap.aor, s.actualDate);
-                      baseLabel = "from AOR";
-                    } else if (s.id === "aor" && myStepsMap.submitted) {
-                      daysFromBase = daysBetween(myStepsMap.submitted, s.actualDate);
-                      baseLabel = "from sub";
+                    const baseDate = myStepsMap[s.baseStepId];
+                    if (baseDate) {
+                      daysFromBase = daysBetween(baseDate, s.actualDate);
+                      baseLabel = (
+                        s.baseStepId === "submitted" ? "from sub"
+                        : s.baseStepId === "aor" ? "from AOR"
+                        : s.baseStepId === "bil" ? "from BIL"
+                        : s.baseStepId === "biometrics_given" ? "from Bio Given"
+                        : s.baseStepId === "medical" ? "from Med Req"
+                        : s.baseStepId === "medicals_attended" ? "from Med Attended"
+                        : s.baseStepId === "portal1" ? "from Portal 1"
+                        : s.baseStepId === "ppr" ? "from PPR"
+                        : `from ${s.baseStepId}`
+                      );
                     }
                   }
 
@@ -660,12 +680,27 @@ export default function CalculatorPage() {
                     else if (s.avgDays != null) dateMeta = `~${s.avgDays}d typical`;
                   }
 
+                  // Sublabel for future/estimated steps — pull the same
+                  // "from X" phrasing used in the daysFromBase computation
+                  // above, derived from baseStepId.
+                  const fromLabel = (
+                    s.baseStepId === "submitted" ? "from submitted"
+                    : s.baseStepId === "aor" ? "from AOR"
+                    : s.baseStepId === "bil" ? "from BIL"
+                    : s.baseStepId === "biometrics_given" ? "from Bio Given"
+                    : s.baseStepId === "medical" ? "from Med Req"
+                    : s.baseStepId === "medicals_attended" ? "from Med Attended"
+                    : s.baseStepId === "portal1" ? "from Portal 1"
+                    : s.baseStepId === "ppr" ? "from PPR"
+                    : `from ${s.baseStepId}`
+                  );
+
                   // Left-hand sublabel under the step name
                   let sublabel: string | null = null;
                   if (state === "done" && daysFromBase != null) sublabel = `Took ${daysFromBase}d ${baseLabel}`;
                   else if (state === "next") sublabel = "Next up";
                   else if (state === "overdue") sublabel = "Past the typical window";
-                  else if (s.avgDays != null) sublabel = `~${s.avgDays}d ${s.isFromAor ? "from AOR" : "from submitted"}`;
+                  else if (s.avgDays != null) sublabel = `~${s.avgDays}d ${fromLabel}`;
 
                   return (
                     <TimelineRow
