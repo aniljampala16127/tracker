@@ -25,6 +25,18 @@ function monthLabel(key: string): string {
   return `${MO[parseInt(m) - 1]} ${y}`;
 }
 
+/** "2024-05" → "may-2024" — used for the subreddit-style r/<slug> pills. */
+function cohortSlug(key: string): string {
+  const [y, m] = key.split("-");
+  return `${MO[parseInt(m) - 1].toLowerCase()}-${y}`;
+}
+
+/** Derive YYYY-MM from a submitted-date string. */
+function monthKeyFromDate(submitted: string): string {
+  const d = new Date(submitted + "T00:00:00");
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function getMyPinHash(): string | null {
   if (typeof window === "undefined") return null;
   try {
@@ -46,6 +58,7 @@ interface ThreadData {
   root: Comment;
   allComments: Comment[]; // all comments in this thread (root + all descendants)
   label: string;
+  cohortKey: string | null; // raw "YYYY-MM" — null if no cohort
   totalReplies: number;
 }
 
@@ -101,38 +114,38 @@ export default function CommunityPage() {
     return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
   }, [apps]);
 
-  // Build threads
+  // Build threads — each carries a cohortKey ("YYYY-MM" or null) for the
+  // subreddit-style pill + the cohort filter strip.
   const threads: ThreadData[] = useMemo(() => {
     const result: ThreadData[] = [];
 
-    // Cohort threads
+    // Cohort-level threads — the cohort_month column on the comment row.
     const topCohort = cohortComments.filter(c => !c.parent_id);
     topCohort.forEach(root => {
       const allInThread = cohortComments.filter(c => c.id === root.id || isDescendant(c, root.id, cohortComments));
       result.push({
         root,
         allComments: allInThread,
-        label: root.cohort_month ? monthLabel(root.cohort_month) + " cohort" : "General",
+        label: root.cohort_month ? monthLabel(root.cohort_month) : "General",
+        cohortKey: root.cohort_month || null,
         totalReplies: allInThread.length - 1,
       });
     });
 
-    // Entry threads
+    // Entry-level threads — derive cohort from the parent app's submitted date.
     apps.forEach(app => {
       if (!app.comments || app.comments.length === 0) return;
       const s = buildStepsMap(app.step_events || []);
-      let cohort = "General";
-      if (s.submitted) {
-        const d = new Date(s.submitted + "T00:00:00");
-        cohort = monthLabel(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`) + " cohort";
-      }
+      const key = s.submitted ? monthKeyFromDate(s.submitted) : null;
+      const label = key ? monthLabel(key) : "General";
       const tops = app.comments.filter(c => !c.parent_id);
       tops.forEach(root => {
         const allInThread = app.comments!.filter(c => c.id === root.id || isDescendant(c, root.id, app.comments!));
         result.push({
           root,
           allComments: allInThread,
-          label: cohort,
+          label,
+          cohortKey: key,
           totalReplies: allInThread.length - 1,
         });
       });
@@ -142,15 +155,53 @@ export default function CommunityPage() {
     return result;
   }, [apps, cohortComments]);
 
+  // Auto-derive the user's own cohort from their app's submitted step.
+  // Used to skip the month picker when posting; null falls back to manual select.
+  const myCohortMonth: string | null = useMemo(() => {
+    if (!myPinHash) return null;
+    const mine = apps.filter(a => a.pin_hash === myPinHash);
+    if (mine.length === 0) return null;
+    // Pick the most-recently-submitted app's month (most relevant cohort for them now).
+    let best: string | null = null;
+    mine.forEach(a => {
+      const s = buildStepsMap(a.step_events || []);
+      if (!s.submitted) return;
+      if (!best || s.submitted > best) best = s.submitted;
+    });
+    return best ? monthKeyFromDate(best) : null;
+  }, [apps, myPinHash]);
+
+  // Cohort counts for the horizontal filter strip — derived from threads,
+  // not raw apps, so empty cohorts don't appear.
+  const cohortCounts: [string, number][] = useMemo(() => {
+    const m: Record<string, number> = {};
+    threads.forEach(t => {
+      if (!t.cohortKey) return;
+      m[t.cohortKey] = (m[t.cohortKey] || 0) + 1;
+    });
+    return Object.entries(m).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [threads]);
+
+  // Filter strip state — "" means "All cohorts".
+  const [selectedCohort, setSelectedCohort] = useState<string>("");
+  const visibleThreads = useMemo(
+    () => (selectedCohort ? threads.filter(t => t.cohortKey === selectedCohort) : threads),
+    [threads, selectedCohort]
+  );
+
   const totalComments = threads.reduce((s, t) => s + t.allComments.length, 0);
 
+  // Cohort the post will actually be filed under: explicit override wins,
+  // else auto-derive from the poster's submitted date.
+  const effectiveMonth = newQMonth || myCohortMonth || "";
+
   const handleNewQuestion = async () => {
-    if (!newQText.trim() || !newQMonth || !myPinHash) return;
+    if (!newQText.trim() || !effectiveMonth || !myPinHash) return;
     setPosting(true);
     await fetch("/api/comments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cohort_month: newQMonth, pin_hash: myPinHash, text: newQText.trim(), parent_id: null, anonymous }),
+      body: JSON.stringify({ cohort_month: effectiveMonth, pin_hash: myPinHash, text: newQText.trim(), parent_id: null, anonymous }),
     });
     setNewQText(""); setNewQMonth(""); setNewQ(false); setAnonymous(false); setPosting(false);
     fetchData();
@@ -168,9 +219,11 @@ export default function CommunityPage() {
   return (
     <PullToRefresh onRefresh={async () => { await fetchData(); }}>
     <div className="page-enter">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-sand-900">Community</h1>
-        <p className="text-xs text-sand-500 mt-0.5">{totalComments} {totalComments === 1 ? "comment" : "comments"} · Discuss by submission month</p>
+      <div className="mb-5">
+        <h1 className="text-2xl font-bold text-sand-900 tracking-tight">Community</h1>
+        <p className="text-xs text-sand-500 mt-0.5">
+          <span className="nums-tabular">{totalComments}</span> {totalComments === 1 ? "post" : "posts"} from applicants across every cohort.
+        </p>
       </div>
 
       {/* New Question */}
@@ -185,78 +238,94 @@ export default function CommunityPage() {
 
       {myPinHash && newQ && (
         <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
-          <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-3">New Question</div>
+          <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-[0.08em] mb-3">New question</div>
           <div className="space-y-2.5">
+            {/* Cohort: auto-derived from submitted date. Falls back to manual picker
+                when we can't derive (no submitted date) or user clicks "change". */}
+            <PostToCohortChip
+              cohortKey={effectiveMonth}
+              autoderived={!!myCohortMonth && !newQMonth}
+              months={months}
+              overrideValue={newQMonth}
+              onOverride={setNewQMonth}
+            />
             <div>
-              <label className="text-[10px] text-sand-500 font-medium mb-1 block">Submission Month</label>
-              <select value={newQMonth} onChange={(e) => setNewQMonth(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20">
-                <option value="">Select a month...</option>
-                {months.map(([key, count]) => (
-                  <option key={key} value={key}>{monthLabel(key)} ({count} entries)</option>
-                ))}
-              </select>
+              <textarea
+                value={newQText}
+                onChange={(e) => setNewQText(e.target.value.slice(0, 500))}
+                placeholder={effectiveMonth
+                  ? `What would you like to ask r/${cohortSlug(effectiveMonth)}?`
+                  : "What would you like to ask the community?"}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 resize-none"
+              />
+              <div className="text-[9px] text-sand-300 text-right nums-tabular">{newQText.length}/500</div>
             </div>
-            <div>
-              <textarea value={newQText} onChange={(e) => setNewQText(e.target.value.slice(0, 500))} placeholder="What would you like to ask this cohort?" rows={3}
-                className="w-full px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 resize-none" />
-              <div className="text-[9px] text-sand-300 text-right">{newQText.length}/500</div>
-            </div>
-            <label className="flex items-center gap-1.5 cursor-pointer">
+            <label className="flex items-center gap-1.5 cursor-pointer w-fit">
               <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="w-3.5 h-3.5 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
-              <span className="text-[10px] text-sand-400">Post anonymously</span>
+              <span className="text-[10px] text-sand-500">Post anonymously</span>
             </label>
             <div className="flex gap-2">
-              <button onClick={handleNewQuestion} disabled={!newQText.trim() || !newQMonth || posting} className="flex-1 py-2 bg-brand-500 text-white text-sm font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">{posting ? "Posting..." : "Post Question"}</button>
-              <button onClick={() => { setNewQ(false); setNewQText(""); setNewQMonth(""); setAnonymous(false); }} className="px-4 py-2 text-sm text-sand-500 rounded-lg border border-sand-200 hover:bg-sand-50">Cancel</button>
+              <button
+                onClick={handleNewQuestion}
+                disabled={!newQText.trim() || !effectiveMonth || posting}
+                className="flex-1 py-2 bg-brand-500 text-white text-sm font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98] hover:bg-brand-600"
+              >
+                {posting ? "Posting…" : "Post question"}
+              </button>
+              <button
+                onClick={() => { setNewQ(false); setNewQText(""); setNewQMonth(""); setAnonymous(false); }}
+                className="px-4 py-2 text-sm text-sand-500 rounded-lg border border-sand-200 hover:bg-sand-50"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Threads grouped by cohort */}
+      {/* Cohort filter strip — horizontal scroll of subreddit-style pills */}
+      {cohortCounts.length > 0 && (
+        <CohortFilterStrip
+          cohorts={cohortCounts}
+          selected={selectedCohort}
+          onSelect={setSelectedCohort}
+        />
+      )}
+
+      {/* Flat feed */}
       {threads.length === 0 ? (
         <div className="bg-white border border-sand-200 rounded-xl p-8 text-center">
           <div className="w-12 h-12 rounded-xl bg-sand-100 flex items-center justify-center mx-auto mb-3">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sand-400"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
           </div>
-          <div className="text-sm font-semibold text-sand-700 mb-1">No questions yet</div>
-          <p className="text-xs text-sand-400">Be the first to ask your submission month cohort!</p>
+          <div className="text-sm font-semibold text-sand-700 mb-1">No posts yet</div>
+          <p className="text-xs text-sand-400">Be the first to ask your cohort a question.</p>
+        </div>
+      ) : visibleThreads.length === 0 ? (
+        <div className="bg-white border border-sand-200 rounded-xl p-6 text-center">
+          <p className="text-[13px] text-sand-500 mb-2">
+            No posts in <span className="font-bold text-sand-700">r/{selectedCohort ? cohortSlug(selectedCohort) : ""}</span> yet.
+          </p>
+          <button
+            onClick={() => setSelectedCohort("")}
+            className="text-[12px] text-brand-600 font-semibold hover:text-brand-700"
+          >
+            Show all cohorts <span aria-hidden>→</span>
+          </button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {(() => {
-            // Group threads by label (cohort month)
-            const groups: Record<string, ThreadData[]> = {};
-            threads.forEach(t => {
-              const key = t.label;
-              if (!groups[key]) groups[key] = [];
-              groups[key].push(t);
-            });
-            // Sort groups by newest thread in each
-            const sortedKeys = Object.keys(groups).sort((a, b) => {
-              const aLatest = groups[a][0].root.created_at;
-              const bLatest = groups[b][0].root.created_at;
-              return bLatest.localeCompare(aLatest);
-            });
-            return sortedKeys.map(key => {
-              const groupThreads = groups[key];
-              const totalInGroup = groupThreads.reduce((s, t) => s + t.allComments.length, 0);
-              const unreadInGroup = groupThreads.reduce((s, t) => s + t.allComments.filter(c => c.created_at > lastSeen).length, 0);
-              return (
-                <CohortGroup
-                  key={key}
-                  label={key}
-                  threads={groupThreads}
-                  totalComments={totalInGroup}
-                  unreadCount={unreadInGroup}
-                  myPinHash={myPinHash}
-                  onRefresh={fetchData}
-                  lastSeen={lastSeen}
-                />
-              );
-            });
-          })()}
+        <div className="space-y-2.5">
+          {visibleThreads.map(t => (
+            <ThreadCard
+              key={t.root.id}
+              thread={t}
+              myPinHash={myPinHash}
+              onRefresh={fetchData}
+              lastSeen={lastSeen}
+              onCohortClick={setSelectedCohort}
+            />
+          ))}
         </div>
       )}
 
@@ -335,6 +404,153 @@ function Avatar({ name, size = 28, you = false, op = false }: { name: string; si
   );
 }
 
+/** Subreddit-style cohort pill — "r/may-2024". Clickable filters the feed. */
+function CohortPill({ cohortKey, onClick, size = "sm" }: {
+  cohortKey: string;
+  onClick?: (key: string) => void;
+  size?: "sm" | "md";
+}) {
+  const cls = size === "md"
+    ? "text-[11px] px-2 py-0.5"
+    : "text-[10px] px-1.5 py-0.5";
+  const inner = (
+    <span className={`inline-flex items-center gap-0.5 rounded-md font-bold bg-brand-500/10 text-brand-700 leading-none ${cls} hover:bg-brand-500/15 transition-colors`}>
+      <span className="opacity-60">r/</span>
+      {cohortSlug(cohortKey)}
+    </span>
+  );
+  if (!onClick) return inner;
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(cohortKey); }}
+      aria-label={`Filter to r/${cohortSlug(cohortKey)}`}
+    >
+      {inner}
+    </button>
+  );
+}
+
+/** Auto-derived cohort chip inside the New Question form.
+ *  Shows "Posting to r/<slug>" with a "change" link that reveals the
+ *  manual select. When auto-derive failed (no submitted date), the
+ *  manual select is rendered directly. */
+function PostToCohortChip({
+  cohortKey,
+  autoderived,
+  months,
+  overrideValue,
+  onOverride,
+}: {
+  cohortKey: string;          // "" when nothing derived AND no override yet
+  autoderived: boolean;       // true when we filled this from submitted date
+  months: [string, number][];
+  overrideValue: string;
+  onOverride: (key: string) => void;
+}) {
+  const [showPicker, setShowPicker] = useState(!autoderived);
+
+  // If we don't have a derived month and no override yet, force the picker open.
+  const mustPick = !cohortKey;
+
+  if (cohortKey && !showPicker) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-lg bg-sand-50 border border-sand-200 px-3 py-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] flex-shrink-0">Posting to</span>
+          <CohortPill cohortKey={cohortKey} size="md" />
+          {autoderived && <span className="text-[10px] text-sand-400 truncate">(your cohort)</span>}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowPicker(true)}
+          className="text-[10px] text-brand-600 font-semibold hover:text-brand-700 flex-shrink-0 uppercase tracking-wider"
+        >
+          Change
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <label className="text-[10px] text-sand-500 font-bold uppercase tracking-[0.08em] mb-1 block">
+        {mustPick ? "Pick a cohort" : "Cohort"}
+      </label>
+      <div className="flex gap-2">
+        <select
+          value={overrideValue}
+          onChange={(e) => onOverride(e.target.value)}
+          className="flex-1 px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+        >
+          <option value="">Select a cohort…</option>
+          {months.map(([key, count]) => (
+            <option key={key} value={key}>r/{cohortSlug(key)} ({count} {count === 1 ? "entry" : "entries"})</option>
+          ))}
+        </select>
+        {!mustPick && (
+          <button
+            type="button"
+            onClick={() => { onOverride(""); setShowPicker(false); }}
+            className="px-3 py-2 text-[11px] text-sand-500 hover:text-sand-800 font-semibold"
+          >
+            Use mine
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Horizontal cohort filter strip — "All" + each cohort pill with count. */
+function CohortFilterStrip({ cohorts, selected, onSelect }: {
+  cohorts: [string, number][];
+  selected: string;
+  onSelect: (key: string) => void;
+}) {
+  const total = cohorts.reduce((s, [, n]) => s + n, 0);
+  return (
+    <div className="mb-4 -mx-1 px-1">
+      <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1">
+        <button
+          type="button"
+          onClick={() => onSelect("")}
+          className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors ${
+            selected === ""
+              ? "bg-brand-500 text-white shadow-[0_2px_6px_rgba(45,106,79,0.25)]"
+              : "bg-white border border-sand-200 text-sand-700 hover:bg-sand-50"
+          }`}
+        >
+          All
+          <span className={`text-[10px] font-bold nums-tabular px-1.5 py-0.5 rounded-full ${
+            selected === "" ? "bg-white/20 text-white" : "bg-sand-100 text-sand-500"
+          }`}>{total}</span>
+        </button>
+        {cohorts.map(([key, count]) => {
+          const active = selected === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onSelect(key)}
+              className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors ${
+                active
+                  ? "bg-brand-500 text-white shadow-[0_2px_6px_rgba(45,106,79,0.25)]"
+                  : "bg-white border border-sand-200 text-sand-700 hover:bg-sand-50"
+              }`}
+            >
+              <span className="opacity-70">r/</span>{cohortSlug(key)}
+              <span className={`text-[10px] font-bold nums-tabular px-1.5 py-0.5 rounded-full ${
+                active ? "bg-white/20 text-white" : "bg-sand-100 text-sand-500"
+              }`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AuthorTag({ kind }: { kind: "OP" | "YOU" }) {
   const isOp = kind === "OP";
   return (
@@ -353,11 +569,12 @@ function AuthorTag({ kind }: { kind: "OP" | "YOU" }) {
 // Root = the "post" with its own header and a prominent meta row.
 // Children = nested CommentNode rows with a collapsible depth rail.
 // ─────────────────────────────────────────────────────────────
-function ThreadCard({ thread, myPinHash, onRefresh, lastSeen }: {
+function ThreadCard({ thread, myPinHash, onRefresh, lastSeen, onCohortClick }: {
   thread: ThreadData;
   myPinHash: string | null;
   onRefresh: () => void;
   lastSeen: string;
+  onCohortClick?: (key: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const { root, allComments, totalReplies } = thread;
@@ -389,6 +606,9 @@ function ThreadCard({ thread, myPinHash, onRefresh, lastSeen }: {
             <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
               <span className="text-[12px] font-bold text-sand-900 truncate">{root.author_name}</span>
               {isMine && <AuthorTag kind="YOU" />}
+              {thread.cohortKey && (
+                <CohortPill cohortKey={thread.cohortKey} onClick={onCohortClick} />
+              )}
               <span className="text-[10px] text-sand-400">·</span>
               <span className="text-[10px] text-sand-500 nums-tabular">{timeAgo(root.created_at)}</span>
               {isRootNew && (
@@ -769,64 +989,6 @@ function ReplyInput({ parentId, comment, myPinHash, onRefresh, compact }: {
   );
 }
 
-// Collapsible cohort group
-function CohortGroup({ label, threads, totalComments, unreadCount, myPinHash, onRefresh, lastSeen }: {
-  label: string;
-  threads: ThreadData[];
-  totalComments: number;
-  unreadCount: number;
-  myPinHash: string | null;
-  onRefresh: () => void;
-  lastSeen: string;
-}) {
-  const [expanded, setExpanded] = useState(unreadCount > 0);
-
-  return (
-    <div>
-      {/* Cohort header */}
-      <button onClick={() => setExpanded(!expanded)}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors active:scale-[0.99] ${
-          expanded ? "bg-brand-500 text-white" : "bg-white border border-sand-200 text-sand-900"
-        }`}>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold ${
-          expanded ? "bg-white/20 text-white" : "bg-brand-100 text-brand-700"
-        }`}>
-          {label.replace(" cohort", "").split(" ")[0]?.slice(0, 3)}
-        </div>
-        <div className="flex-1 text-left">
-          <div className="text-sm font-semibold">{label}</div>
-          <div className={`text-[10px] ${expanded ? "text-white/70" : "text-sand-400"}`}>
-            {threads.length} {threads.length === 1 ? "thread" : "threads"} · {totalComments} {totalComments === 1 ? "comment" : "comments"}
-          </div>
-        </div>
-        {unreadCount > 0 && (
-          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-            expanded ? "bg-white/20 text-white" : "bg-error text-white"
-          }`}>{unreadCount} new</span>
-        )}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-          className={`flex-shrink-0 transition-transform duration-300 ${expanded ? "text-white/70" : "text-sand-300"}`}
-          style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
-          <path d="M6 9L12 15L18 9" />
-        </svg>
-      </button>
-
-      {/* Threads */}
-      <div style={{
-        maxHeight: expanded ? `${threads.length * 500}px` : "0px",
-        overflow: "hidden",
-        transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}>
-        <div className="space-y-2 pt-2" style={{
-          opacity: expanded ? 1 : 0,
-          transition: "opacity 0.25s ease",
-          transitionDelay: expanded ? "0.1s" : "0s",
-        }}>
-          {threads.map(t => (
-            <ThreadCard key={t.root.id} thread={t} myPinHash={myPinHash} onRefresh={onRefresh} lastSeen={lastSeen} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+// CohortGroup removed — the community feed is now a flat sorted list with
+// a horizontal cohort filter strip and per-post r/<slug> pills.
+// See CohortFilterStrip + CohortPill above.
