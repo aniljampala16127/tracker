@@ -5,6 +5,7 @@ import { Application, StepId, StepDefinition } from "@/lib/types";
 import { STEPS, getStepIndex, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { getSavedPinHash, hashPin, removeSavedPin, savePinForApp } from "@/lib/pin";
+import { toast } from "@/lib/toast";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
 import { playMilestoneSound } from "@/lib/sounds";
@@ -70,6 +71,7 @@ export default function MyAppPage() {
     }
     matched.forEach(a => savePinForApp(a.id, pinHash));
     setClaiming(false);
+    toast.success(`Reconnected ${matched.length} ${matched.length === 1 ? "entry" : "entries"}`);
     fetchApps();
   };
 
@@ -190,10 +192,12 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
     });
     if (!res.ok) {
       const err = await res.json();
-      alert(err.error || "Failed to save step");
+      toast.error(err.error || "Failed to save step");
       setSaving(false);
       return;
     }
+    const stepLabel = STEPS.find(s => s.id === stepId)?.label || stepId;
+    toast.success(`Marked ${stepLabel} · ${formatNice(date).replace(/, \d{4}/, "")}`);
     setShowConfetti(true);
     setActiveStep(null);
     setStepDate("");
@@ -209,10 +213,13 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
       const res = await fetch(`/api/steps?application_id=${app.id}&step_id=${stepId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json();
-        alert(err.error || "Failed to undo step");
+        toast.error(err.error || "Failed to undo step");
+      } else {
+        const stepLabel = STEPS.find(s => s.id === stepId)?.label || stepId;
+        toast.success(`Removed ${stepLabel}`);
       }
-    } catch (e) {
-      alert("Network error — try again");
+    } catch {
+      toast.error("Network error — try again");
     }
     setUndoing(false);
     onRefresh();
@@ -228,7 +235,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
     });
     if (!res.ok) {
       const err = await res.json();
-      alert(err.error || "Failed to edit step");
+      toast.error(err.error || "Failed to edit step");
+    } else {
+      toast.success("Date updated");
     }
     setEditingStep(null);
     setEditDate("");
@@ -275,7 +284,9 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
     });
     if (!res.ok) {
       const err = await res.json();
-      alert(err.error || "Failed to save");
+      toast.error(err.error || "Failed to save");
+    } else {
+      toast.success("Profile saved");
     }
     setSaving(false);
     setEditing(false);

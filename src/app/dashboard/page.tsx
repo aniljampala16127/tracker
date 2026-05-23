@@ -6,6 +6,7 @@ import { Application, ApplicationFormData, StepId, Comment } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, MEI_TYPES, getNextStep, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { hashPin, isValidPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
+import { toast } from "@/lib/toast";
 import { PlusIcon } from "@/components/icons";
 import { Button, Modal, Input, Select, SearchableSelect } from "@/components/ui";
 import { PinModal, PinInput } from "@/components/PinModal";
@@ -252,16 +253,17 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
       const allApps = await appsRes.json();
       const fullApp = allApps.find((a: Application) => a.id === app.id);
       if (fullApp) setCelebrateApp(fullApp);
+      toast.success("Application added");
     } else {
       const err = await res.json();
-      alert(
+      toast.error(
         err.pin_exists
-          ? "This PIN is already taken. Please choose a different 4-digit PIN."
+          ? "PIN already taken — choose a different one"
           : (err.error || "Failed to add")
       );
     }
-  } catch (e) {
-    alert("Network error — please check your connection and try again.");
+  } catch {
+    toast.error("Network error — try again");
   } finally {
     submittingRef.current = false;
     setSubmitting(false);
@@ -291,9 +293,11 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
   const handleDelete = async (appId: string) => {
     if (!confirm("Delete this entry?")) return;
     const pinHash = getSavedPinHash(appId);
-    await fetch(`/api/applications?id=${appId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
+    const res = await fetch(`/api/applications?id=${appId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
     removeSavedPin(appId);
     setEditApp(null); fetchApps();
+    if (res.ok) toast.success("Application deleted");
+    else toast.error("Could not delete");
   };
 
 
@@ -1214,12 +1218,14 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
     playMilestoneSound();
     onMarkStep(app.id, stepId, date);
     setShowConfetti(true);
+    const stepLabel = STEPS.find(s => s.id === stepId)?.label || stepId;
+    toast.success(`Marked ${stepLabel} · ${formatDate(date).replace(/, \d{4}/, "")}`);
   };
 
   const handleEditSave = async () => {
     setSaving(true);
     const pinHash = getSavedPinHash(app.id);
-    await fetch("/api/applications", {
+    const res = await fetch("/api/applications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1235,6 +1241,8 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
       }),
     });
     setSaving(false);
+    if (res.ok) toast.success("Saved");
+    else toast.error("Could not save changes");
     setShowEdit(false);
     onClose();
   };
@@ -1243,8 +1251,14 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
     if (!confirm("Remove this step? This will revert your progress.")) return;
     setUndoing(true);
     const pinHash = getSavedPinHash(app.id);
-    await fetch(`/api/steps?application_id=${app.id}&step_id=${stepId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
+    const res = await fetch(`/api/steps?application_id=${app.id}&step_id=${stepId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
     setUndoing(false);
+    if (res.ok) {
+      const stepLabel = STEPS.find(s => s.id === stepId)?.label || stepId;
+      toast.success(`Removed ${stepLabel}`);
+    } else {
+      toast.error("Could not remove step");
+    }
     onClose();
   };
 
@@ -1594,9 +1608,12 @@ function SpamReportBlock({ app, onReported }: { app: Application; onReported: ()
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Could not report"); setSubmitting(false); return; }
+      if (data.deleted) toast.success("Entry removed — thanks for reporting");
+      else toast.success("Reported. Thanks!");
       onReported();
     } catch {
       setError("Could not report — try again.");
+      toast.error("Could not report");
     }
     setSubmitting(false);
   };

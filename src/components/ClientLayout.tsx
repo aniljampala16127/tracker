@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { PageTransition } from "@/components/PageTransition";
+import { Toaster } from "@/components/Toaster";
 
 const OLD_DOMAIN = "tracker-lime-five.vercel.app";
 const NEW_DOMAIN = "sponsortrack.online";
@@ -56,8 +57,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   useDomainMigration();
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-6">
-      <PageTransition>{children}</PageTransition>
-    </main>
+    <>
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        <PageTransition>{children}</PageTransition>
+      </main>
+      <Toaster />
+    </>
   );
 }

@@ -8,6 +8,7 @@ import {
   formatDate, progressPercent, daysBetween, buildStepsMap, estimateCompletion,
 } from "@/lib/utils";
 import { getSavedPinHash, removeSavedPin } from "@/lib/pin";
+import { toast } from "@/lib/toast";
 import { StepTimeline } from "@/components/StepTimeline";
 import { PinModal } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
@@ -74,21 +75,29 @@ export default function ApplicationDetailPage() {
     if (navigator.vibrate) navigator.vibrate(12);
     playMilestoneSound();
     const pinHash = getSavedPinHash(app.id);
-    await fetch("/api/steps", {
+    const res = await fetch("/api/steps", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ application_id: app.id, step_id: stepId, event_date: date, pin_hash: pinHash || "" }),
     });
     setEditingStep(null);
     fetchApp();
+    if (res.ok) {
+      const stepLabel = STEPS.find(s => s.id === stepId)?.label || stepId;
+      toast.success(`Marked ${stepLabel} · ${formatDate(date).replace(/, \d{4}/, "")}`);
+    } else {
+      toast.error("Could not save step");
+    }
   };
 
   const doDelete = async () => {
     if (!app || !confirm("Delete this application? This cannot be undone.")) return;
     setDeleting(true);
     const pinHash = getSavedPinHash(app.id);
-    await fetch(`/api/applications?id=${app.id}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
+    const res = await fetch(`/api/applications?id=${app.id}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
     removeSavedPin(app.id);
+    if (res.ok) toast.success("Application deleted");
+    else toast.error("Could not delete");
     router.push("/dashboard");
   };
 
