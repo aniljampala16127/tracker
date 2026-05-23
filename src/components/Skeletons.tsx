@@ -6,8 +6,11 @@ import { useCallback, useRef, useState, useEffect } from "react";
 // Skeleton Shimmer Components
 // ============================================
 function Shimmer({ className }: { className: string }) {
+  // Uses bg-sand-100 base which flips with the theme (light ≈ #F2F1ED,
+  // dark ≈ #171715) so the placeholder is visible in both modes against
+  // the surface-card.
   return (
-    <div className={`animate-pulse bg-sand-200/60 rounded ${className}`} />
+    <div className={`animate-pulse bg-sand-100 rounded ${className}`} />
   );
 }
 
