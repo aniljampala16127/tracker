@@ -167,23 +167,25 @@ export function ActivityPanel() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={handleClose} />
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-sand-200 rounded-xl shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col panel-enter">
+          <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-sand-200 rounded-2xl shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col panel-enter">
             {/* Header */}
-            <div className="px-4 py-3 border-b border-sand-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-sand-900">Your Cohort</h3>
-                <p className="text-[9px] text-sand-400">{hasCohort ? `${cohortIds.size} people submitted your week` : "Add your app to see cohort activity"}</p>
+            <div className="px-4 py-3 border-b border-sand-100 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-0.5">Your cohort</p>
+                <p className="text-[11px] text-sand-500 nums-tabular truncate">
+                  {hasCohort ? <><span className="font-bold text-sand-700">{cohortIds.size}</span> people submitted your week</> : "Add your app to see cohort activity"}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 {unreadCount > 0 && !showAll && (
                   <button onClick={handleMarkRead}
-                    className="text-[10px] px-2 py-0.5 rounded-full text-brand-600 hover:bg-brand-50 font-medium transition-colors">
-                    Mark all read
+                    className="text-[10px] px-2 py-1 rounded-md text-brand-600 hover:bg-brand-500/10 font-semibold uppercase tracking-wider transition-colors">
+                    Mark read
                   </button>
                 )}
                 {activities.length > 0 && (
                   <button onClick={() => setShowAll(!showAll)}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-sand-100 text-sand-600 font-medium hover:bg-sand-200 transition-colors">
+                    className="text-[10px] px-2 py-1 rounded-md text-sand-600 hover:text-sand-900 hover:bg-sand-100 font-semibold uppercase tracking-wider transition-colors">
                     {showAll ? "New only" : "Show all"}
                   </button>
                 )}
@@ -194,50 +196,50 @@ export function ActivityPanel() {
               {/* No cohort */}
               {!hasCohort && (
                 <div className="px-4 py-10 text-center">
-                  <p className="text-xs text-sand-500">Add your application to see updates from people who submitted the same week as you.</p>
+                  <p className="text-[12px] text-sand-500 leading-relaxed">Add your application to see updates from people who submitted the same week as you.</p>
                 </div>
               )}
 
               {/* No new notifications */}
               {hasCohort && displayActivities.length === 0 && !showAll && (
                 <div className="px-4 py-10 text-center">
-                  <div className="w-10 h-10 rounded-full bg-sand-100 flex items-center justify-center mx-auto mb-2">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="w-10 h-10 rounded-full bg-brand-500/15 flex items-center justify-center mx-auto mb-2 text-brand-600">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20 6L9 17L4 12" />
                     </svg>
                   </div>
-                  <p className="text-xs text-sand-500">No new cohort updates!</p>
+                  <p className="text-[12px] text-sand-700 font-semibold">No new cohort updates</p>
                   <button onClick={() => setShowAll(true)}
-                    className="text-[10px] text-brand-600 font-medium mt-1 hover:underline">
-                    View past activity
+                    className="text-[11px] text-brand-600 font-semibold mt-1 hover:text-brand-700 transition-colors">
+                    View past activity <span aria-hidden>→</span>
                   </button>
                 </div>
               )}
 
               {hasCohort && displayActivities.length === 0 && showAll && (
-                <div className="px-4 py-8 text-center text-sand-400 text-xs">No cohort milestones yet</div>
+                <div className="px-4 py-8 text-center text-sand-400 text-[12px] italic">No cohort milestones yet</div>
               )}
 
               {/* Cohort milestones */}
               {displayActivities.length > 0 && (
-                <div className="px-4 pt-3 pb-2">
+                <div className="px-4 pt-3 pb-2 nums-tabular">
                   {displayActivities.slice(0, 20).map((a) => {
                     const isUnread = new Date(a.created_at).getTime() > lastRead;
                     return (
-                      <div key={a.id} className={`flex items-start gap-2.5 py-2 transition-colors ${isUnread ? "bg-brand-50/40 -mx-4 px-4 rounded" : ""}`}>
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isUnread ? "bg-brand-500" : "bg-brand-100"}`}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isUnread ? "white" : "#2D6A4F"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <div key={a.id} className={`flex items-start gap-2.5 py-2 transition-colors ${isUnread ? "bg-brand-500/10 -mx-4 px-4 rounded-md" : ""}`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isUnread ? "bg-brand-500 shadow-sm" : "bg-brand-500/15"}`}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isUnread ? "text-white" : "text-brand-600"}>
                             <path d={stepIcon(a.step_id)} />
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs text-sand-900">
-                            <span className="font-semibold">{a.app_initials}</span>
+                          <div className="text-[12px] text-sand-700 leading-snug">
+                            <span className="font-bold text-sand-900">{a.app_initials}</span>
                             <span className="text-sand-500"> received </span>
-                            <span className={`font-semibold ${isUnread ? "text-brand-600" : "text-sand-700"}`}>{stepLabel(a.step_id)}</span>
+                            <span className={`font-bold ${isUnread ? "text-brand-700" : "text-sand-800"}`}>{stepLabel(a.step_id)}</span>
                             {a.event_date && <span className="text-sand-500"> on {fmt(a.event_date)}</span>}
                           </div>
-                          <div className="text-[10px] text-sand-400">{a.app_country} · Sub {fmt(a.app_sub_date)} · {timeAgo(a.created_at)}</div>
+                          <div className="text-[10px] text-sand-400 mt-0.5">{a.app_country} · Sub {fmt(a.app_sub_date)} · {timeAgo(a.created_at)}</div>
                         </div>
                         {isUnread && <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0 mt-2 animate-pulse" />}
                       </div>
