@@ -1433,12 +1433,99 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
         onRefresh={onRefresh}
       />
 
+      {/* Spam report — only when entry is suspicious AND viewer isn't the owner */}
+      {!isOwner && <SpamReportBlock app={app} onReported={onRefresh} />}
+
       {isOwner && (
         <button onClick={() => onDelete(app.id)} className="mt-3 text-xs text-error hover:text-error-dark transition-colors">
           Delete this entry
         </button>
       )}
     </Modal>
+  );
+}
+
+// ============================================
+// SpamReportBlock — visible when AOR was marked ≤1 day after submission.
+// 2+ distinct reporters auto-delete the application (server-enforced).
+// ============================================
+function SpamReportBlock({ app, onReported }: { app: Application; onReported: () => void }) {
+  const stepsMap = buildStepsMap(app.step_events || []);
+  const sub = stepsMap.submitted;
+  const aor = stepsMap.aor;
+  if (!sub || !aor) return null;
+  const gap = daysBetween(sub, aor);
+  if (gap > 1) return null;
+
+  const reporterCount = app.spam_report_count || 0;
+  const myHash = typeof window !== "undefined"
+    ? (() => {
+        try {
+          const raw = localStorage.getItem("sponsortrack-pins");
+          if (!raw) return null;
+          const store = JSON.parse(raw);
+          const vals = Object.values(store) as string[];
+          return vals[0] || null;
+        } catch { return null; }
+      })()
+    : null;
+  const alreadyReported = !!myHash && (app.spam_reporter_hashes || []).includes(myHash);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleReport = async () => {
+    if (!myHash) {
+      setError("Add or reconnect an application first to report.");
+      return;
+    }
+    if (!confirm("Report this entry as spam? Two reports will remove it.")) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/applications/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ application_id: app.id, reporter_pin_hash: myHash }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Could not report"); setSubmitting(false); return; }
+      onReported();
+    } catch {
+      setError("Could not report — try again.");
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="mt-4 pt-3 border-t border-sand-100">
+      <div className="bg-error/8 border border-error/25 rounded-xl p-3.5">
+        <div className="flex items-start gap-2.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-error-dark flex-shrink-0 mt-0.5">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold text-error-dark uppercase tracking-[0.08em] mb-1">Suspicious entry</p>
+            <p className="text-[12px] text-error-dark leading-relaxed nums-tabular">
+              AOR was marked <strong className="font-bold">{gap}</strong> day{gap === 1 ? "" : "s"} after submission. IRCC typically takes weeks. If this looks like junk data, report it — 2 reports will remove the entry.
+            </p>
+            {reporterCount > 0 && (
+              <p className="text-[10px] text-error-dark/80 mt-1.5 font-semibold nums-tabular">
+                Reported by <span className="font-bold">{reporterCount}</span> {reporterCount === 1 ? "person" : "people"}
+              </p>
+            )}
+            {error && <p className="text-[11px] text-error font-medium mt-2">{error}</p>}
+            <button
+              onClick={handleReport}
+              disabled={submitting || alreadyReported}
+              className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 bg-error text-white text-[11px] font-bold uppercase tracking-wider rounded-md hover:bg-error-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {alreadyReported ? "Reported" : submitting ? "Reporting…" : "Report spam"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -65,20 +65,27 @@ export async function GET() {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("applications")
-    .select("*, step_events(*), comments(*)")
+    .select("*, step_events(*), comments(*), spam_reports(reporter_pin_hash, created_at)")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const today = new Date().toISOString().split("T")[0];
-  const cleaned = (data || []).map(app => ({
-    ...app,
-    province: app.province === "Quebec" ? "Quebec" : "Outside Quebec",
-    step_events: (app.step_events || []).filter((e: { event_date: string }) => e.event_date <= today),
-    initials: app.is_anonymous ? "Anonymous" : app.initials,
-    _real_initials: app.initials,
-    comments: (app.comments || []).sort((a: { created_at: string }, b: { created_at: string }) => a.created_at.localeCompare(b.created_at)),
-  }));
+  const cleaned = (data || []).map(app => {
+    const reports = (app.spam_reports || []) as { reporter_pin_hash: string; created_at: string }[];
+    return {
+      ...app,
+      province: app.province === "Quebec" ? "Quebec" : "Outside Quebec",
+      step_events: (app.step_events || []).filter((e: { event_date: string }) => e.event_date <= today),
+      initials: app.is_anonymous ? "Anonymous" : app.initials,
+      _real_initials: app.initials,
+      comments: (app.comments || []).sort((a: { created_at: string }, b: { created_at: string }) => a.created_at.localeCompare(b.created_at)),
+      // Expose just the report count + the set of reporter hashes the
+      // client can use to gate the "Report" button (don't double-report).
+      spam_report_count: reports.length,
+      spam_reporter_hashes: reports.map(r => r.reporter_pin_hash),
+    };
+  });
 
   return NextResponse.json(cleaned, {
     headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },

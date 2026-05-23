@@ -23,6 +23,11 @@ export interface Application {
   updated_at: string;
   step_events?: StepEvent[];
   comments?: Comment[];
+  // Spam-report aggregate columns supplied by GET /api/applications.
+  // spam_report_count is the number of distinct reporters; reporter_hashes
+  // lets the client check whether the current user has already reported.
+  spam_report_count?: number;
+  spam_reporter_hashes?: string[];
 }
 
 export interface Comment {
