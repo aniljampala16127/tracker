@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Comment } from "@/lib/types";
 import { getSavedPinHash } from "@/lib/pin";
+import { linkifyText } from "@/lib/linkify";
 
 interface Props {
   applicationId: string;
@@ -149,7 +150,7 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
                   )}
                   <span className="text-[10px] text-sand-400 nums-tabular ml-auto">{timeAgo(c.created_at)}</span>
                 </div>
-                <p className="text-[13px] text-sand-700 leading-relaxed whitespace-pre-wrap">{c.text}</p>
+                <p className="text-[13px] text-sand-700 leading-relaxed whitespace-pre-wrap break-words">{linkifyText(c.text)}</p>
                 {!pending && !deleting && (
                   <div className="flex items-center gap-3 mt-2 text-[10px] font-semibold uppercase tracking-wider">
                     <button onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}
@@ -186,7 +187,7 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
                       )}
                       <span className="text-[10px] text-sand-400 nums-tabular ml-auto">{timeAgo(r.created_at)}</span>
                     </div>
-                    <p className="text-[13px] text-sand-700 leading-relaxed whitespace-pre-wrap">{r.text}</p>
+                    <p className="text-[13px] text-sand-700 leading-relaxed whitespace-pre-wrap break-words">{linkifyText(r.text)}</p>
                     {!rPending && !rDeleting && r.pin_hash === myPinHash && (
                       <button onClick={() => handleDelete(r.id)}
                         className="text-[10px] text-sand-400 hover:text-error font-semibold uppercase tracking-wider mt-1.5 transition-colors">

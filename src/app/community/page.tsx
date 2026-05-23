@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { Application, Comment } from "@/lib/types";
 import { buildStepsMap } from "@/lib/utils";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { linkifyText } from "@/lib/linkify";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -614,11 +615,11 @@ function ThreadCard({ thread, myPinHash, onRefresh, lastSeen, onCohortClick }: {
             </div>
             {/* post body */}
             <p
-              className={`text-[14px] text-sand-800 leading-relaxed whitespace-pre-wrap ${
+              className={`text-[14px] text-sand-800 leading-relaxed whitespace-pre-wrap break-words ${
                 expanded ? "" : "line-clamp-3"
               }`}
             >
-              {root.text}
+              {expanded ? linkifyText(root.text) : root.text}
             </p>
           </div>
           <svg
@@ -850,8 +851,8 @@ function CommentNode({ comment: c, allComments, depth, opPinHash, myPinHash, onR
           {/* Body + actions (hidden when collapsed) */}
           {!collapsed && (
             <div className="pl-[26px]">
-              <p className="text-[13px] text-sand-800 leading-relaxed whitespace-pre-wrap mt-0.5">
-                {c.text}
+              <p className="text-[13px] text-sand-800 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
+                {linkifyText(c.text)}
               </p>
 
               {/* action row */}
