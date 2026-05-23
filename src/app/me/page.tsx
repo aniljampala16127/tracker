@@ -77,45 +77,54 @@ export default function MyAppPage() {
 
   if (myApps.length === 0) {
     return (
-      <div className="py-6">
-        <div className="text-center bg-white border border-sand-200 rounded-2xl p-6 max-w-md mx-auto">
-          <div className="w-14 h-14 rounded-2xl bg-brand-100 flex items-center justify-center mx-auto mb-3">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21V19C20 16.8 18.2 15 16 15H8C5.8 15 4 16.8 4 19V21" /><circle cx="12" cy="7" r="4" />
-            </svg>
+      <div className="py-8 hero-glow">
+        <div className="bg-white border border-sand-200 rounded-2xl p-6 sm:p-8 max-w-md mx-auto shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
+          <div className="text-center mb-5">
+            <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-brand-500/20">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1.5">My application</p>
+            <h2 className="text-xl font-bold text-sand-900 tracking-tight mb-1.5">No entries linked here</h2>
+            <p className="text-[13px] text-sand-500 leading-relaxed">
+              Reconnect with your 4-digit PIN, or add a new application.
+            </p>
           </div>
-          <h2 className="text-base font-bold text-sand-900 mb-1">No entries linked to this device</h2>
-          <p className="text-xs text-sand-500 mb-4">
-            Reconnect with your PIN, or add a new application.
-          </p>
 
           {/* PIN reconnect */}
-          <div className="bg-sand-50 border border-sand-200 rounded-xl p-4 mb-4 text-left">
-            <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2.5 text-center">Enter your PIN</div>
+          <div className="bg-white border border-sand-200 rounded-xl p-4 mb-3">
+            <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2.5 text-center">Enter your PIN</div>
             <input
               type="tel"
               inputMode="numeric"
               maxLength={4}
-              placeholder="4-digit PIN"
+              placeholder="••••"
               value={claimPin}
               onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
               onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
-              className="w-full px-4 py-3 text-lg text-center rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.4em] font-mono mb-2.5"
+              className={`w-full px-4 py-3 text-2xl text-center rounded-lg border bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.45em] font-mono font-bold mb-2.5 transition-colors ${
+                claimError ? "border-error shake" : "border-sand-200"
+              }`}
             />
             <button
               onClick={handleClaim}
               disabled={claimPin.length !== 4 || claiming}
-              className="w-full py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-40"
+              className="w-full py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-lg hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_12px_rgba(45,106,79,0.15)]"
             >
-              {claiming ? "Reconnecting..." : claimPin.length === 4 ? "Reconnect My Entry" : `Enter ${4 - claimPin.length} more digit${4 - claimPin.length === 1 ? "" : "s"}`}
+              {claiming ? "Reconnecting…" : claimPin.length === 4 ? "Reconnect my entry" : `Enter ${4 - claimPin.length} more digit${4 - claimPin.length === 1 ? "" : "s"}`}
             </button>
-            {claimError && <p className="text-[10px] text-error mt-2 text-center">{claimError}</p>}
+            {claimError && <p className="text-[11px] text-error mt-2 text-center font-medium">{claimError}</p>}
           </div>
 
-          <div className="text-[10px] text-sand-400 mb-3">or</div>
+          <div className="flex items-center gap-2 my-4 text-[10px] text-sand-400 font-semibold uppercase tracking-wider">
+            <span className="flex-1 h-px bg-sand-200" />
+            <span>or</span>
+            <span className="flex-1 h-px bg-sand-200" />
+          </div>
 
-          <a href="/dashboard">
-            <Button variant="secondary" className="w-full">Add New Application</Button>
+          <a href="/dashboard" className="block w-full py-2.5 text-center rounded-lg border border-sand-200 bg-white hover:bg-sand-50 text-sm font-semibold text-sand-700 transition-colors">
+            Add new application <span aria-hidden>→</span>
           </a>
         </div>
       </div>
@@ -274,59 +283,78 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   };
 
   return (
-    <div className="bg-white border border-sand-200 rounded-2xl p-5 mb-5">
+    <div className="bg-white border border-sand-200 rounded-2xl p-5 mb-5 shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
 
       {/* 1. Header */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-          app.emoji ? "bg-brand-50 border-2 border-brand-200 text-brand-600" : "bg-brand-500 text-white font-bold text-lg"
+      <div className="flex items-start gap-3.5 mb-4">
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+          app.emoji
+            ? "bg-brand-50 border border-brand-200 text-brand-600"
+            : "bg-brand-500 text-white font-bold text-lg shadow-lg shadow-brand-500/20"
         }`}>
           {app.emoji && isAvatarKey(app.emoji)
-            ? <AvatarIcon icon={app.emoji} size={28} />
+            ? <AvatarIcon icon={app.emoji} size={32} />
             : app.emoji
               ? <span className="text-2xl">{app.emoji}</span>
               : (app._real_initials || app.initials).slice(0, 2).toUpperCase()
           }
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-sand-900">{app._real_initials || app.initials}</h2>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-0.5">My application</p>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h2 className="text-xl font-bold text-sand-900 tracking-tight leading-none">{app._real_initials || app.initials}</h2>
             {app.is_anonymous && (
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-sand-200 text-sand-600 font-semibold">Hidden</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sand-200 text-sand-600 uppercase tracking-wider leading-none">Hidden</span>
             )}
-            <button onClick={() => { setEditing(!editing); if (!editing) setTimelineExpanded(false); }}
-              className="text-[10px] text-brand-500 font-medium px-2 py-0.5 rounded-full border border-brand-200 hover:bg-brand-50 transition-colors">
+          </div>
+          <p className="text-[12px] text-sand-500 nums-tabular truncate">
+            {app.country_origin} · {app.sponsor_status} · {app.stream}
+            {app.province === "Quebec" ? " · Quebec" : ""}
+          </p>
+          {/* PIN + action chips */}
+          <div className="flex items-center gap-1.5 flex-wrap mt-2">
+            {revealedPin ? (
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-700 font-mono font-bold tracking-[0.25em] leading-none">
+                <span className="opacity-60 not-italic font-sans">PIN</span>
+                {revealedPin}
+              </span>
+            ) : (
+              <button
+                onClick={revealPin}
+                className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md border border-sand-200 text-sand-600 hover:text-brand-600 hover:border-brand-300 transition-colors"
+              >
+                Show PIN
+              </button>
+            )}
+            <button
+              onClick={() => { setEditing(!editing); if (!editing) setTimelineExpanded(false); }}
+              className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md border transition-colors ${
+                editing
+                  ? "border-brand-300 bg-brand-500/10 text-brand-700"
+                  : "border-sand-200 text-sand-600 hover:text-brand-600 hover:border-brand-300"
+              }`}
+            >
               {editing ? "Cancel" : "Edit"}
             </button>
-            <button onClick={() => {
-              if (confirm("Disconnect this entry from your device? You can reconnect later with your PIN.")) {
-                removeSavedPin(app.id);
-                onRefresh();
-              }
-            }}
-              className="text-[10px] text-sand-400 font-medium px-2 py-0.5 rounded-full border border-sand-200 hover:text-error hover:border-error/30 transition-colors">
+            <button
+              onClick={() => {
+                if (confirm("Disconnect this entry from your device? You can reconnect later with your PIN.")) {
+                  removeSavedPin(app.id);
+                  onRefresh();
+                }
+              }}
+              className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md border border-sand-200 text-sand-500 hover:text-error hover:border-error/40 transition-colors"
+            >
               Disconnect
             </button>
           </div>
-          <p className="text-xs text-sand-500">
-            {app.country_origin} · {app.sponsor_status} · {app.stream}
-            {app.province === "Quebec" ? " · Inside Quebec" : ""}
-          </p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[10px] text-sand-400">PIN:</span>
-            {revealedPin ? (
-              <span className="text-[10px] font-mono font-bold text-brand-600 tracking-wider">{revealedPin}</span>
-            ) : (
-              <button onClick={revealPin} className="text-[10px] text-brand-500 font-medium hover:underline">
-                Show
-              </button>
-            )}
-          </div>
         </div>
-        <div className="text-right">
-          <div className="text-xs font-bold text-brand-600">Day {daysSoFar}</div>
-          <div className="text-[9px] text-sand-400">{submittedDate ? formatNice(submittedDate) : "—"}</div>
+        {/* Day counter — bigger, tabular */}
+        <div className="text-right flex-shrink-0 pl-2">
+          <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-0.5">Day</p>
+          <p className="text-3xl font-bold text-brand-600 leading-none nums-tabular">{daysSoFar}</p>
+          <p className="text-[10px] text-sand-400 nums-tabular mt-1">{submittedDate ? formatNice(submittedDate) : "—"}</p>
         </div>
       </div>
 
@@ -448,24 +476,29 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         const withAor = sameWeek.filter(a => a.step_events?.some(e => e.step_id === "aor"));
         if (sameWeek.length === 0) return null;
         return (
-          <a href={`/cohort/${app.id}`} className="block bg-sand-50 rounded-xl px-3 py-2.5 mb-3 hover:bg-sand-100 transition-colors active:scale-[0.99]">
+          <a
+            href={`/cohort/${app.id}`}
+            className="block bg-white border border-sand-200 rounded-xl px-3.5 py-3 mb-3 hover:border-brand-300 hover:shadow-[0_4px_12px_rgba(26,26,24,0.06)] transition-all active:scale-[0.99]"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-sand-200 flex items-center justify-center flex-shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#65635D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-10 h-10 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21"/><circle cx="9" cy="7" r="4"/>
                   <path d="M23 21V19C23 17.5 22 16.2 20.6 15.8"/><path d="M16.5 3.1C17.9 3.6 19 5 19 6.5C19 8 17.9 9.4 16.5 9.9"/>
                 </svg>
               </div>
-              <div className="flex-1">
-                <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your Submission Week</div>
-                <div className="text-sm font-bold text-sand-900">{sameWeek.length} others submitted the same week</div>
-                <div className="text-[10px] text-sand-400">
-                  {withAor.length > 0 ? `${withAor.length} have AOR` : "None have AOR yet"}
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em]">Your submission week</p>
+                <p className="text-sm font-bold text-sand-900 truncate">
+                  <span className="nums-tabular">{sameWeek.length}</span> {sameWeek.length === 1 ? "other" : "others"} submitted the same week
+                </p>
+                <p className="text-[10px] text-sand-400 truncate nums-tabular">
+                  {withAor.length > 0 ? <><span className="font-semibold text-brand-600">{withAor.length}</span> have AOR</> : "None have AOR yet"}
                   {" · "}
-                  {sameWeek.slice(0, 4).map(a => a.initials).join(", ")}{sameWeek.length > 4 ? "..." : ""}
-                </div>
+                  {sameWeek.slice(0, 4).map(a => a.initials).join(", ")}{sameWeek.length > 4 ? "…" : ""}
+                </p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8A69E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-sand-300">
                 <path d="M9 18L15 12L9 6"/>
               </svg>
             </div>
