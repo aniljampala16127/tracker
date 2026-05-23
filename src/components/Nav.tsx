@@ -409,13 +409,14 @@ export function Nav() {
       </header>
       <MobileBottomNav pathname={pathname} unreadCount={unreadCount} />
 
-      {/* Reply toast — bottom-right on desktop, top-center on mobile.
-          Positioned above the mobile bottom-nav (safe-area + nav height). */}
+      {/* Reply toast — slides down from the top-right, anchored under the
+          bell icon so it visually echoes the existing cohort-activity panel.
+          On mobile it spans the page width just under the sticky header. */}
       {toast && (
         <Link
           href="/community"
           onClick={() => setToast(null)}
-          className="fixed z-[60] left-3 right-3 sm:left-auto sm:right-4 sm:bottom-4 sm:w-[320px] top-16 sm:top-auto bg-white border border-sand-200 rounded-2xl shadow-xl shadow-black/15 p-3.5 panel-enter group"
+          className="fixed z-[60] left-3 right-3 sm:left-auto sm:right-4 sm:w-[320px] top-[60px] bg-white border border-sand-200 rounded-2xl shadow-xl shadow-black/15 p-3.5 panel-enter group"
           aria-live="polite"
           role="status"
         >

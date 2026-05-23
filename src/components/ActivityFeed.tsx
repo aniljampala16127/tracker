@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Application } from "@/lib/types";
+import { Application, Comment } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap } from "@/lib/utils";
 import { getSavedPinHash } from "@/lib/pin";
@@ -23,14 +23,25 @@ function markAllRead() {
   localStorage.setItem(LAST_READ_KEY, Date.now().toString());
 }
 
+type ActivityKind = "step" | "reply";
+
 interface ActivityItem {
   id: string;
-  app_initials: string;
-  app_country: string;
-  app_sub_date: string;
-  step_id: string;
-  event_date: string;
+  kind: ActivityKind;
+  // common
   created_at: string;
+  // step
+  app_initials?: string;
+  app_country?: string;
+  app_sub_date?: string;
+  step_id?: string;
+  event_date?: string;
+  // reply
+  author_name?: string;
+  text?: string;
+  // where to deep-link
+  href?: string;
+  context?: string; // "on your entry" / "in May 2025 cohort"
 }
 
 function stepLabel(stepId: string): string {
@@ -50,6 +61,12 @@ function timeAgo(dateStr: string): string {
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+
+// "2024-05" → "may-2024" — matches the subreddit-style pill used elsewhere.
+function monthSlug(key: string): string {
+  const [y, m] = key.split("-");
+  return `${(MONTHS[parseInt(m) - 1] || "").toLowerCase()}-${y}`;
 }
 
 function stepIcon(stepId: string): string {
@@ -106,6 +123,8 @@ export function NotificationBell({ count }: { count: number }) {
 
 export function ActivityPanel() {
   const [apps, setApps] = useState<Application[]>([]);
+  const [entryComments, setEntryComments] = useState<Comment[]>([]);
+  const [cohortComments, setCohortComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [lastRead, setLastRead] = useState(0);
@@ -113,29 +132,50 @@ export function ActivityPanel() {
 
   useEffect(() => { setLastRead(getLastReadTime()); }, []);
 
-  const fetchApps = useCallback(async () => {
-    const res = await fetch("/api/applications");
-    const data = await res.json();
-    if (Array.isArray(data)) setApps(data);
+  const fetchAll = useCallback(async () => {
+    try {
+      const [appsRes, entryCommentsRes, cohortCommentsRes] = await Promise.all([
+        fetch("/api/applications"),
+        // Both modes added to /api/comments in earlier commit — see the
+        // route file for the modes table.
+        fetch("/api/comments?type=entry"),
+        fetch("/api/comments"),
+      ]);
+      const appsData = await appsRes.json();
+      const entryData = await entryCommentsRes.json();
+      const cohortData = await cohortCommentsRes.json();
+      if (Array.isArray(appsData)) setApps(appsData);
+      if (Array.isArray(entryData)) setEntryComments(entryData);
+      if (Array.isArray(cohortData)) setCohortComments(cohortData);
+    } catch { /* ignore */ }
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchApps(); }, [fetchApps]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Find user's app
+  // Find user's apps + cohort
   const myApp = apps.find(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash) || null;
+  const myAppIds = new Set(apps.filter(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash).map(a => a.id));
   const cohortIds = getCohortIds(apps, myApp);
   const hasCohort = cohortIds.size > 0;
+  const myPinHash = myApp?.pin_hash || null;
 
-  // Build activity from cohort apps only
+  // Build the unified activity feed:
+  //   1) cohort step milestones (when someone in your week hits AOR etc.)
+  //   2) replies on your entry
+  //   3) replies to your cohort posts
   const activities: ActivityItem[] = [];
+
+  // 1) Cohort step milestones
   apps.forEach(a => {
     if (!cohortIds.has(a.id)) return;
     const s = buildStepsMap(a.step_events || []);
     (a.step_events || []).forEach(e => {
       if (e.step_id === "submitted") return;
+      // step_events no longer exposes `id` — use a composite key.
       activities.push({
-        id: e.id,
+        id: `step-${a.id}-${e.step_id}`,
+        kind: "step",
         app_initials: a.initials,
         app_country: a.country_origin,
         app_sub_date: s.submitted || "",
@@ -145,6 +185,45 @@ export function ActivityPanel() {
       });
     });
   });
+
+  // 2) Replies on YOUR entry (someone else posted a comment on your app)
+  if (myPinHash && myAppIds.size > 0) {
+    entryComments.forEach(c => {
+      if (!c.application_id || !myAppIds.has(c.application_id)) return;
+      if (c.pin_hash === myPinHash) return; // your own comment
+      const app = apps.find(a => a.id === c.application_id);
+      activities.push({
+        id: `reply-entry-${c.id}`,
+        kind: "reply",
+        created_at: c.created_at,
+        author_name: c.author_name,
+        text: c.text,
+        href: "/me",
+        context: app ? `on your entry (${app.initials})` : "on your entry",
+      });
+    });
+  }
+
+  // 3) Replies to your cohort posts (someone replied to a top-level
+  //    cohort post you authored)
+  if (myPinHash) {
+    cohortComments.forEach(c => {
+      if (!c.parent_id) return;                // only replies, not top-level
+      if (c.pin_hash === myPinHash) return;    // your own reply
+      const parent = cohortComments.find(p => p.id === c.parent_id);
+      if (!parent || parent.pin_hash !== myPinHash) return;
+      activities.push({
+        id: `reply-cohort-${c.id}`,
+        kind: "reply",
+        created_at: c.created_at,
+        author_name: c.author_name,
+        text: c.text,
+        href: "/community",
+        context: parent.cohort_month ? `in r/${monthSlug(parent.cohort_month)}` : "in Community",
+      });
+    });
+  }
+
   activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const unreadActivities = activities.filter(a => new Date(a.created_at).getTime() > lastRead);
@@ -171,9 +250,9 @@ export function ActivityPanel() {
             {/* Header */}
             <div className="px-4 py-3 border-b border-sand-100 flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-0.5">Your cohort</p>
+                <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-0.5">Notifications</p>
                 <p className="text-[11px] text-sand-500 nums-tabular truncate">
-                  {hasCohort ? <><span className="font-bold text-sand-700">{cohortIds.size}</span> people submitted your week</> : "Add your app to see cohort activity"}
+                  {hasCohort ? <><span className="font-bold text-sand-700">{cohortIds.size}</span> people submitted your week · replies + step milestones</> : "Add your app to see cohort activity and replies"}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -193,53 +272,88 @@ export function ActivityPanel() {
             </div>
 
             <div className="overflow-y-auto flex-1">
-              {/* No cohort */}
-              {!hasCohort && (
+              {/* No cohort + no activity at all */}
+              {!hasCohort && activities.length === 0 && (
                 <div className="px-4 py-10 text-center">
-                  <p className="text-[12px] text-sand-500 leading-relaxed">Add your application to see updates from people who submitted the same week as you.</p>
+                  <p className="text-[12px] text-sand-500 leading-relaxed">Add your application to see step milestones from people who submitted the same week, and to be notified when someone replies to your posts.</p>
                 </div>
               )}
 
-              {/* No new notifications */}
-              {hasCohort && displayActivities.length === 0 && !showAll && (
+              {/* No NEW notifications */}
+              {(hasCohort || activities.length > 0) && displayActivities.length === 0 && !showAll && (
                 <div className="px-4 py-10 text-center">
                   <div className="w-10 h-10 rounded-full bg-brand-500/15 flex items-center justify-center mx-auto mb-2 text-brand-600">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20 6L9 17L4 12" />
                     </svg>
                   </div>
-                  <p className="text-[12px] text-sand-700 font-semibold">No new cohort updates</p>
-                  <button onClick={() => setShowAll(true)}
-                    className="text-[11px] text-brand-600 font-semibold mt-1 hover:text-brand-700 transition-colors">
-                    View past activity <span aria-hidden>→</span>
-                  </button>
+                  <p className="text-[12px] text-sand-700 font-semibold">You&apos;re all caught up</p>
+                  {activities.length > 0 && (
+                    <button onClick={() => setShowAll(true)}
+                      className="text-[11px] text-brand-600 font-semibold mt-1 hover:text-brand-700 transition-colors">
+                      View past activity <span aria-hidden>→</span>
+                    </button>
+                  )}
                 </div>
               )}
 
-              {hasCohort && displayActivities.length === 0 && showAll && (
-                <div className="px-4 py-8 text-center text-sand-400 text-[12px] italic">No cohort milestones yet</div>
+              {(hasCohort || activities.length > 0) && displayActivities.length === 0 && showAll && (
+                <div className="px-4 py-8 text-center text-sand-400 text-[12px] italic">No activity yet</div>
               )}
 
-              {/* Cohort milestones */}
+              {/* Unified feed: cohort milestones + replies */}
               {displayActivities.length > 0 && (
                 <div className="px-4 pt-3 pb-2 nums-tabular">
-                  {displayActivities.slice(0, 20).map((a) => {
+                  {displayActivities.slice(0, 30).map((a) => {
                     const isUnread = new Date(a.created_at).getTime() > lastRead;
+
+                    if (a.kind === "reply") {
+                      const inner = (
+                        <div className={`flex items-start gap-2.5 py-2 transition-colors ${isUnread ? "bg-brand-500/10 -mx-4 px-4 rounded-md" : ""}`}>
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isUnread ? "bg-brand-500 shadow-sm" : "bg-brand-500/15"}`}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isUnread ? "text-white" : "text-brand-600"}>
+                              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[12px] text-sand-700 leading-snug">
+                              <span className={`font-bold ${isUnread ? "text-brand-700" : "text-sand-900"}`}>{a.author_name}</span>
+                              <span className="text-sand-500"> replied </span>
+                              {a.context && <span className="text-sand-500">{a.context}</span>}
+                            </div>
+                            {a.text && (
+                              <p className="text-[11px] text-sand-500 truncate mt-0.5 italic">&ldquo;{a.text}&rdquo;</p>
+                            )}
+                            <div className="text-[10px] text-sand-400 mt-0.5">{timeAgo(a.created_at)}</div>
+                          </div>
+                          {isUnread && <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0 mt-2 animate-pulse" />}
+                        </div>
+                      );
+                      // Reply rows are clickable links — close the panel and
+                      // jump to the relevant surface.
+                      return a.href ? (
+                        <a key={a.id} href={a.href} onClick={handleClose} className="block hover:bg-sand-50/60 -mx-4 px-4 rounded-md transition-colors">
+                          {inner}
+                        </a>
+                      ) : <div key={a.id}>{inner}</div>;
+                    }
+
+                    // Step milestone
                     return (
                       <div key={a.id} className={`flex items-start gap-2.5 py-2 transition-colors ${isUnread ? "bg-brand-500/10 -mx-4 px-4 rounded-md" : ""}`}>
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isUnread ? "bg-brand-500 shadow-sm" : "bg-brand-500/15"}`}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isUnread ? "text-white" : "text-brand-600"}>
-                            <path d={stepIcon(a.step_id)} />
+                            <path d={stepIcon(a.step_id || "")} />
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[12px] text-sand-700 leading-snug">
                             <span className="font-bold text-sand-900">{a.app_initials}</span>
                             <span className="text-sand-500"> received </span>
-                            <span className={`font-bold ${isUnread ? "text-brand-700" : "text-sand-800"}`}>{stepLabel(a.step_id)}</span>
+                            <span className={`font-bold ${isUnread ? "text-brand-700" : "text-sand-800"}`}>{stepLabel(a.step_id || "")}</span>
                             {a.event_date && <span className="text-sand-500"> on {fmt(a.event_date)}</span>}
                           </div>
-                          <div className="text-[10px] text-sand-400 mt-0.5">{a.app_country} · Sub {fmt(a.app_sub_date)} · {timeAgo(a.created_at)}</div>
+                          <div className="text-[10px] text-sand-400 mt-0.5">{a.app_country} · Sub {fmt(a.app_sub_date || "")} · {timeAgo(a.created_at)}</div>
                         </div>
                         {isUnread && <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0 mt-2 animate-pulse" />}
                       </div>
