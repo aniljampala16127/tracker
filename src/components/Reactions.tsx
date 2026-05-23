@@ -110,9 +110,9 @@ export function Reactions({ applicationId, stepId, compact }: ReactionsProps) {
             title={r.label}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs transition-all ${
               isActive
-                ? "bg-brand-100 border border-brand-300 shadow-sm"
+                ? "bg-brand-500/15 border border-brand-500/30 shadow-sm"
                 : count > 0
-                ? "bg-sand-50 border border-sand-200 hover:bg-sand-100"
+                ? "bg-white border border-sand-200 hover:border-sand-300 hover:bg-sand-50"
                 : "bg-transparent border border-transparent hover:bg-sand-50 hover:border-sand-200 opacity-40 hover:opacity-100"
             }`}
           >
