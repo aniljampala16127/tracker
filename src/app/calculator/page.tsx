@@ -31,6 +31,95 @@ function percentile(arr: number[], p: number): number {
   return sorted[Math.max(0, idx)];
 }
 
+// ============================================
+// Step-by-step timeline row — vertical timeline with state-aware node.
+// Five visual states drive everything: done, next, overdue, future, ungrouped.
+// ============================================
+type TimelineState = "done" | "next" | "overdue" | "future" | "ungrouped";
+
+function TimelineRow({
+  state,
+  label,
+  sublabel,
+  date,
+  dateMeta,
+  isIrccFallback,
+}: {
+  state: TimelineState;
+  label: string;
+  sublabel: string | null;
+  date: string | null;
+  dateMeta: string | null;
+  isIrccFallback?: boolean;
+}) {
+  // Node ring + fill per state. Done is the only solid filled node.
+  const nodeClass = {
+    done:      "bg-brand-500 shadow-md shadow-brand-500/30",
+    next:      "bg-white border-[3px] border-warn",
+    overdue:   "bg-white border-[3px] border-brand-500",
+    future:    "bg-white border-2 border-sand-300",
+    ungrouped: "bg-sand-50 border border-dashed border-sand-300",
+  }[state];
+
+  // Inner dot / icon per state.
+  const nodeInner = state === "done" ? (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6L9 17L4 12" />
+    </svg>
+  ) : state === "next" ? (
+    <span className="relative flex h-2 w-2">
+      <span className="absolute inline-flex h-full w-full rounded-full bg-warn opacity-70 animate-ping" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-warn" />
+    </span>
+  ) : state === "overdue" ? (
+    <span className="w-2 h-2 rounded-full bg-brand-500" />
+  ) : state === "future" ? (
+    <span className="w-1.5 h-1.5 rounded-full bg-sand-300" />
+  ) : null;
+
+  // Right-side date pill color
+  const dateClass = {
+    done:      "text-brand-700",
+    next:      "text-warn-dark",
+    overdue:   "text-brand-700",
+    future:    "text-sand-600",
+    ungrouped: "text-sand-400",
+  }[state];
+
+  const sublabelClass = {
+    done:      "text-brand-600",
+    next:      "text-warn-dark/80",
+    overdue:   "text-brand-700/80",
+    future:    "text-sand-500",
+    ungrouped: "text-sand-400",
+  }[state];
+
+  return (
+    <div className="relative flex items-start gap-3.5 py-2.5">
+      <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${nodeClass}`}>
+        {nodeInner}
+      </div>
+      <div className="flex-1 min-w-0 pt-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className={`text-[14px] font-bold ${state === "ungrouped" ? "text-sand-500" : "text-sand-900"}`}>{label}</span>
+          {state === "next" && <span className="text-[9px] font-bold text-warn-dark uppercase tracking-wider bg-warn/15 px-1.5 py-0.5 rounded">Next</span>}
+          {state === "overdue" && <span className="text-[9px] font-bold text-brand-700 uppercase tracking-wider bg-brand-500/15 px-1.5 py-0.5 rounded">Due soon</span>}
+          {isIrccFallback && state !== "done" && state !== "next" && (
+            <span className="text-[9px] text-sand-400 italic">IRCC est.</span>
+          )}
+        </div>
+        {sublabel && <p className={`text-[11px] mt-0.5 ${sublabelClass}`}>{sublabel}</p>}
+      </div>
+      {date && (
+        <div className="text-right flex-shrink-0 pt-1">
+          <div className={`text-[13px] font-bold leading-none ${dateClass}`}>{date}</div>
+          {dateMeta && <div className="text-[10px] text-sand-400 mt-1">{dateMeta}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function getTodayStr(): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const now = new Date();
@@ -507,78 +596,90 @@ export default function CalculatorPage() {
       {/* STEP-BY-STEP TIMELINE */}
       {hasInput && !isComplete && timeline && (
         <>
-          <div className="bg-white border border-sand-200 rounded-2xl p-4 mb-4">
+          <div className="bg-white border border-sand-200 rounded-2xl p-5 mb-4">
             <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Forecast</p>
             <h2 className="text-base font-bold text-sand-900 tracking-tight mb-1">Step-by-step timeline</h2>
-            <p className="text-[11px] text-sand-500 mb-3 nums-tabular">Based on {apps.filter(a => a.stream === stream).length} {stream} applications</p>
+            <p className="text-[11px] text-sand-500 mb-5 nums-tabular">Based on {apps.filter(a => a.stream === stream).length} {stream} applications</p>
 
-            <div className="space-y-1.5 nums-tabular">
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-500 text-white shadow-sm">
-                <div className="w-2.5 h-2.5 rounded-full bg-white flex-shrink-0" />
-                <div className="flex-1 text-[13px] font-semibold">Submitted</div>
-                <div className="text-[12px] font-bold">{fmtDate(submittedDate)}</div>
-              </div>
+            {/* Vertical timeline — connector line + node circles. Submitted is
+                the anchor at the top; subsequent rows show done / next / overdue
+                / future state via the node + a right-aligned date pill. */}
+            <div className="relative nums-tabular">
+              {/* The connector line sits behind the nodes, from the centre of
+                  the first node to the centre of the last. */}
+              <div className="absolute left-[19px] top-5 bottom-5 w-[2px] bg-sand-200" aria-hidden="true" />
 
-              {timeline.map((s) => {
-                const isCompleted = !!s.actualDate;
-                const isNextStep = myProgress && myProgress.nextStep && s.id === myProgress.nextStep.id;
-                const isPastEstimate = !isCompleted && s.estDate && new Date(s.estDate + "T00:00:00") <= new Date();
+              <div className="space-y-0">
+                {/* Submitted — always done, always first */}
+                <TimelineRow
+                  state="done"
+                  label="Submitted"
+                  sublabel="Application filed"
+                  date={fmtDate(submittedDate)}
+                  dateMeta="Day 0"
+                />
 
-                let daysFromBase: number | null = null;
-                let baseLabel = "";
-                if (isCompleted && s.actualDate && myStepsMap) {
-                  if (s.isFromAor && myStepsMap.aor) {
-                    daysFromBase = daysBetween(myStepsMap.aor, s.actualDate);
-                    baseLabel = " from AOR";
-                  } else if (s.id === "aor" && myStepsMap.submitted) {
-                    daysFromBase = daysBetween(myStepsMap.submitted, s.actualDate);
+                {timeline.map((s) => {
+                  const isCompleted = !!s.actualDate;
+                  const isNextStep = !!(myProgress && myProgress.nextStep && s.id === myProgress.nextStep.id);
+                  const isPastEstimate = !isCompleted && !!s.estDate && new Date(s.estDate + "T00:00:00") <= new Date();
+
+                  let daysFromBase: number | null = null;
+                  let baseLabel = "";
+                  if (isCompleted && s.actualDate && myStepsMap) {
+                    if (s.isFromAor && myStepsMap.aor) {
+                      daysFromBase = daysBetween(myStepsMap.aor, s.actualDate);
+                      baseLabel = "from AOR";
+                    } else if (s.id === "aor" && myStepsMap.submitted) {
+                      daysFromBase = daysBetween(myStepsMap.submitted, s.actualDate);
+                      baseLabel = "from sub";
+                    }
                   }
-                }
 
-                return (
-                  <div key={s.shortLabel} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                    isCompleted ? "bg-brand-500 text-white shadow-sm"
-                    : isNextStep ? "bg-warn/15 border border-warn/40"
-                    : isPastEstimate ? "bg-brand-500/10 border border-brand-500/20"
-                    : s.estDate ? "bg-white border border-sand-200"
-                    : "bg-sand-100/60 border border-sand-200/60"
-                  }`}>
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                      isCompleted ? "bg-white"
-                      : isNextStep ? "bg-warn"
-                      : isPastEstimate ? "bg-brand-500"
-                      : s.estDate ? "bg-sand-300" : "bg-sand-300"
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-[13px] font-semibold flex items-center gap-1.5 ${isCompleted ? "text-white" : "text-sand-900"}`}>
-                        <span className="truncate">{s.label}</span>
-                        {isCompleted && <span className="text-[9px] font-bold text-white/80 uppercase tracking-wider">Done</span>}
-                        {!isCompleted && isNextStep && <span className="text-[9px] font-bold text-warn-dark uppercase tracking-wider">Next</span>}
-                        {!isCompleted && s.isIrccFallback && <span className="text-[9px] text-sand-400 italic">IRCC est.</span>}
-                      </div>
-                      {isCompleted && daysFromBase != null && (
-                        <div className="text-[10px] text-white/70 nums-tabular">{daysFromBase}d{baseLabel}</div>
-                      )}
-                      {!isCompleted && s.avgDays != null && (
-                        <div className="text-[10px] text-sand-500 nums-tabular">~{s.avgDays}d {s.isFromAor ? "from AOR" : "from submitted"}</div>
-                      )}
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      {isCompleted && s.actualDate ? (
-                        <div className="text-[12px] font-bold text-white">{fmtDate(s.actualDate)}</div>
-                      ) : s.estDate ? (
-                        <div className={`text-[12px] font-bold ${
-                          isNextStep ? "text-warn-dark"
-                          : isPastEstimate ? "text-brand-700"
-                          : s.isIrccFallback ? "text-sand-400" : "text-sand-700"
-                        }`}>~{fmtDate(s.estDate)}</div>
-                      ) : (
-                        <div className="text-[10px] text-sand-300">—</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  const state: TimelineState = isCompleted
+                    ? "done"
+                    : isNextStep
+                    ? "next"
+                    : isPastEstimate
+                    ? "overdue"
+                    : s.estDate
+                    ? "future"
+                    : "ungrouped";
+
+                  // Right-hand date label
+                  let date: string | null = null;
+                  let dateMeta: string | null = null;
+                  if (isCompleted && s.actualDate) {
+                    date = fmtDate(s.actualDate);
+                    if (daysFromBase != null) dateMeta = `${daysFromBase}d ${baseLabel}`;
+                  } else if (s.estDate) {
+                    date = `~ ${fmtDate(s.estDate)}`;
+                    if (state === "overdue") dateMeta = "should be soon";
+                    else if (state === "next") dateMeta = s.avgDays != null ? `~${s.avgDays}d typical` : "next up";
+                    else if (s.isIrccFallback) dateMeta = "IRCC estimate";
+                    else if (s.avgDays != null) dateMeta = `~${s.avgDays}d typical`;
+                  }
+
+                  // Left-hand sublabel under the step name
+                  let sublabel: string | null = null;
+                  if (state === "done" && daysFromBase != null) sublabel = `Took ${daysFromBase}d ${baseLabel}`;
+                  else if (state === "next") sublabel = "Next up";
+                  else if (state === "overdue") sublabel = "Past the typical window";
+                  else if (s.avgDays != null) sublabel = `~${s.avgDays}d ${s.isFromAor ? "from AOR" : "from submitted"}`;
+
+                  return (
+                    <TimelineRow
+                      key={s.shortLabel}
+                      state={state}
+                      label={s.label}
+                      sublabel={sublabel}
+                      date={date}
+                      dateMeta={dateMeta}
+                      isIrccFallback={s.isIrccFallback}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </div>
 
