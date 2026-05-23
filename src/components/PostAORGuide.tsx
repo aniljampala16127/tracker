@@ -31,24 +31,27 @@ export function PostAORGuide() {
   const steps = activeTab === "gckey" ? GCKEY_STEPS : TRACKER_STEPS;
 
   return (
-    <div className="bg-gradient-to-r from-brand-50 to-brand-100/50 border border-brand-200 rounded-xl mb-3 overflow-hidden">
+    <div className="bg-white border border-brand-200 rounded-2xl mb-3 overflow-hidden shadow-[0_1px_2px_rgba(45,106,79,0.06)]">
       {/* Header — always visible */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left active:scale-[0.99] transition-transform"
+        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+          expanded ? "bg-brand-500/[0.04] border-b border-brand-100" : "hover:bg-brand-500/[0.03]"
+        }`}
       >
-        <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0 shadow-md shadow-brand-500/20">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22C17.5 22 22 17.5 22 12S17.5 2 12 2S2 6.5 2 12S6.5 22 12 22Z"/>
             <path d="M12 16V12"/><path d="M12 8H12.01"/>
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-bold text-brand-800">Next: Set up GCKey & IRCC Tracker</div>
-          <div className="text-[10px] text-brand-600">Link your application to track progress on IRCC</div>
+          <div className="text-[10px] font-bold text-brand-700 uppercase tracking-[0.08em] mb-0.5">Next up</div>
+          <div className="text-[13px] font-bold text-sand-900">Set up GCKey &amp; IRCC tracker</div>
         </div>
         <svg
-          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round"
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          className="text-brand-600 flex-shrink-0"
           style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
         >
           <path d="M6 9L12 15L18 9" />
@@ -73,35 +76,35 @@ export function PostAORGuide() {
             }}
           >
             {/* Tab switcher */}
-            <div className="flex gap-1.5 mb-3">
+            <div className="flex gap-1.5 mb-3 p-1 rounded-lg bg-sand-100 border border-sand-200">
               <button
                 onClick={() => setActiveTab("gckey")}
-                className={`flex-1 text-[11px] font-semibold py-2 rounded-lg transition-all ${
+                className={`flex-1 text-[11px] font-bold py-1.5 rounded-md transition-all ${
                   activeTab === "gckey"
-                    ? "bg-brand-500 text-white shadow-sm"
-                    : "bg-white/60 text-brand-700 hover:bg-white"
+                    ? "bg-brand-500 text-white shadow-md shadow-brand-500/20"
+                    : "text-sand-600 hover:text-sand-900"
                 }`}
               >
-                1. GCKey Setup
+                1. GCKey setup
               </button>
               <button
                 onClick={() => setActiveTab("tracker")}
-                className={`flex-1 text-[11px] font-semibold py-2 rounded-lg transition-all ${
+                className={`flex-1 text-[11px] font-bold py-1.5 rounded-md transition-all ${
                   activeTab === "tracker"
-                    ? "bg-brand-500 text-white shadow-sm"
-                    : "bg-white/60 text-brand-700 hover:bg-white"
+                    ? "bg-brand-500 text-white shadow-md shadow-brand-500/20"
+                    : "text-sand-600 hover:text-sand-900"
                 }`}
               >
-                2. IRCC Tracker
+                2. IRCC tracker
               </button>
             </div>
 
             {/* Steps */}
-            <div className="bg-white rounded-xl p-3 space-y-2.5">
+            <div className="bg-sand-50/60 border border-sand-200 rounded-xl p-3 space-y-2.5 nums-tabular">
               {steps.map((step, i) => (
                 <div key={i} className="flex gap-2.5">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[9px] font-bold mt-0.5 ${
-                    step.highlight ? "bg-warn text-white" : "bg-brand-100 text-brand-700"
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5 ${
+                    step.highlight ? "bg-warn text-white" : "bg-brand-500/15 text-brand-700"
                   }`}>
                     {i + 1}
                   </div>
@@ -114,7 +117,7 @@ export function PostAORGuide() {
                         href={step.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] text-brand-600 font-medium mt-0.5 hover:underline"
+                        className="inline-flex items-center gap-1 text-[11px] text-brand-600 font-semibold mt-1 hover:text-brand-700 transition-colors"
                         onClick={(e) => e.stopPropagation()}
                       >
                         Open link
@@ -130,11 +133,12 @@ export function PostAORGuide() {
             </div>
 
             {/* Tip */}
-            <div className="mt-2.5 bg-warn-light/50 rounded-lg px-3 py-2">
-              <div className="text-[10px] text-warn-dark">
+            <div className="mt-3 bg-warn/12 border border-warn/30 rounded-lg px-3 py-2.5">
+              <div className="text-[10px] font-bold text-warn-dark uppercase tracking-[0.08em] mb-1">Tip</div>
+              <div className="text-[11px] text-warn-dark leading-relaxed">
                 {activeTab === "gckey"
-                  ? "💡 Tip: Add a space before your family name when linking. This is a known quirk with the IRCC system."
-                  : "💡 Tip: Use the UCI and Application Number from your GCKey account. These appear after you link your application."
+                  ? "Add a space before your family name when linking. This is a known quirk with the IRCC system."
+                  : "Use the UCI and Application Number from your GCKey account. These appear after you link your application."
                 }
               </div>
             </div>

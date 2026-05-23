@@ -58,24 +58,26 @@ export function FindRepresentativeCard() {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white border border-sand-200 rounded-xl mb-3 overflow-hidden">
+    <div className="bg-white border border-sand-200 rounded-2xl mb-3 overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left active:scale-[0.99] transition-transform"
+        className={`w-full flex items-center gap-3 px-4 py-3 text-left active:scale-[0.99] transition-colors ${
+          expanded ? "bg-sand-50/60 border-b border-sand-100" : "hover:bg-sand-50/60"
+        }`}
       >
-        <div className="w-8 h-8 rounded-lg bg-sand-100 flex items-center justify-center flex-shrink-0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-sand-600" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="w-9 h-9 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center flex-shrink-0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-brand-600" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21"/><circle cx="9" cy="7" r="4"/>
             <path d="M23 21V19C23 17.5 22 16.2 20.6 15.8"/><path d="M16.5 3.1C17.9 3.6 19 5 19 6.5C19 8 17.9 9.4 16.5 9.9"/>
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-bold text-sand-900">Need an Immigration Representative?</div>
-          <div className="text-[10px] text-sand-500">Find verified RCICs and lawyers</div>
+          <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-0.5">Resources</div>
+          <div className="text-[13px] font-bold text-sand-900">Need an immigration representative?</div>
         </div>
         <svg
-          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-sand-400" strokeWidth="2" strokeLinecap="round"
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-sand-400" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
         >
           <path d="M6 9L12 15L18 9" />
@@ -107,20 +109,20 @@ export function FindRepresentativeCard() {
                   href={r.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-start gap-2.5 p-2.5 rounded-lg bg-sand-50 hover:bg-sand-100 transition-colors active:scale-[0.99]"
+                  className="group flex items-start gap-3 p-3 rounded-lg bg-white border border-sand-200 hover:border-brand-300 hover:shadow-[0_4px_12px_rgba(26,26,24,0.06)] transition-all active:scale-[0.99]"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-7 h-7 rounded-md bg-white border border-sand-200 flex items-center justify-center flex-shrink-0 mt-0.5 text-sand-600">
+                  <div className="w-8 h-8 rounded-md bg-brand-50 border border-brand-100 flex items-center justify-center flex-shrink-0 mt-0.5 text-brand-600">
                     <Icon name={r.icon} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[12px] font-semibold text-sand-900">{r.title}</span>
-                      <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 font-bold flex-shrink-0">{r.tag}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[13px] font-bold text-sand-900">{r.title}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-brand-500/15 text-brand-700 font-bold flex-shrink-0 uppercase tracking-wider">{r.tag}</span>
                     </div>
-                    <div className="text-[10px] text-sand-500 mt-0.5 leading-relaxed">{r.description}</div>
+                    <div className="text-[11px] text-sand-500 mt-0.5 leading-relaxed">{r.description}</div>
                   </div>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-1.5 text-sand-400">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-1.5 text-sand-300 group-hover:text-brand-500 transition-colors">
                     <path d="M18 13V19C18 20.1 17.1 21 16 21H5C3.9 21 3 20.1 3 19V8C3 6.9 3.9 6 5 6H11"/>
                     <path d="M15 3H21V9"/><path d="M10 14L21 3"/>
                   </svg>
@@ -129,13 +131,13 @@ export function FindRepresentativeCard() {
             </div>
 
             {/* Tips */}
-            <div className="bg-warn-light/40 rounded-lg px-3 py-2.5">
-              <div className="text-[10px] font-semibold text-warn-dark mb-1.5">Before hiring anyone:</div>
+            <div className="bg-warn/12 border border-warn/30 rounded-lg px-3 py-2.5">
+              <div className="text-[10px] font-bold text-warn-dark uppercase tracking-[0.08em] mb-1.5">Before hiring anyone</div>
               <div className="space-y-1">
                 {TIPS.map((tip, i) => (
-                  <div key={i} className="flex items-start gap-1.5">
-                    <span className="text-[9px] text-warn-dark mt-0.5">•</span>
-                    <span className="text-[10px] text-warn-dark leading-relaxed">{tip}</span>
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="w-1 h-1 mt-1.5 rounded-full bg-warn-dark flex-shrink-0" />
+                    <span className="text-[11px] text-warn-dark leading-relaxed">{tip}</span>
                   </div>
                 ))}
               </div>
