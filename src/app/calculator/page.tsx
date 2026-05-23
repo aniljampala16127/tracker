@@ -308,22 +308,23 @@ export default function CalculatorPage() {
   return (
     <div className="page-enter">
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-sand-900">Completion Estimator</h1>
-        <p className="text-xs text-sand-500 mt-0.5">
+        <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Estimator</p>
+        <h1 className="text-2xl font-bold text-sand-900 tracking-tight">When will I finish?</h1>
+        <p className="text-[13px] text-sand-500 mt-0.5 leading-relaxed">
           {autoDetected
-            ? "Personalized predictions based on your application and community data"
-            : "Enter your dates to see predictions based on community data"}
+            ? "Personalized predictions from your application + community data."
+            : "Enter your dates to see predictions from community data."}
         </p>
       </div>
 
       {/* Input form */}
-      <div className="bg-white border border-sand-200 rounded-xl p-4 mb-5">
+      <div className="bg-white border border-sand-200 rounded-2xl p-4 mb-5 shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em]">Submission date</label>
             <input
               type="date"
-              className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+              className="px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors nums-tabular"
               value={submittedDate}
               onChange={(e) => setSubmittedDate(e.target.value)}
               max={new Date().toISOString().split("T")[0]}
@@ -335,11 +336,11 @@ export default function CalculatorPage() {
             onChange={(e) => setStream(e.target.value)}
             options={[{ value: "Outland", label: "Outland" }, { value: "Inland", label: "Inland" }]}
           />
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Country (optional)</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em]">Country <span className="font-normal lowercase tracking-normal text-sand-400">(optional)</span></label>
             <input
               type="text"
-              className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-sand-400"
+              className="px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors placeholder:text-sand-400"
               placeholder="e.g. India"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
@@ -347,8 +348,8 @@ export default function CalculatorPage() {
           </div>
         </div>
         {autoDetected && (
-          <div className="mt-2 text-[10px] text-brand-600 flex items-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17L4 12"/></svg>
+          <div className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-brand-600 font-semibold bg-brand-500/10 px-2.5 py-1 rounded-full">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
             Auto-filled from your entry
           </div>
         )}
@@ -356,95 +357,95 @@ export default function CalculatorPage() {
 
       {/* COMPLETE STATE */}
       {hasInput && isComplete && (
-        <div className="bg-gradient-to-br from-brand-500 to-brand-600 text-white rounded-xl p-6 mb-4 text-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="text-3xl mb-2">🎉</div>
-          <div className="text-xl font-bold mb-1">eCoPR Received!</div>
-          <p className="text-sm text-white/80">Congratulations — your sponsorship journey is complete.</p>
+        <div className="tile-brand text-white rounded-2xl p-6 mb-4 text-center shadow-lg shadow-brand-500/15">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/15 mb-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
+          </div>
+          <p className="text-[10px] font-bold text-white/70 uppercase tracking-[0.08em] mb-1">Journey complete</p>
+          <div className="text-2xl font-bold mb-1 tracking-tight">eCoPR received</div>
+          <p className="text-sm text-white/80">Congratulations — your sponsorship is done.</p>
         </div>
       )}
 
       {/* AOR PREDICTION (only when AOR is still pending) */}
       {hasInput && !isComplete && prediction && (
         <>
-          <div className="bg-gradient-to-br from-brand-500 to-brand-600 text-white rounded-xl p-5 mb-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-white/60 mb-1">Predicted AOR Date</div>
-            <div className="text-3xl font-bold mb-1">{fmtDate(prediction.predicted)}</div>
-            <div className="text-sm text-white/80 mb-4">
+          <div className="tile-brand text-white rounded-2xl p-5 mb-4 shadow-lg shadow-brand-500/15">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/70 mb-1">Predicted AOR date</p>
+            <div className="text-[34px] font-bold mb-1 leading-none tracking-tight nums-tabular">{fmtDate(prediction.predicted)}</div>
+            <div className="text-[13px] text-white/85 mb-4 nums-tabular">
               {prediction.daysRemaining > 0
-                ? `~${prediction.daysRemaining} days remaining`
-                : "Your AOR could arrive any day now! 🎉"}
+                ? <>~<span className="font-bold">{prediction.daysRemaining}</span> days remaining</>
+                : "Your AOR could arrive any day now."}
             </div>
-            <div className="bg-white/20 rounded-full h-2.5 overflow-hidden mb-2">
+            <div className="bg-white/20 rounded-full h-2 overflow-hidden mb-2">
               <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${Math.max(prediction.progressPct, 3)}%` }} />
             </div>
-            <div className="flex justify-between text-[9px] text-white/50">
+            <div className="flex justify-between text-[10px] text-white/60 font-semibold nums-tabular">
               <span>Day {prediction.daysSoFar}</span>
               <span>Avg {aorData.avg}d</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-white border border-sand-200 rounded-xl p-3.5">
-              <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Confidence Range</div>
+            <div className="bg-white border border-sand-200 rounded-xl p-4">
+              <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2.5">Confidence range</div>
               {prediction.optimistic && prediction.pessimistic ? (
                 <>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 nums-tabular">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-brand-600 font-medium">Best case</span>
-                      <span className="text-[11px] font-bold text-brand-600">{fmtShort(prediction.optimistic)}</span>
+                      <span className="text-[10px] text-brand-600 font-semibold">Best case</span>
+                      <span className="text-[12px] font-bold text-brand-600">{fmtShort(prediction.optimistic)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-sand-600 font-medium">Average</span>
-                      <span className="text-[11px] font-bold text-sand-800">{fmtShort(prediction.predicted)}</span>
+                      <span className="text-[10px] text-sand-600 font-semibold">Average</span>
+                      <span className="text-[12px] font-bold text-sand-800">{fmtShort(prediction.predicted)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-warn-dark font-medium">Conservative</span>
-                      <span className="text-[11px] font-bold text-warn-dark">{fmtShort(prediction.pessimistic)}</span>
+                      <span className="text-[10px] text-warn-dark font-semibold">Conservative</span>
+                      <span className="text-[12px] font-bold text-warn-dark">{fmtShort(prediction.pessimistic)}</span>
                     </div>
                   </div>
-                  <div className="text-[8px] text-sand-400 mt-2">25th-75th percentile</div>
+                  <div className="text-[10px] text-sand-400 mt-2">25th–75th percentile</div>
                 </>
               ) : (
                 <div className="text-[11px] text-sand-400">Need more data</div>
               )}
             </div>
             {queueData && (
-              <div className="bg-white border border-sand-200 rounded-xl p-3.5">
-                <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Queue Position</div>
-                <div className="text-2xl font-bold text-sand-900">#{queueData.position}</div>
-                <div className="text-[10px] text-sand-500">of {queueData.total} waiting</div>
-                <div className="text-[10px] text-sand-400 mt-1">{queueData.ahead} submitted before you</div>
+              <div className="bg-white border border-sand-200 rounded-xl p-4">
+                <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2.5">Queue position</div>
+                <div className="text-3xl font-bold text-sand-900 leading-none nums-tabular">#{queueData.position}</div>
+                <div className="text-[11px] text-sand-500 mt-1 nums-tabular">of {queueData.total} waiting</div>
+                <div className="text-[10px] text-sand-400 mt-0.5 nums-tabular">{queueData.ahead} submitted before you</div>
               </div>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-4">
             {cohortData && (
-              <div className="bg-white border border-sand-200 rounded-xl p-3.5">
-                <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2">Your Cohort</div>
-                <div className="text-2xl font-bold text-brand-600">{cohortData.pct}%</div>
-                <div className="text-[10px] text-sand-500">got AOR</div>
-                <div className="text-[10px] text-sand-400 mt-1">{cohortData.gotAor} of {cohortData.total} in your week</div>
+              <div className="bg-white border border-sand-200 rounded-xl p-4">
+                <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2.5">Your cohort</div>
+                <div className="text-3xl font-bold text-brand-600 leading-none nums-tabular">{cohortData.pct}<span className="text-xl">%</span></div>
+                <div className="text-[11px] text-sand-500 mt-1">got AOR</div>
+                <div className="text-[10px] text-sand-400 mt-0.5 nums-tabular">{cohortData.gotAor} of {cohortData.total} in your week</div>
               </div>
             )}
-            <div className="bg-white border border-sand-200 rounded-xl p-3.5">
-              <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2">
-                {country ? `${country} Avg` : "Community Stats"}
+            <div className="bg-white border border-sand-200 rounded-xl p-4">
+              <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2.5">
+                {country ? `${country} avg` : "Community stats"}
               </div>
               {prediction.countryPredicted && country ? (
                 <>
-                  <div className="text-lg font-bold text-sand-900">{aorData.countryAvg}d</div>
-                  <div className="text-[10px] text-sand-500">avg days to AOR</div>
-                  <div className="text-[10px] text-sand-400 mt-1">{aorData.countryCount} reports from {country}</div>
+                  <div className="text-2xl font-bold text-sand-900 leading-none nums-tabular">{aorData.countryAvg}<span className="text-base font-semibold">d</span></div>
+                  <div className="text-[11px] text-sand-500 mt-1">avg days to AOR</div>
+                  <div className="text-[10px] text-sand-400 mt-0.5 nums-tabular">{aorData.countryCount} reports from {country}</div>
                 </>
               ) : (
                 <>
-                  <div className="text-lg font-bold text-sand-900">{aorData.avg}d</div>
-                  <div className="text-[10px] text-sand-500">avg days to AOR</div>
-                  <div className="text-[10px] text-sand-400 mt-1">{aorData.totalReports} {stream} reports</div>
+                  <div className="text-2xl font-bold text-sand-900 leading-none nums-tabular">{aorData.avg}<span className="text-base font-semibold">d</span></div>
+                  <div className="text-[11px] text-sand-500 mt-1">avg days to AOR</div>
+                  <div className="text-[10px] text-sand-400 mt-0.5 nums-tabular">{aorData.totalReports} {stream} reports</div>
                 </>
               )}
             </div>
@@ -455,51 +456,49 @@ export default function CalculatorPage() {
       {/* NEXT STEP PREDICTION (AOR done, predicting next milestone) */}
       {hasInput && !isComplete && !prediction && nextPrediction && (
         <>
-          <div className="bg-gradient-to-br from-brand-500 to-brand-600 text-white rounded-xl p-5 mb-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-white/60 mb-1">
+          <div className="tile-brand text-white rounded-2xl p-5 mb-4 shadow-lg shadow-brand-500/15">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/70 mb-1">
               Predicted {nextPrediction.stepLabel}
-            </div>
-            <div className="text-3xl font-bold mb-1">{fmtDate(nextPrediction.predicted)}</div>
-            <div className="text-sm text-white/80 mb-4">
+            </p>
+            <div className="text-[34px] font-bold mb-1 leading-none tracking-tight nums-tabular">{fmtDate(nextPrediction.predicted)}</div>
+            <div className="text-[13px] text-white/85 mb-4 nums-tabular">
               {nextPrediction.daysRemaining > 0
-                ? `~${nextPrediction.daysRemaining} days from ${nextPrediction.fromStepLabel}`
-                : `${nextPrediction.stepLabel} could arrive any day now! 🎉`}
+                ? <>~<span className="font-bold">{nextPrediction.daysRemaining}</span> days from {nextPrediction.fromStepLabel}</>
+                : `${nextPrediction.stepLabel} could arrive any day now.`}
             </div>
-            <div className="bg-white/20 rounded-full h-2.5 overflow-hidden mb-2">
+            <div className="bg-white/20 rounded-full h-2 overflow-hidden mb-2">
               <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${Math.max(nextPrediction.progressPct, 3)}%` }} />
             </div>
-            <div className="flex justify-between text-[9px] text-white/50">
+            <div className="flex justify-between text-[10px] text-white/60 font-semibold nums-tabular">
               <span>{nextPrediction.daysSincePrev}d since {nextPrediction.fromStepLabel}</span>
               <span>Avg {nextPrediction.avgDays}d</span>
             </div>
           </div>
 
           {(nextPrediction.optimistic || nextPrediction.pessimistic) && (
-            <div className="bg-white border border-sand-200 rounded-xl p-3.5 mb-4">
-              <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider mb-2">
-                {nextPrediction.stepLabel} Confidence Range
+            <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
+              <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2.5">
+                {nextPrediction.stepLabel} confidence range
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 nums-tabular">
                 {nextPrediction.optimistic && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-brand-600 font-medium">Best case</span>
-                    <span className="text-[11px] font-bold text-brand-600">{fmtShort(nextPrediction.optimistic)}</span>
+                    <span className="text-[10px] text-brand-600 font-semibold">Best case</span>
+                    <span className="text-[12px] font-bold text-brand-600">{fmtShort(nextPrediction.optimistic)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-sand-600 font-medium">Average</span>
-                  <span className="text-[11px] font-bold text-sand-800">{fmtShort(nextPrediction.predicted)}</span>
+                  <span className="text-[10px] text-sand-600 font-semibold">Average</span>
+                  <span className="text-[12px] font-bold text-sand-800">{fmtShort(nextPrediction.predicted)}</span>
                 </div>
                 {nextPrediction.pessimistic && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-warn-dark font-medium">Conservative</span>
-                    <span className="text-[11px] font-bold text-warn-dark">{fmtShort(nextPrediction.pessimistic)}</span>
+                    <span className="text-[10px] text-warn-dark font-semibold">Conservative</span>
+                    <span className="text-[12px] font-bold text-warn-dark">{fmtShort(nextPrediction.pessimistic)}</span>
                   </div>
                 )}
               </div>
-              <div className="text-[8px] text-sand-400 mt-2">Based on {nextPrediction.reports} reports</div>
+              <div className="text-[10px] text-sand-400 mt-2 nums-tabular">Based on {nextPrediction.reports} reports</div>
             </div>
           )}
         </>
@@ -508,15 +507,16 @@ export default function CalculatorPage() {
       {/* STEP-BY-STEP TIMELINE */}
       {hasInput && !isComplete && timeline && (
         <>
-          <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
-            <h2 className="text-sm font-bold text-sand-900 mb-1">Step-by-Step Timeline</h2>
-            <p className="text-[10px] text-sand-400 mb-3">Based on {apps.filter(a => a.stream === stream).length} {stream} applications</p>
+          <div className="bg-white border border-sand-200 rounded-2xl p-4 mb-4">
+            <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Forecast</p>
+            <h2 className="text-base font-bold text-sand-900 tracking-tight mb-1">Step-by-step timeline</h2>
+            <p className="text-[11px] text-sand-500 mb-3 nums-tabular">Based on {apps.filter(a => a.stream === stream).length} {stream} applications</p>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-brand-500 text-white">
+            <div className="space-y-1.5 nums-tabular">
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-500 text-white shadow-sm">
                 <div className="w-2.5 h-2.5 rounded-full bg-white flex-shrink-0" />
-                <div className="flex-1 text-xs font-medium">Submitted</div>
-                <div className="text-[11px] font-semibold">{fmtDate(submittedDate)}</div>
+                <div className="flex-1 text-[13px] font-semibold">Submitted</div>
+                <div className="text-[12px] font-bold">{fmtDate(submittedDate)}</div>
               </div>
 
               {timeline.map((s) => {
@@ -536,43 +536,44 @@ export default function CalculatorPage() {
                 }
 
                 return (
-                  <div key={s.shortLabel} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
-                    isCompleted ? "bg-brand-500 text-white"
-                    : isNextStep ? "bg-warn-light border border-warn/30"
-                    : isPastEstimate ? "bg-brand-50/70"
-                    : s.estDate ? "bg-white border border-sand-100"
-                    : "bg-sand-50/50"
+                  <div key={s.shortLabel} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                    isCompleted ? "bg-brand-500 text-white shadow-sm"
+                    : isNextStep ? "bg-warn/15 border border-warn/40"
+                    : isPastEstimate ? "bg-brand-500/10 border border-brand-500/20"
+                    : s.estDate ? "bg-white border border-sand-200"
+                    : "bg-sand-100/60 border border-sand-200/60"
                   }`}>
                     <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                       isCompleted ? "bg-white"
                       : isNextStep ? "bg-warn"
                       : isPastEstimate ? "bg-brand-500"
-                      : s.estDate ? "bg-sand-300" : "bg-sand-200"
+                      : s.estDate ? "bg-sand-300" : "bg-sand-300"
                     }`} />
-                    <div className="flex-1">
-                      <div className={`text-xs font-medium ${isCompleted ? "text-white" : "text-sand-900"}`}>
-                        {s.label}
-                        {isCompleted && <span className="ml-1.5 text-[9px] text-white/70">Done</span>}
-                        {!isCompleted && s.isIrccFallback && <span className="ml-1.5 text-[8px] text-sand-400 italic">IRCC est.</span>}
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[13px] font-semibold flex items-center gap-1.5 ${isCompleted ? "text-white" : "text-sand-900"}`}>
+                        <span className="truncate">{s.label}</span>
+                        {isCompleted && <span className="text-[9px] font-bold text-white/80 uppercase tracking-wider">Done</span>}
+                        {!isCompleted && isNextStep && <span className="text-[9px] font-bold text-warn-dark uppercase tracking-wider">Next</span>}
+                        {!isCompleted && s.isIrccFallback && <span className="text-[9px] text-sand-400 italic">IRCC est.</span>}
                       </div>
                       {isCompleted && daysFromBase != null && (
-                        <div className="text-[9px] text-white/60">{daysFromBase}d{baseLabel}</div>
+                        <div className="text-[10px] text-white/70 nums-tabular">{daysFromBase}d{baseLabel}</div>
                       )}
                       {!isCompleted && s.avgDays != null && (
-                        <div className="text-[9px] text-sand-400">~{s.avgDays}d {s.isFromAor ? "from AOR" : "from submitted"}</div>
+                        <div className="text-[10px] text-sand-500 nums-tabular">~{s.avgDays}d {s.isFromAor ? "from AOR" : "from submitted"}</div>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       {isCompleted && s.actualDate ? (
-                        <div className="text-[11px] font-semibold text-white">{fmtDate(s.actualDate)}</div>
+                        <div className="text-[12px] font-bold text-white">{fmtDate(s.actualDate)}</div>
                       ) : s.estDate ? (
-                        <div className={`text-[11px] font-semibold ${
+                        <div className={`text-[12px] font-bold ${
                           isNextStep ? "text-warn-dark"
-                          : isPastEstimate ? "text-brand-600"
+                          : isPastEstimate ? "text-brand-700"
                           : s.isIrccFallback ? "text-sand-400" : "text-sand-700"
                         }`}>~{fmtDate(s.estDate)}</div>
                       ) : (
-                        <div className="text-[9px] text-sand-300">—</div>
+                        <div className="text-[10px] text-sand-300">—</div>
                       )}
                     </div>
                   </div>
@@ -581,36 +582,41 @@ export default function CalculatorPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-sand-200 rounded-xl p-4 mb-4">
-            <h2 className="text-sm font-bold text-sand-900 mb-3">Processing Estimates</h2>
+          <div className="bg-white border border-sand-200 rounded-2xl p-4 mb-4">
+            <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Benchmarks</p>
+            <h2 className="text-base font-bold text-sand-900 tracking-tight mb-3">Processing estimates</h2>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-sand-50 rounded-xl p-3.5 text-center">
-                <div className="text-[9px] font-semibold text-sand-500 uppercase tracking-wider">IRCC Published</div>
-                <div className="text-lg font-bold text-sand-700 mt-1">{irccMonths} months</div>
-                <div className="text-[9px] text-sand-400 mt-0.5">Total to PR ({irccDays}d)</div>
+              <div className="bg-white border border-sand-200 rounded-xl p-3.5">
+                <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1.5">IRCC published</div>
+                <div className="text-2xl font-bold text-sand-800 leading-none nums-tabular">{irccMonths}<span className="text-base font-semibold ml-0.5">mo</span></div>
+                <div className="text-[10px] text-sand-400 mt-1 nums-tabular">Total to PR ({irccDays}d)</div>
               </div>
-              <div className="bg-brand-50 rounded-xl p-3.5 text-center border border-brand-200">
-                <div className="text-[9px] font-semibold text-brand-700 uppercase tracking-wider">Community Avg</div>
-                <div className="text-lg font-bold text-brand-600 mt-1">
-                  {aorData.avg != null ? `${aorData.avg}d` : "\u2014"}
+              <div className="bg-brand-500/[0.06] rounded-xl p-3.5 border border-brand-500/20">
+                <div className="text-[10px] font-bold text-brand-700 uppercase tracking-[0.08em] mb-1.5">Community avg</div>
+                <div className="text-2xl font-bold text-brand-600 leading-none nums-tabular">
+                  {aorData.avg != null ? <>{aorData.avg}<span className="text-base font-semibold">d</span></> : "\u2014"}
                 </div>
-                <div className="text-[9px] text-brand-500 mt-0.5">to AOR ({aorData.totalReports} reports)</div>
+                <div className="text-[10px] text-brand-600/80 mt-1 nums-tabular">to AOR ({aorData.totalReports} reports)</div>
               </div>
             </div>
-            <div className="text-[8px] text-sand-400 mt-2 text-center">IRCC = total journey to PR · Community = days to AOR only</div>
+            <div className="text-[10px] text-sand-400 mt-3 text-center">IRCC = total journey to PR · Community = days to AOR only</div>
           </div>
 
-          <p className="text-[9px] text-sand-400 text-center mb-4">
+          <p className="text-[11px] text-sand-400 text-center mb-4 leading-relaxed nums-tabular">
             Estimates based on community averages ({aorData.totalReports} reports) and IRCC published times. Actual timelines vary.
           </p>
         </>
       )}
 
       {!hasInput && (
-        <div className="text-center py-16 bg-white border border-sand-200 rounded-xl">
-          <div className="text-3xl mb-3">📊</div>
-          <p className="text-sand-600 text-sm font-medium mb-1">Enter your submission date</p>
-          <p className="text-sand-400 text-xs">Get predicted AOR date, queue position, and step-by-step timeline</p>
+        <div className="text-center py-16 bg-white border border-sand-200 rounded-2xl">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-50 border border-brand-100 mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 6V12L16 14" /><circle cx="12" cy="12" r="10" />
+            </svg>
+          </div>
+          <p className="text-sand-900 text-base font-bold tracking-tight mb-1">Enter your submission date</p>
+          <p className="text-sand-500 text-[13px] max-w-xs mx-auto leading-relaxed">Get predicted AOR date, queue position, and a step-by-step timeline.</p>
         </div>
       )}
     </div>
