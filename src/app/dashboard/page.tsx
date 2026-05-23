@@ -441,10 +441,17 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
         <AORWaveTracker apps={apps} />
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-sm text-sand-400">
-          {isFiltered || searchQuery ? `${filteredApps.length} of ${apps.length} entries` : `${apps.length} entries`}
+      {/* Header — eyebrow + count, with Add CTA */}
+      <div className="flex items-end justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] text-sand-500 font-bold uppercase tracking-[0.08em] mb-0.5">
+            Community tracker
+          </p>
+          <h1 className="text-xl font-bold text-sand-900 tracking-tight nums-tabular">
+            {isFiltered || searchQuery
+              ? <><span>{filteredApps.length}</span><span className="text-sand-400 font-medium"> / {apps.length}</span><span className="text-sm text-sand-500 font-medium"> entries</span></>
+              : <><span>{apps.length}</span><span className="text-sm text-sand-500 font-medium"> entries</span></>}
+          </h1>
         </div>
         {!hasMyEntry && (
           <Button onClick={() => setShowIntent(true)} size="sm">
@@ -456,16 +463,16 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
       {/* Search */}
       {apps.length > 10 && (
         <div className="relative mb-3">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-sand-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sand-400 pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
           <input
             type="text"
-            placeholder="Search by name or country..."
+            placeholder="Search by name or country…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-sand-300"
+            className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-sand-200 bg-white shadow-[0_1px_2px_rgba(26,26,24,0.03)] focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-sand-400 transition-shadow"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-sand-400 hover:text-sand-600">
+            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-sand-400 hover:text-sand-700 hover:bg-sand-100 transition-colors" aria-label="Clear search">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6L18 18"/></svg>
             </button>
           )}
@@ -505,7 +512,10 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
       {/* Month pills */}
       {sortedMonths.length > 0 && (
         <div className="mb-4">
-          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
+          <p className="text-[10px] text-sand-500 font-bold uppercase tracking-[0.08em] mb-2">
+            By submission month
+          </p>
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1 -mx-1 px-1">
             {sortedMonths.map((monthKey) => {
               const [y, m] = monthKey.split("-");
               const grp = monthGroups[monthKey];
@@ -515,15 +525,15 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                   key={monthKey}
                   onClick={() => setSelectedMonth(monthKey)}
                   data-month={monthKey}
-                  className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-[0.97] ${
+                  className={`flex-shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] ${
                     active
-                      ? "bg-brand-500 text-white shadow-sm"
-                      : "bg-white border border-sand-200 text-sand-600 hover:bg-sand-50"
+                      ? "bg-brand-500 text-white shadow-md shadow-brand-500/20 border border-brand-600"
+                      : "bg-white border border-sand-200 text-sand-700 hover:border-brand-300 hover:bg-brand-50/40"
                   }`}
                 >
-                  <span className="font-bold">{MO[parseInt(m) - 1]} {y}</span>
-                  <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
-                    active ? "bg-white/20 text-white" : "bg-sand-100 text-sand-500"
+                  <span className="font-bold tracking-tight">{MO[parseInt(m) - 1]} {y}</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold leading-none nums-tabular ${
+                    active ? "bg-white/25 text-white" : "bg-sand-100 text-sand-600"
                   }`}>{grp.length}</span>
                 </button>
               );
@@ -534,12 +544,21 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
 
       {/* Selected month entries */}
       {selectedMonth && selectedGroup.length > 0 && (
-          <div className="bg-white border border-sand-200 rounded-xl overflow-hidden mb-3">
-            <div className="px-4 py-2.5 border-b border-sand-100">
-              <div className="text-[10px] text-sand-400">
-                {selectedGroup.length} {selectedGroup.length === 1 ? "entry" : "entries"}
-                <span className="mx-1">·</span>
-                {selectedOutland} outland{selectedInland > 0 && <>, {selectedInland} inland</>}
+          <div className="bg-white border border-sand-200 rounded-2xl overflow-hidden mb-3 shadow-[0_1px_2px_rgba(26,26,24,0.03)]">
+            <div className="px-4 py-2.5 border-b border-sand-100 flex items-center justify-between gap-2 bg-sand-50/50">
+              <div className="flex items-center gap-2 text-[11px] text-sand-600 font-medium">
+                <span className="nums-tabular font-bold text-sand-800">{selectedGroup.length}</span>
+                <span className="text-sand-500">{selectedGroup.length === 1 ? "entry" : "entries"}</span>
+                <span className="text-sand-300">·</span>
+                <span className="nums-tabular">{selectedOutland}</span>
+                <span className="text-sand-500">outland</span>
+                {selectedInland > 0 && (
+                  <>
+                    <span className="text-sand-300">·</span>
+                    <span className="nums-tabular">{selectedInland}</span>
+                    <span className="text-sand-500">inland</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -614,44 +633,44 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                     key={app.id}
                     data-my-entry={isMe ? "true" : undefined}
                     onClick={() => handleRowClick(app)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all ${
                       isMe
-                        ? "bg-brand-50 border-2 border-brand-300 my-entry-highlight my-entry-slide"
-                        : "bg-white border border-sand-200 active:bg-sand-50"
+                        ? "bg-brand-500/10 border-2 border-brand-400 shadow-[0_2px_8px_rgba(45,106,79,0.10)] my-entry-highlight my-entry-slide"
+                        : "bg-white border border-sand-200 active:bg-sand-50 active:scale-[0.995] hover:border-brand-200"
                     }`}
                   >
                     {/* Avatar */}
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold flex-shrink-0 ${
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold flex-shrink-0 ${
                       app.emoji ? "bg-brand-50 border border-brand-200 text-brand-600"
-                        : isMe ? "bg-brand-500 text-white" : "bg-sand-100 text-sand-600"
+                        : isMe ? "bg-brand-500 text-white shadow-sm shadow-brand-500/25" : "bg-sand-100 text-sand-600"
                     }`}>
                       {app.emoji && isAvatarKey(app.emoji)
                         ? <AvatarIcon icon={app.emoji} size={20} />
                         : app.emoji
                           ? <span className="text-lg">{app.emoji}</span>
-                          : <span className="text-xs">{app.initials.slice(0, 2).toUpperCase()}</span>
+                          : <span className="text-[11px]">{app.initials.slice(0, 2).toUpperCase()}</span>
                       }
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-sand-900">{app.initials}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-bold text-sand-900">{app.initials}</span>
                         {isMe && (
-                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-brand-500 text-white font-bold">YOU</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-500 text-white font-bold leading-none tracking-wider">YOU</span>
                         )}
-                        <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${
-                          app.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
+                          app.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn/15 text-warn-dark"
                         }`}>{app.stream}</span>
                         <ReactionsBadge applicationId={app.id} />
                         {(app.comments?.length || 0) > 0 && (
-                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-sand-100 text-sand-500 font-semibold flex items-center gap-0.5">
-                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sand-100 text-sand-600 font-bold flex items-center gap-0.5 leading-none nums-tabular">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                             {app.comments!.length}
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-sand-500">
+                      <div className="text-[11px] text-sand-500 truncate mt-0.5 nums-tabular">
                         {app.country_origin} · {app.sponsor_status}
                         {stepsMap.submitted && <span> · Sub {formatDate(stepsMap.submitted)}</span>}
                       </div>
@@ -660,19 +679,19 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                     {/* Status + progress bar */}
                     <div className="text-right flex-shrink-0 min-w-[80px]">
                       {statusDone ? (
-                        <div className="text-xs font-semibold text-brand-600">eCoPR ✓</div>
+                        <div className="text-xs font-bold text-brand-600 mb-1">eCoPR ✓</div>
                       ) : (
                         <>
-                          <div className={`text-[10px] font-semibold ${hasAor ? "text-brand-600" : "text-warn-dark"}`}>
+                          <div className={`text-[10px] font-bold leading-tight ${hasAor ? "text-brand-600" : "text-warn-dark"}`}>
                             {statusLabel}
                           </div>
-                          <div className="text-[9px] text-sand-400 mb-1">
+                          <div className="text-[9px] text-sand-400 mb-1 nums-tabular">
                             {completedSteps.length}/{appSteps.length}{daysWaiting != null ? ` · Day ${daysWaiting}` : ""}
                           </div>
                         </>
                       )}
                       {/* Progress bar */}
-                      <div className="w-full h-1 rounded-full bg-sand-100 overflow-hidden">
+                      <div className="w-full h-1.5 rounded-full bg-sand-100 overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-500 ${statusDone ? "bg-brand-500" : hasAor ? "bg-brand-400" : "bg-warn"}`}
                           style={{ width: `${Math.round((completedSteps.length / appSteps.length) * 100)}%` }} />
                       </div>
@@ -684,30 +703,30 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
 
             {/* Desktop table */}
             <div className="hidden sm:block border-t border-sand-100 overflow-auto max-h-[70vh]">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 z-20 bg-sand-50">
-                    <tr className="bg-sand-50 text-[8px] font-semibold text-sand-500 uppercase tracking-wider">
-                      <th className="text-left px-3 py-2 sticky left-0 bg-sand-50 z-30">Name</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50">Sponsor Status</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50">PA Country</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50">PA Visa Country</th>
-                      <th className="text-center px-1.5 py-2 bg-sand-50">Class</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50">App Type</th>
-                      <th className="text-left px-1.5 py-2 bg-sand-50">Submitted</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">AOR</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">BIL</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Bio Given</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">MEI Req/Upfront</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Sponsor Eligibility</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Medical Req</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Med Attended</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">PA Eligibility</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Pre-Arrival</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Background Verification</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Portal 1</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">Portal 2</th>
-                      <th className="text-center px-1 py-2 bg-sand-50">eCoPR</th>
-                      <th className="text-center px-1.5 py-2 w-8 bg-sand-50">
+                <table className="w-full text-sm nums-tabular">
+                  <thead className="sticky top-0 z-20 bg-sand-50 shadow-[0_1px_0_var(--sand-200)]">
+                    <tr className="bg-sand-50 text-[9px] font-bold text-sand-500 uppercase tracking-[0.06em]">
+                      <th className="text-left px-3 py-2.5 sticky left-0 bg-sand-50 z-30 border-r border-sand-200">Name</th>
+                      <th className="text-left px-1.5 py-2.5 bg-sand-50">Sponsor</th>
+                      <th className="text-left px-1.5 py-2.5 bg-sand-50">PA country</th>
+                      <th className="text-left px-1.5 py-2.5 bg-sand-50">Visa country</th>
+                      <th className="text-center px-1.5 py-2.5 bg-sand-50">Class</th>
+                      <th className="text-left px-1.5 py-2.5 bg-sand-50">App type</th>
+                      <th className="text-left px-1.5 py-2.5 bg-sand-50">Submitted</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">AOR</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">BIL</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">Bio given</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">MEI</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">Sponsor elig</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">Medical req</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">Med attended</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">PA elig</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">Pre-arrival</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">Background</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">Portal 1</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">Portal 2</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50">eCoPR</th>
+                      <th className="text-center px-1.5 py-2.5 w-8 bg-sand-50">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline text-sand-400">
                           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                         </svg>
@@ -723,37 +742,37 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                       return (
                         <tr key={app.id}
                           data-my-entry={isMe ? "true" : undefined}
-                          className={`border-t cursor-pointer transition-colors ${
+                          className={`border-t cursor-pointer transition-colors group ${
                             isMe
-                              ? "border-brand-400 bg-brand-50 my-entry-highlight"
-                              : "border-sand-100 hover:bg-brand-50/30"
+                              ? "border-brand-300 bg-brand-500/[0.06] my-entry-highlight"
+                              : "border-sand-100 hover:bg-brand-500/[0.04]"
                           }`}
                           style={isMe ? { boxShadow: "inset 3px 0 0 var(--brand-500)" } : undefined}
                           onClick={() => handleRowClick(app)}
                         >
-                          <td className={`px-3 py-2 font-semibold text-sand-900 whitespace-nowrap sticky left-0 ${isMe ? "bg-brand-50" : "bg-sand-50"}`}>
+                          <td className={`px-3 py-2.5 font-bold text-sand-900 whitespace-nowrap sticky left-0 border-r border-sand-100 ${isMe ? "bg-brand-500/[0.06]" : "bg-sand-50 group-hover:bg-brand-500/[0.04]"}`}>
                             <span className="flex items-center gap-1.5">
                               {app.initials}
                               {isMe && (
-                                <span className="text-[8px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none">YOU</span>
+                                <span className="text-[9px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded uppercase tracking-wider leading-none">YOU</span>
                               )}
                               <ReactionsBadge applicationId={app.id} />
                             </span>
                           </td>
-                          <td className="px-1.5 py-2 whitespace-nowrap">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
-                              app.sponsor_status === "Citizen" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
+                          <td className="px-1.5 py-2.5 whitespace-nowrap">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                              app.sponsor_status === "Citizen" ? "bg-brand-100 text-brand-700" : "bg-warn/15 text-warn-dark"
                             }`}>{app.sponsor_status}</span>
                           </td>
-                          <td className="px-1.5 py-2 text-sand-700 text-xs whitespace-nowrap">{app.country_origin}</td>
-                          <td className="px-1.5 py-2 text-sand-500 text-[10px] whitespace-nowrap max-w-[90px] truncate" title={app.visa_country || ""}>{app.visa_country || ""}</td>
-                          <td className="px-1.5 py-2 text-center text-sand-500 text-[10px]">Family</td>
-                          <td className="px-1.5 py-2 whitespace-nowrap">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
-                              app.stream === "Outland" ? "bg-brand-100 text-brand-600" : "bg-warn-light text-warn-dark"
+                          <td className="px-1.5 py-2.5 text-sand-700 text-xs whitespace-nowrap">{app.country_origin}</td>
+                          <td className="px-1.5 py-2.5 text-sand-500 text-[10px] whitespace-nowrap max-w-[90px] truncate" title={app.visa_country || ""}>{app.visa_country || ""}</td>
+                          <td className="px-1.5 py-2.5 text-center text-sand-500 text-[10px]">Family</td>
+                          <td className="px-1.5 py-2.5 whitespace-nowrap">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                              app.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn/15 text-warn-dark"
                             }`}>{app.stream}</span>
                           </td>
-                          <td className="px-1.5 py-2 text-xs text-sand-600 whitespace-nowrap">{formatDate(stepsMap.submitted)}</td>
+                          <td className="px-1.5 py-2.5 text-xs text-sand-600 whitespace-nowrap">{formatDate(stepsMap.submitted)}</td>
                           {STEPS.slice(1)
                             .filter(s => ["aor","bil","biometrics_given","sponsor_eligibility","medical","medicals_attended","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
                             .map((step, stepIdx, filteredSteps) => {
@@ -779,26 +798,26 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
 
                             // Insert MEI column after BIL
                             const meiCol = step.id === "sponsor_eligibility" ? (
-                              <td key="mei" className="px-1 py-2 text-center whitespace-nowrap">
+                              <td key="mei" className="px-1 py-2.5 text-center whitespace-nowrap">
                                 {app.mei_type ? (
-                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
-                                    app.mei_type === "Upfront" ? "bg-brand-100 text-brand-700" : "bg-warn-light text-warn-dark"
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                    app.mei_type === "Upfront" ? "bg-brand-100 text-brand-700" : "bg-warn/15 text-warn-dark"
                                   }`}>{app.mei_type}</span>
-                                ) : <span className="text-sand-200">·</span>}
+                                ) : <span className="text-sand-300">·</span>}
                               </td>
                             ) : null;
 
                             return (
                               <React.Fragment key={step.id}>
                                 {meiCol}
-                                <td className="px-1 py-2 text-center whitespace-nowrap">
+                                <td className="px-1 py-2.5 text-center whitespace-nowrap">
                                   {date ? (
                                     <div>
-                                      <div className="text-[10px] text-brand-600 font-bold">{days}d</div>
-                                      <div className="text-[8px] text-sand-400">{formatDate(date).replace(/, \d{4}/, "")}</div>
+                                      <div className="text-[11px] text-brand-600 font-bold leading-tight">{days}d</div>
+                                      <div className="text-[9px] text-sand-400 leading-tight">{formatDate(date).replace(/, \d{4}/, "")}</div>
                                     </div>
                                   ) : (
-                                    <span className="text-sand-200">·</span>
+                                    <span className="text-sand-300">·</span>
                                   )}
                                 </td>
                               </React.Fragment>
@@ -826,8 +845,8 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-brand-50/50 border-t border-brand-200">
-                      <td className="px-3 py-2 font-bold text-[10px] text-brand-700 sticky left-0 bg-brand-50/50" colSpan={7}>Avg</td>
+                    <tr className="bg-brand-500/[0.07] border-t-2 border-brand-300">
+                      <td className="px-3 py-2.5 font-bold text-[10px] text-brand-700 uppercase tracking-[0.08em] sticky left-0 bg-brand-500/[0.07] border-r border-brand-200" colSpan={7}>Cohort avg</td>
                       {STEPS.slice(1)
                         .filter(s => ["aor","bil","biometrics_given","sponsor_eligibility","medical","medicals_attended","pa_eligibility","pre_arrival","background","portal1","portal2","ecopr"].includes(s.id))
                         .map((step, i, filteredSteps) => {
@@ -854,14 +873,14 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
 
                         // Insert MEI avg placeholder before sponsor_eligibility
                         const meiAvg = step.id === "sponsor_eligibility" ? (
-                          <td key="mei-avg" className="px-1 py-2 text-center"><span className="text-sand-300 text-[10px]">-</span></td>
+                          <td key="mei-avg" className="px-1 py-2.5 text-center"><span className="text-sand-300 text-[10px]">—</span></td>
                         ) : null;
 
                         return (
                           <React.Fragment key={step.id}>
                             {meiAvg}
-                            <td className="px-1 py-2 text-center">
-                              {avg != null ? <span className="text-[10px] font-bold text-brand-600">{avg}d</span> : <span className="text-sand-300 text-[10px]">-</span>}
+                            <td className="px-1 py-2.5 text-center">
+                              {avg != null ? <span className="text-[11px] font-bold text-brand-700">{avg}d</span> : <span className="text-sand-300 text-[10px]">—</span>}
                             </td>
                           </React.Fragment>
                         );
