@@ -11,20 +11,17 @@ function getSupabase() {
 }
 
 // ============================================
-// Spam guards (in-memory, resets on cold start)
-// Good enough for casual abuse + double-click protection.
-// For durable limits, move to Upstash/Vercel KV or a DB table.
+// Spam guards (in-memory — fast path; DB unique index is the real backstop)
 // ============================================
 const recentSubmits: Record<string, number> = {};
 const ipSubmits: Record<string, { count: number; resetAt: number }> = {};
 
-const DEDUP_WINDOW_MS = 10 * 60 * 1000;      // 10 min
-const IP_WINDOW_MS = 60 * 60 * 1000;         // 1 hour
-const IP_MAX_SUBMITS = 5;                    // 5 new entries per IP per hour
+const DEDUP_WINDOW_MS = 10 * 60 * 1000;
+const IP_WINDOW_MS = 60 * 60 * 1000;
+const IP_MAX_SUBMITS = 5;
 
 function isDuplicateSubmit(fingerprint: string): boolean {
   const now = Date.now();
-  // Opportunistic cleanup to keep the map small
   for (const k of Object.keys(recentSubmits)) {
     if (now - recentSubmits[k] > DEDUP_WINDOW_MS) delete recentSubmits[k];
   }
@@ -53,6 +50,17 @@ function getClientIp(request: Request): string {
   );
 }
 
+// Build the deterministic fingerprint used for dedup (both in-memory and DB)
+function buildFingerprint(initials: string, country: string, stream: string, sponsorStatus: string, submittedDate: string): string {
+  return [
+    String(initials).trim().toLowerCase(),
+    country,
+    stream,
+    sponsorStatus,
+    submittedDate,
+  ].join("|");
+}
+
 export async function GET() {
   const supabase = getSupabase();
   const { data, error } = await supabase
@@ -62,15 +70,13 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Strip future-dated step events (bad data)
   const today = new Date().toISOString().split("T")[0];
   const cleaned = (data || []).map(app => ({
     ...app,
     province: app.province === "Quebec" ? "Quebec" : "Outside Quebec",
     step_events: (app.step_events || []).filter((e: { event_date: string }) => e.event_date <= today),
-    // Hide name for anonymous users (keep initials as "Anonymous")
     initials: app.is_anonymous ? "Anonymous" : app.initials,
-    _real_initials: app.initials, // kept for owner-only display
+    _real_initials: app.initials,
     comments: (app.comments || []).sort((a: { created_at: string }, b: { created_at: string }) => a.created_at.localeCompare(b.created_at)),
   }));
 
@@ -88,7 +94,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  // Block future dates
   const today = new Date().toISOString().split("T")[0];
   if (submitted_date > today) {
     return NextResponse.json({ error: "Submission date cannot be in the future" }, { status: 400 });
@@ -107,22 +112,17 @@ export async function POST(request: Request) {
     );
   }
 
-  // --- Spam guard 2: Fingerprint dedup (catches double-clicks and rapid resubmits) ---
-  const fingerprint = [
-    String(initials).trim().toLowerCase(),
-    country_origin,
-    stream,
-    sponsor_status,
-    submitted_date,
-  ].join("|");
+  const fingerprint = buildFingerprint(initials, country_origin, stream, sponsor_status, submitted_date);
+
+  // --- Spam guard 2: in-memory fingerprint dedup (fast path, best-effort) ---
   if (isDuplicateSubmit(fingerprint)) {
     return NextResponse.json(
-      { error: "Looks like you just submitted this. If it didn't appear, refresh and check." },
+      { error: "Looks like you just submitted this. Refresh and check — it should be there." },
       { status: 409 }
     );
   }
 
-  // Ensure PIN is unique across all entries
+  // Ensure PIN is unique
   const { data: existing } = await supabase
     .from("applications")
     .select("id")
@@ -133,6 +133,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "PIN already in use. Please try again.", pin_exists: true }, { status: 409 });
   }
 
+  // --- Insert with DB-level unique constraint as the real backstop ---
   const { data: app, error: appError } = await supabase
     .from("applications")
     .insert({
@@ -145,11 +146,24 @@ export async function POST(request: Request) {
       current_step: "submitted",
       notes: notes || null,
       pin_hash,
+      submit_fingerprint: fingerprint,
     })
     .select()
     .single();
 
-  if (appError) return NextResponse.json({ error: appError.message }, { status: 500 });
+  if (appError) {
+    // 23505 = Postgres unique_violation. Catch the fingerprint collision specifically.
+    if (appError.code === "23505") {
+      const msg = (appError.message || "").toLowerCase();
+      if (msg.includes("submit_fingerprint") || msg.includes("idx_dedupe_fingerprint")) {
+        return NextResponse.json(
+          { error: "Looks like you just submitted this. Refresh and check — it should be there." },
+          { status: 409 }
+        );
+      }
+    }
+    return NextResponse.json({ error: appError.message }, { status: 500 });
+  }
 
   await supabase.from("step_events").insert({
     application_id: app.id,
@@ -194,7 +208,6 @@ export async function PATCH(request: Request) {
 
   if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
 
-  // Verify PIN
   const { data: app } = await supabase
     .from("applications")
     .select("pin_hash")
@@ -203,12 +216,11 @@ export async function PATCH(request: Request) {
 
   if (!app) return NextResponse.json({ error: "Application not found" }, { status: 404 });
 
-  // CLAIM: set PIN on unclaimed entry (no existing PIN)
+  // CLAIM: set PIN on unclaimed entry
   if (claim_pin_hash) {
     if (app.pin_hash) {
       return NextResponse.json({ error: "This entry already has a PIN" }, { status: 409 });
     }
-    // Ensure PIN is unique
     const { data: dup } = await supabase.from("applications").select("id").eq("pin_hash", claim_pin_hash).limit(1);
     if (dup && dup.length > 0) {
       return NextResponse.json({ error: "PIN already in use. Please try again.", pin_exists: true }, { status: 409 });
@@ -222,19 +234,48 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Invalid PIN" }, { status: 403 });
   }
 
-  // Only allow safe fields
   const allowed = ["initials", "sponsor_status", "stream", "country_origin", "province", "subcategory", "notes", "mei_type", "visa_country", "emoji", "is_anonymous"];
   const safeUpdates: Record<string, string | null> = {};
   for (const key of allowed) {
     if (key in updates) safeUpdates[key] = updates[key];
   }
 
-  if (Object.keys(safeUpdates).length > 0) {
-    const { error } = await supabase.from("applications").update(safeUpdates).eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // If initials, country, stream, or sponsor_status changes, recompute the fingerprint
+  // (keeps the DB constraint accurate after edits)
+  const fingerprintFields = ["initials", "country_origin", "stream", "sponsor_status"];
+  const willChangeFingerprint = fingerprintFields.some(f => f in updates) || !!submitted_date;
+  if (willChangeFingerprint) {
+    // Fetch current values to build the new fingerprint
+    const { data: current } = await supabase
+      .from("applications")
+      .select("initials, country_origin, stream, sponsor_status, step_events(step_id, event_date)")
+      .eq("id", id)
+      .single();
+    if (current) {
+      const events = (current as { step_events?: { step_id: string; event_date: string }[] }).step_events || [];
+      const currentSub = events.find(e => e.step_id === "submitted")?.event_date || "";
+      const newFp = buildFingerprint(
+        (safeUpdates.initials ?? current.initials) as string,
+        (safeUpdates.country_origin ?? current.country_origin) as string,
+        (safeUpdates.stream ?? current.stream) as string,
+        (safeUpdates.sponsor_status ?? current.sponsor_status) as string,
+        submitted_date || currentSub,
+      );
+      (safeUpdates as Record<string, string | null>).submit_fingerprint = newFp;
+    }
   }
 
-  // Update submission date if provided
+  if (Object.keys(safeUpdates).length > 0) {
+    const { error } = await supabase.from("applications").update(safeUpdates).eq("id", id);
+    if (error) {
+      // If a user edits their entry to collide with another, return a friendly error
+      if (error.code === "23505" && (error.message || "").toLowerCase().includes("fingerprint")) {
+        return NextResponse.json({ error: "Those details already match another entry." }, { status: 409 });
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
+
   if (submitted_date) {
     const today = new Date().toISOString().split("T")[0];
     if (submitted_date > today) {

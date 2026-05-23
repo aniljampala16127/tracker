@@ -137,6 +137,8 @@ export default function DashboardPage() {
 
   // Scroll to top on mount
   const topRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+const submittingRef = useRef(false); // synchronous lock against double-clicks
   useEffect(() => {
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
     // Immediate
@@ -167,27 +169,43 @@ export default function DashboardPage() {
   const availableCountries = useMemo(() => Array.from(new Set(apps.map(a => a.country_origin))).sort(), [apps]);
 
   const handleAdd = async (form: ApplicationFormData & { pin: string }) => {
-    if (form.submitted_date > localToday()) {
-      alert("Submission date cannot be in the future");
-      return;
-    }
-    setSubmitting(true);
+  // Sync lock — engages before React re-renders, defeats panic-clicks and Enter-key spam
+  if (submittingRef.current) return;
+  submittingRef.current = true;
+
+  if (form.submitted_date > localToday()) {
+    alert("Submission date cannot be in the future");
+    submittingRef.current = false;
+    return;
+  }
+
+  setSubmitting(true);
+
+  try {
     const pinHash = await hashPin(form.pin);
     const res = await fetch("/api/applications", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        initials: form.initials.trim(), sponsor_status: form.sponsor_status,
-        stream: form.stream, country_origin: form.country_origin,
-        subcategory: form.subcategory || null, visa_country: form.visa_country || null,
-        mei_type: form.mei_type || null, province: form.province,
-        notes: form.notes || null, pin_hash: pinHash, submitted_date: form.submitted_date,
+        initials: form.initials.trim(),
+        sponsor_status: form.sponsor_status,
+        stream: form.stream,
+        country_origin: form.country_origin,
+        subcategory: form.subcategory || null,
+        visa_country: form.visa_country || null,
+        mei_type: form.mei_type || null,
+        province: form.province,
+        notes: form.notes || null,
+        pin_hash: pinHash,
+        submitted_date: form.submitted_date,
       }),
     });
+
     if (res.ok) {
       const app = await res.json();
       savePinForApp(app.id, pinHash);
-      setSubmitting(false); setShowAdd(false); fetchApps();
+      setShowAdd(false);
+      fetchApps();
       // Fetch full app for celebration
       const appsRes = await fetch("/api/applications");
       const allApps = await appsRes.json();
@@ -195,10 +213,19 @@ export default function DashboardPage() {
       if (fullApp) setCelebrateApp(fullApp);
     } else {
       const err = await res.json();
-      alert(err.pin_exists ? "This PIN is already taken. Please choose a different 4-digit PIN." : (err.error || "Failed to add"));
-      setSubmitting(false);
+      alert(
+        err.pin_exists
+          ? "This PIN is already taken. Please choose a different 4-digit PIN."
+          : (err.error || "Failed to add")
+      );
     }
-  };
+  } catch (e) {
+    alert("Network error — please check your connection and try again.");
+  } finally {
+    submittingRef.current = false;
+    setSubmitting(false);
+  }
+};
 
   /** Row click - always open detail view. PIN only for editing. */
   const handleRowClick = (app: Application) => {
@@ -1716,7 +1743,6 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
       if (form.submitted_date) {
         const s = buildStepsMap(a.step_events || []);
         if (s.submitted === form.submitted_date) return true;
-        // Close date (within 3 days)
         if (s.submitted) {
           const diff = Math.abs(new Date(s.submitted + "T00:00:00").getTime() - new Date(form.submitted_date + "T00:00:00").getTime());
           if (diff <= 3 * 24 * 60 * 60 * 1000) return true;
@@ -1728,31 +1754,32 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // belt-and-suspenders: block submit if already in progress
     if (!form.initials || !form.submitted_date || !form.country_origin) return;
     if (!isValidPin(form.pin)) return;
     onSubmit(form);
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Entry">
-      <form onSubmit={submit} className="flex flex-col gap-3">
-        <Input label="Name *" maxLength={20} value={form.initials} onChange={(e) => u("initials", e.target.value)} required />
+    <Modal open={open} onClose={loading ? () => {} : onClose} title="Add Entry">
+      <form onSubmit={submit} className={`flex flex-col gap-3 transition-opacity ${loading ? "pointer-events-none opacity-60" : ""}`}>
+        <Input label="Name *" maxLength={20} value={form.initials} onChange={(e) => u("initials", e.target.value)} required disabled={loading} />
         <div className="grid grid-cols-2 gap-3">
-          <Select label="Sponsor Status" value={form.sponsor_status} onChange={(e) => u("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map((s) => ({ value: s, label: s }))} />
-          <Select label="Stream" value={form.stream} onChange={(e) => u("stream", e.target.value)} options={STREAMS.map((s) => ({ value: s, label: s }))} />
+          <Select label="Sponsor Status" value={form.sponsor_status} onChange={(e) => u("sponsor_status", e.target.value)} options={SPONSOR_STATUSES.map((s) => ({ value: s, label: s }))} disabled={loading} />
+          <Select label="Stream" value={form.stream} onChange={(e) => u("stream", e.target.value)} options={STREAMS.map((s) => ({ value: s, label: s }))} disabled={loading} />
         </div>
         <SearchableSelect label="PA Country *" value={form.country_origin} onChange={(v) => u("country_origin", v)} options={COMMON_COUNTRIES.map((c) => ({ value: c, label: c }))} />
-        <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} />
-        <Select label="Quebec *" value={form.province} onChange={(e) => u("province", e.target.value)} options={[{ value: "Outside Quebec", label: "Outside Quebec" }, { value: "Quebec", label: "Inside Quebec" }]} />
-        <Select label="MEI Type" value={form.mei_type} onChange={(e) => u("mei_type", e.target.value)} options={MEI_TYPES.map((m) => ({ value: m, label: m || "Select..." }))} />
+        <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} disabled={loading} />
+        <Select label="Quebec *" value={form.province} onChange={(e) => u("province", e.target.value)} options={[{ value: "Outside Quebec", label: "Outside Quebec" }, { value: "Quebec", label: "Inside Quebec" }]} disabled={loading} />
+        <Select label="MEI Type" value={form.mei_type} onChange={(e) => u("mei_type", e.target.value)} options={MEI_TYPES.map((m) => ({ value: m, label: m || "Select..." }))} disabled={loading} />
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date *</label>
-          <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
-            value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} max={localToday()} required />
+          <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 disabled:opacity-60"
+            value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} max={localToday()} required disabled={loading} />
         </div>
         <PinInput value={form.pin} onChange={(v) => u("pin", v)} />
-        <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} />
-        {duplicate && (
+        <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} disabled={loading} />
+        {duplicate && !loading && (
           <div className="bg-warn-light border border-warn/30 rounded-lg px-3 py-2.5">
             <div className="flex items-start gap-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B7420" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
@@ -1767,7 +1794,19 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
             </div>
           </div>
         )}
-        <Button type="submit" disabled={loading || !isValidPin(form.pin)} className="w-full mt-1">{loading ? "Adding..." : "Add"}</Button>
+        <Button type="submit" disabled={loading || !isValidPin(form.pin)} className="w-full mt-1">
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Adding your entry...
+            </span>
+          ) : "Add"}
+        </Button>
+        {loading && (
+          <p className="text-[10px] text-sand-400 text-center -mt-1">
+            Please wait — don&apos;t close or refresh this page
+          </p>
+        )}
       </form>
     </Modal>
   );
