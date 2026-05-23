@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<title>Form inputs</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin:0; background: var(--sand-50); font-family: var(--font-sans); }
+  .wrap { padding: 16px 22px; display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .field { display:flex; flex-direction:column; gap: 6px; }
+  label { font-size: 11px; font-weight: 700; color: var(--sand-500); text-transform: uppercase; letter-spacing: 0.06em; }
+  input, select { font-family: inherit; padding: 9px 12px; border: 1px solid var(--sand-200); border-radius: 8px; background: #fff; font-size: 14px; color: var(--sand-900); }
+  input:focus { outline: none; border-color: var(--brand-400); box-shadow: 0 0 0 3px rgba(45,106,79,0.18); }
+  input::placeholder { color: var(--sand-400); }
+  .pin { letter-spacing: 0.3em; text-align: center; font-family: ui-monospace, monospace; font-size: 16px; }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="field"><label>Initials</label><input type="text" value="JK" /></div>
+  <div class="field"><label>Country of origin</label><select><option>India</option><option>Philippines</option></select></div>
+  <div class="field"><label>PIN · 4 digits</label><input class="pin" inputmode="numeric" maxlength="4" value="••••" /></div>
+  <div class="field"><label>Search</label><input type="text" placeholder="Type to filter..." /></div>
+  <div class="field"><label>Submitted on</label><input type="date" value="2024-08-14" /></div>
+  <div class="field"><label>Note (optional)</label><input type="text" placeholder="Any context for the cohort" /></div>
+</div>
+</body></html>

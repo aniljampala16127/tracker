@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<title>Radii + shadows</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin:0; background: var(--sand-50); font-family: var(--font-sans); }
+  .wrap { padding: 16px 22px; display:grid; grid-template-columns: 1.2fr 1fr; gap: 14px; }
+  .panel { background:#fff; border:1px solid var(--sand-200); border-radius: 12px; padding: 14px; }
+  h4 { margin: 0 0 12px; font-size: 10px; font-weight: 700; color: var(--sand-500); text-transform: uppercase; letter-spacing: 0.08em; }
+  .row { display:flex; gap: 12px; align-items:flex-end; }
+  .box { background: var(--brand-500); width: 56px; height: 56px; display:flex; align-items:flex-end; justify-content:center; color: #fff; font-size: 10px; font-weight: 600; padding-bottom: 4px; }
+  .b6  { border-radius: 6px; }
+  .b8  { border-radius: 8px; }
+  .b12 { border-radius: 12px; }
+  .b16 { border-radius: 16px; }
+  .bpill { border-radius: 9999px; }
+
+  .sh { background: #fff; width: 92px; height: 64px; border: 1px solid var(--sand-200); border-radius: 12px; display:flex; align-items:flex-end; justify-content:center; padding-bottom: 6px; font-size: 10px; color: var(--sand-500); }
+  .sh-sm { box-shadow: 0 1px 2px rgba(26,26,24,0.04); }
+  .sh-md { box-shadow: 0 4px 12px rgba(26,26,24,0.08); }
+  .sh-lg { box-shadow: 0 8px 24px rgba(26,26,24,0.10); }
+  .sh-brand { box-shadow: 0 8px 24px rgba(45,106,79,0.20); }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <h4>Radii</h4>
+    <div class="row">
+      <div class="box b6">6</div>
+      <div class="box b8">8</div>
+      <div class="box b12">12</div>
+      <div class="box b16">16</div>
+      <div class="box bpill">pill</div>
+    </div>
+  </div>
+  <div class="panel">
+    <h4>Shadows</h4>
+    <div class="row">
+      <div class="sh sh-sm">sm</div>
+      <div class="sh sh-md">md (hover)</div>
+      <div class="sh sh-brand" style="background: var(--brand-500); color: #fff; border-color: transparent;">brand CTA</div>
+    </div>
+  </div>
+</div>
+</body></html>

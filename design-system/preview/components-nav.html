@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<title>Navigation</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin:0; background: var(--sand-50); font-family: var(--font-sans); }
+  .wrap { padding: 0; display:flex; flex-direction:column; }
+  .header { background: #fff; border-bottom: 1px solid var(--sand-200); height: 48px; padding: 0 16px; display:flex; align-items:center; justify-content:space-between; }
+  .brand { font-size: 14px; font-weight: 700; color: var(--sand-900); }
+  .tabs { display:flex; gap: 2px; background: var(--sand-50); border: 1px solid var(--sand-200); border-radius: 8px; padding: 2px; position: relative; }
+  .tab { padding: 6px 10px; font-size: 11px; font-weight: 500; color: var(--sand-500); display:flex; align-items:center; gap: 4px; border-radius: 6px; cursor: pointer; position: relative; z-index: 1; }
+  .tab.active { background: var(--brand-500); color: #fff; }
+  .right { display:flex; align-items:center; gap: 4px; }
+  .icon-btn { width:32px; height:32px; border-radius: 8px; display:flex; align-items:center; justify-content:center; color: var(--sand-500); cursor:pointer; }
+  .icon-btn:hover { background: var(--sand-100); color: var(--sand-900); }
+
+  .bottom { background: rgba(255,255,255,0.8); backdrop-filter: blur(20px); border-top: 1px solid var(--sand-200); padding: 6px 8px; display:flex; justify-content:space-around; position: relative; margin-top: 14px; }
+  .btab { display:flex; flex-direction:column; align-items:center; gap: 2px; padding: 4px 12px; min-width: 56px; }
+  .btab .ic { width:28px; height:28px; border-radius: 8px; display:flex; align-items:center; justify-content:center; color: var(--sand-400); }
+  .btab.active .ic { background: var(--brand-500); color: #fff; box-shadow: 0 2px 8px rgba(45,106,79,0.30); }
+  .btab .lb { font-size: 9px; font-weight: 600; color: var(--sand-400); }
+  .btab.active .lb { color: var(--brand-600); }
+  .caption { font-size: 10px; color: var(--sand-400); padding: 6px 16px 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="caption">Desktop top nav · sliding green pill marks the active route</div>
+  <div class="header">
+    <div class="brand">SponsorTrack</div>
+    <div class="tabs">
+      <div class="tab active">Tracker</div>
+      <div class="tab">Stats</div>
+      <div class="tab">Estimator</div>
+      <div class="tab">Community</div>
+      <div class="tab">Me</div>
+    </div>
+    <div class="right">
+      <div class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div>
+    </div>
+  </div>
+  <div class="caption">Mobile bottom nav · blurred translucent · haptic tap shrinks active</div>
+  <div class="bottom">
+    <div class="btab active"><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 16V8C21 6.9 20.1 6 19 6H15L13 2H11L9 6H5C3.9 6 3 6.9 3 8V16C3 17.1 3.9 18 5 18H19C20.1 18 21 17.1 21 16Z"/></svg></div><div class="lb">Tracker</div></div>
+    <div class="btab"><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="2" width="4" height="19" rx="1"/></svg></div><div class="lb">Stats</div></div>
+    <div class="btab"><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6V12L16 14"/></svg></div><div class="lb">Estimator</div></div>
+    <div class="btab"><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="lb">Community</div></div>
+    <div class="btab"><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 21V19C20 16.8 18.2 15 16 15H8C5.8 15 4 16.8 4 19V21"/><circle cx="12" cy="7" r="4"/></svg></div><div class="lb">Me</div></div>
+  </div>
+</div>
+</body></html>
