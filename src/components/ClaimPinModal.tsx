@@ -79,60 +79,63 @@ export function ClaimPinModal({
     <Modal open={open} onClose={handleClose} title={step === "confirm" ? "Claim this entry?" : "Your PIN"}>
       {step === "confirm" ? (
         <div>
-          <div className="bg-warn-light/50 border border-warn/30 rounded-xl p-4 mb-4">
-            <p className="text-sm text-sand-700">
-              <strong>{appInitials}</strong> doesn&apos;t have a PIN yet. Claiming it will
-              generate a <strong>4-digit PIN</strong> that only you will see.
+          <div className="bg-warn/12 border border-warn/30 rounded-xl p-4 mb-4">
+            <p className="text-[10px] font-bold text-warn-dark uppercase tracking-[0.08em] mb-1.5">Heads up</p>
+            <p className="text-[13px] text-warn-dark leading-relaxed">
+              <strong className="font-bold">{appInitials}</strong> doesn&apos;t have a PIN yet. Claiming it will
+              generate a <strong className="font-bold">4-digit PIN</strong> that only you will see.
             </p>
-            <p className="text-xs text-sand-500 mt-2">
+            <p className="text-[11px] text-warn-dark/85 mt-2 leading-relaxed">
               After claiming, only someone with the PIN can edit or delete this entry.
-              The PIN is shown <strong>once</strong> — save it somewhere safe.
+              The PIN is shown <strong className="font-bold">once</strong> — save it somewhere safe.
             </p>
           </div>
           {error && (
-            <p className="text-sm text-error font-medium mb-3">{error}</p>
+            <p className="text-[12px] text-error font-medium mb-3">{error}</p>
           )}
           <div className="flex gap-3">
             <Button variant="secondary" onClick={handleClose} className="flex-1">
               Cancel
             </Button>
             <Button onClick={handleClaim} disabled={claiming} className="flex-1">
-              {claiming ? "Claiming..." : "Claim & Generate PIN"}
+              {claiming ? "Claiming…" : "Claim & generate PIN"}
             </Button>
           </div>
         </div>
       ) : (
         <div>
-          <p className="text-sm text-sand-500 mb-4">
-            Here is your PIN for <strong>{appInitials}</strong>. Save it now — it won&apos;t be shown again.
+          <p className="text-[13px] text-sand-700 mb-4 leading-relaxed">
+            Here is your PIN for <strong className="font-bold text-sand-900">{appInitials}</strong>. Save it now — it won&apos;t be shown again.
           </p>
-          <div className="bg-brand-50 border-2 border-brand-200 rounded-2xl p-6 flex flex-col items-center mb-4">
-            <div className="flex gap-3 mb-3">
+          <div className="bg-brand-500/[0.08] border border-brand-500/25 rounded-2xl p-5 flex flex-col items-center mb-4">
+            <p className="text-[10px] font-bold text-brand-700 uppercase tracking-[0.08em] mb-3">Your PIN</p>
+            <div className="flex gap-3 mb-3 nums-tabular">
               {pin.split("").map((d, i) => (
-                <div key={i} className="w-14 h-14 rounded-xl bg-white border-2 border-brand-300 flex items-center justify-center text-2xl font-bold text-brand-700">
+                <div key={i} className="w-14 h-14 rounded-xl bg-white border border-brand-500/30 flex items-center justify-center text-2xl font-bold text-brand-700 shadow-sm">
                   {d}
                 </div>
               ))}
             </div>
             <button
               onClick={handleCopy}
-              className="text-xs text-brand-600 hover:text-brand-800 font-medium flex items-center gap-1 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] text-brand-700 hover:text-brand-800 hover:bg-brand-500/15 font-bold uppercase tracking-wider transition-colors"
             >
               {copied ? (
                 <>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12L10 17L19 8" /></svg>
-                  Copied!
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12L10 17L19 8" /></svg>
+                  Copied
                 </>
               ) : (
                 <>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
                   Copy PIN
                 </>
               )}
             </button>
           </div>
-          <div className="bg-error-light/50 border border-error/20 rounded-lg p-3 mb-4">
-            <p className="text-xs text-error-dark font-medium">
+          <div className="bg-error/10 border border-error/30 rounded-lg p-3 mb-4">
+            <p className="text-[10px] font-bold text-error-dark uppercase tracking-[0.08em] mb-1">Important</p>
+            <p className="text-[11px] text-error-dark font-medium leading-relaxed">
               This PIN will NOT be shown again. If you lose it, you will not be able to edit this entry.
             </p>
           </div>
