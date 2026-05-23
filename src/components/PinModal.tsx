@@ -86,10 +86,11 @@ export function PinModal({
 
   return (
     <Modal open={open} onClose={onClose} title={title}>
-      <p className="text-sm text-sand-500 mb-5">
-        This entry is protected. Enter the 4-digit PIN set by the creator.
+      <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1 text-center">Protected entry</p>
+      <p className="text-[13px] text-sand-700 mb-5 leading-relaxed text-center">
+        Enter the 4-digit PIN set by the creator.
       </p>
-      <div className={`flex justify-center gap-3 mb-4 ${shaking ? "shake" : ""}`} onPaste={handlePaste}>
+      <div className={`flex justify-center gap-3 mb-4 nums-tabular ${shaking ? "shake" : ""}`} onPaste={handlePaste}>
         {digits.map((digit, i) => (
           <input
             key={i}
@@ -98,16 +99,16 @@ export function PinModal({
             value={digit}
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
-            className={`w-14 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all
-              focus:outline-none focus:ring-2 focus:ring-brand-500/20
-              ${error ? "border-error" : digit ? "border-brand-400" : "border-sand-200"}
+            className={`w-14 h-14 text-center text-2xl font-bold rounded-xl border-2 bg-sand-50 transition-all
+              focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white
+              ${error ? "border-error" : digit ? "border-brand-400 bg-white" : "border-sand-200"}
               ${verifying ? "opacity-50" : ""}`}
             disabled={verifying}
           />
         ))}
       </div>
-      {error && <p className="text-center text-sm text-error font-medium mb-3">{error}</p>}
-      <p className="text-center text-[11px] text-sand-400">
+      {error && <p className="text-center text-[12px] text-error font-medium mb-3">{error}</p>}
+      <p className="text-center text-[11px] text-sand-400 leading-relaxed">
         Forgot your PIN? Unfortunately it cannot be recovered.
       </p>
     </Modal>
@@ -153,9 +154,9 @@ export function PinInput({ value, onChange, label = "Set a 4-digit PIN *" }: Pin
   };
 
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">{label}</label>
-      <div className="flex gap-2" onPaste={handlePaste}>
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em]">{label}</label>
+      <div className="flex gap-2 nums-tabular" onPaste={handlePaste}>
         {[0, 1, 2, 3].map((i) => (
           <input
             key={i}
@@ -164,14 +165,14 @@ export function PinInput({ value, onChange, label = "Set a 4-digit PIN *" }: Pin
             value={digits[i] || ""}
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
-            className="w-11 h-11 text-center text-lg font-bold rounded-lg border border-sand-200 
-              focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white"
+            className="w-11 h-11 text-center text-lg font-bold rounded-lg border border-sand-200 bg-sand-50
+              focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors"
           />
         ))}
       </div>
-      <p className="text-[10px] text-sand-400">You&apos;ll need this PIN to edit or delete your entry</p>
+      <p className="text-[11px] text-sand-500">You&apos;ll need this PIN to edit or delete your entry.</p>
       {isWeakPin(value) && (
-        <p className="text-[10px] text-error font-medium">Too easy to guess — try a less common PIN</p>
+        <p className="text-[11px] text-error font-semibold">Too easy to guess — try a less common PIN.</p>
       )}
     </div>
   );
