@@ -159,6 +159,7 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
   const [undoing, setUndoing] = useState(false);
   const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [revealedPin, setRevealedPin] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"timeline" | "resources">("timeline");
 
   // Brute-force reveal PIN from hash (only 9000 possibilities, instant)
   const revealPin = async () => {
@@ -454,6 +455,32 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         </div>
       )}
 
+      {/* Tabs strip — Timeline / Resources. Splits the long stack into
+          two scannable sections. SupportCard remains pinned at the bottom. */}
+      <div className="mb-4 flex gap-1 p-1 rounded-xl bg-sand-100 border border-sand-200">
+        <button
+          onClick={() => setActiveTab("timeline")}
+          className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${
+            activeTab === "timeline"
+              ? "bg-brand-500 text-white shadow-md shadow-brand-500/20"
+              : "text-sand-600 hover:text-sand-900"
+          }`}
+        >
+          Timeline
+        </button>
+        <button
+          onClick={() => setActiveTab("resources")}
+          className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${
+            activeTab === "resources"
+              ? "bg-brand-500 text-white shadow-md shadow-brand-500/20"
+              : "text-sand-600 hover:text-sand-900"
+          }`}
+        >
+          Resources
+        </button>
+      </div>
+
+      {activeTab === "timeline" && <>
       {/* 2. Timeline — always visible, below edit if open */}
       <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
         latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
@@ -517,13 +544,17 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         );
       })()}
 
-      {/* Visitor Visa Documentation Guide */}
-      <VisitorVisaChecklist />
+      </>}
 
-      {/* Find a Representative */}
-      <FindRepresentativeCard />
+      {activeTab === "resources" && <>
+        {/* Visitor Visa Documentation Guide */}
+        <VisitorVisaChecklist />
 
-      {/* Support card */}
+        {/* Find a Representative */}
+        <FindRepresentativeCard />
+      </>}
+
+      {/* Support card — always pinned at the bottom, regardless of tab */}
       <SupportCard isIndian={app.country_origin === "India"} />
     </div>
   );
