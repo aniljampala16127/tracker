@@ -161,21 +161,24 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
   );
 
   return (
-    <div className="rounded-xl mb-4 overflow-hidden bg-brand-50 border border-brand-200"
+    <div className="rounded-xl mb-4 overflow-hidden bg-white border border-sand-200"
       style={{
-        boxShadow: expanded ? "0 1px 4px rgba(45,106,79,0.08)" : "0 1px 2px rgba(0,0,0,0.04)",
+        boxShadow: expanded ? "0 4px 12px rgba(26,26,24,0.06)" : "0 1px 2px rgba(26,26,24,0.04)",
         transition: "box-shadow 0.4s ease",
       }}>
 
       {/* Header */}
       <button
         onClick={() => setExpanded(p => !p)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left"
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-sand-50/60 transition-colors"
         style={{ WebkitTapHighlightColor: "transparent" }}>
-        <div className="w-2 h-2 rounded-full flex-shrink-0 bg-brand-500 animate-pulse" />
+        <div className="relative flex h-2 w-2 flex-shrink-0">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-60 animate-ping" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
+        </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-bold text-sand-900">{data.weekTotal} updates this week</div>
-          <div className="text-[10px] text-sand-500">{data.waiting} waiting for AOR</div>
+          <div className="text-[10px] text-sand-500 font-bold uppercase tracking-[0.08em]">This week</div>
+          <div className="text-[13px] font-bold text-sand-900 nums-tabular"><span>{data.weekTotal}</span> <span className="text-sand-500 font-medium">updates</span> · <span>{data.waiting}</span> <span className="text-sand-500 font-medium">waiting for AOR</span></div>
         </div>
         {/* Collapsed: mini dots */}
         <div className="flex gap-1 flex-shrink-0"

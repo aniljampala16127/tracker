@@ -441,17 +441,17 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
         <AORWaveTracker apps={apps} />
       )}
 
-      {/* Header — eyebrow + count, with Add CTA */}
-      <div className="flex items-end justify-between gap-3 mb-3">
-        <div>
-          <p className="text-[10px] text-sand-500 font-bold uppercase tracking-[0.08em] mb-0.5">
+      {/* Header — quieter, less commanding than a hero count */}
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-baseline gap-2 min-w-0">
+          <span className="text-[10px] text-sand-500 font-bold uppercase tracking-[0.08em] flex-shrink-0">
             Community tracker
-          </p>
-          <h1 className="text-xl font-bold text-sand-900 tracking-tight nums-tabular">
+          </span>
+          <span className="text-[12px] text-sand-400 font-medium nums-tabular">
             {isFiltered || searchQuery
-              ? <><span>{filteredApps.length}</span><span className="text-sand-400 font-medium"> / {apps.length}</span><span className="text-sm text-sand-500 font-medium"> entries</span></>
-              : <><span>{apps.length}</span><span className="text-sm text-sand-500 font-medium"> entries</span></>}
-          </h1>
+              ? <><span className="font-bold text-sand-700">{filteredApps.length}</span> of {apps.length} entries</>
+              : <><span className="font-bold text-sand-700">{apps.length}</span> entries</>}
+          </span>
         </div>
         {!hasMyEntry && (
           <Button onClick={() => setShowIntent(true)} size="sm">
@@ -744,13 +744,13 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                           data-my-entry={isMe ? "true" : undefined}
                           className={`border-t cursor-pointer transition-colors group ${
                             isMe
-                              ? "border-brand-300 bg-brand-500/[0.06] my-entry-highlight"
-                              : "border-sand-100 hover:bg-brand-500/[0.04]"
+                              ? "border-brand-300 row-you my-entry-highlight"
+                              : "border-sand-100 hover:bg-sand-50"
                           }`}
                           style={isMe ? { boxShadow: "inset 3px 0 0 var(--brand-500)" } : undefined}
                           onClick={() => handleRowClick(app)}
                         >
-                          <td className={`px-3 py-2.5 font-bold text-sand-900 whitespace-nowrap sticky left-0 border-r border-sand-100 ${isMe ? "bg-brand-500/[0.06]" : "bg-sand-50 group-hover:bg-brand-500/[0.04]"}`}>
+                          <td className={`px-3 py-2.5 font-bold text-sand-900 whitespace-nowrap sticky left-0 z-10 border-r border-sand-200 ${isMe ? "row-you-sticky" : "bg-sand-50 group-hover:bg-sand-100"}`}>
                             <span className="flex items-center gap-1.5">
                               {app.initials}
                               {isMe && (

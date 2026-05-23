@@ -246,6 +246,22 @@ body {
   color:      hsl(var(--avatar-hue, 200) 55% 78%);
 }
 
+/* "YOU" row treatment — opaque (so sticky columns don't bleed) AND raises
+   visually in both light and dark. Light: pale green tint. Dark: a brand-
+   tinted color slightly LIGHTER than --surface-card. */
+.row-you {
+  background-color: #F0F7F2;
+}
+.dark .row-you {
+  background-color: #1F2D24;
+}
+.row-you-sticky {
+  background-color: #F0F7F2;
+}
+.dark .row-you-sticky {
+  background-color: #1F2D24;
+}
+
 * { -webkit-tap-highlight-color: transparent; }
 a, button { touch-action: manipulation; }
 
