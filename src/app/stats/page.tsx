@@ -21,24 +21,29 @@ function CollapsibleSection({ title, subtitle, children }: { title: string; subt
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white border border-sand-200 rounded-xl mb-5 overflow-hidden">
-      <button onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-sand-50 transition-colors">
-        <div>
-          <h2 className="text-sm font-bold text-sand-900">{title}</h2>
-          <p className="text-[11px] text-sand-400">{subtitle}</p>
+    <div className="bg-white border border-sand-200 rounded-2xl mb-4 overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-colors ${
+          expanded ? "bg-sand-50/60 border-b border-sand-100" : "hover:bg-sand-50/60"
+        }`}
+      >
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-bold text-sand-900 tracking-tight truncate">{title}</h2>
+          <p className="text-[11px] text-sand-500 truncate">{subtitle}</p>
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          className="text-sand-400 flex-shrink-0"
           style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
           <path d="M6 9L12 15L18 9" />
         </svg>
       </button>
       <div style={{
-        maxHeight: expanded ? "2000px" : "0px",
+        maxHeight: expanded ? "3000px" : "0px",
         overflow: "hidden",
         transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
       }}>
-        <div className="px-4 pb-4" style={{
+        <div className="px-4 pb-4 pt-3" style={{
           opacity: expanded ? 1 : 0,
           transition: "opacity 0.25s ease",
           transitionDelay: expanded ? "0.15s" : "0s",
@@ -182,30 +187,28 @@ export default function StatsPage() {
   return (
     <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
     <div className="page-enter">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-sand-900">Processing Analytics</h1>
-        <p className="text-xs text-sand-500 mt-0.5">
-          Community-reported timelines from {apps.length} applications
+      <div className="mb-5">
+        <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Analytics</p>
+        <h1 className="text-2xl font-bold text-sand-900 tracking-tight">Processing trends</h1>
+        <p className="text-[13px] text-sand-500 mt-0.5">
+          Community-reported timelines from <span className="font-semibold text-sand-700 nums-tabular">{apps.length}</span> applications.
         </p>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white border border-sand-200 rounded-xl p-4">
-          <div className="text-[10px] text-sand-500 uppercase tracking-wider">Total Entries</div>
-          <div className="text-2xl font-bold text-sand-900">{apps.length}</div>
-        </div>
-        <div className="bg-white border border-sand-200 rounded-xl p-4">
-          <div className="text-[10px] text-sand-500 uppercase tracking-wider">With AOR</div>
-          <div className="text-2xl font-bold text-brand-600">{totalWithAor}</div>
-        </div>
-        <div className="bg-white border border-sand-200 rounded-xl p-4">
-          <div className="text-[10px] text-sand-500 uppercase tracking-wider">Outland</div>
-          <div className="text-2xl font-bold text-brand-600">{totalOutland}</div>
-        </div>
-        <div className="bg-white border border-sand-200 rounded-xl p-4">
-          <div className="text-[10px] text-sand-500 uppercase tracking-wider">Inland</div>
-          <div className="text-2xl font-bold text-warn">{totalInland}</div>
+      {/* Summary strip — single bordered card with divided cells */}
+      <div className="bg-white border border-sand-200 rounded-2xl shadow-[0_1px_2px_rgba(26,26,24,0.04)] overflow-hidden mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-sand-100">
+          {[
+            { label: "Total entries", value: apps.length, valueClass: "text-sand-900" },
+            { label: "With AOR", value: totalWithAor, valueClass: "text-brand-600" },
+            { label: "Outland", value: totalOutland, valueClass: "text-brand-600" },
+            { label: "Inland", value: totalInland, valueClass: "text-warn-dark" },
+          ].map((s) => (
+            <div key={s.label} className="p-4">
+              <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1.5">{s.label}</div>
+              <div className={`text-3xl font-bold ${s.valueClass} leading-none nums-tabular`}>{s.value}</div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -246,27 +249,27 @@ export default function StatsPage() {
         </ResponsiveContainer>
 
         {/* Per-step table */}
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-sand-200">
+          <table className="w-full text-sm nums-tabular">
             <thead>
-              <tr className="bg-sand-50 text-[9px] font-semibold text-sand-500 uppercase tracking-wider">
-                <th className="text-left px-3 py-2">Step</th>
-                <th className="text-center px-2 py-2">Outland Avg</th>
-                <th className="text-center px-2 py-2">Inland Avg</th>
-                <th className="text-center px-2 py-2">Reports</th>
+              <tr className="bg-sand-50 text-[10px] font-bold text-sand-500 uppercase tracking-[0.06em]">
+                <th className="text-left px-3 py-2.5">Step</th>
+                <th className="text-center px-2 py-2.5">Outland avg</th>
+                <th className="text-center px-2 py-2.5">Inland avg</th>
+                <th className="text-center px-2 py-2.5">Reports</th>
               </tr>
             </thead>
             <tbody>
-              {stepAverages.map((row) => (
-                <tr key={row.step} className="border-t border-sand-100">
-                  <td className="px-3 py-2 font-medium text-sand-900">{row.fullLabel}</td>
-                  <td className="px-2 py-2 text-center font-semibold text-brand-600">
-                    {row.outland != null ? `${row.outland}d` : "—"}
+              {stepAverages.map((row, i) => (
+                <tr key={row.step} className={`border-t border-sand-100 hover:bg-sand-50/60 transition-colors ${i % 2 === 1 ? "bg-sand-50/30" : ""}`}>
+                  <td className="px-3 py-2.5 font-semibold text-sand-900">{row.fullLabel}</td>
+                  <td className="px-2 py-2.5 text-center font-bold text-brand-600">
+                    {row.outland != null ? `${row.outland}d` : <span className="text-sand-300 font-normal">—</span>}
                   </td>
-                  <td className="px-2 py-2 text-center font-semibold text-warn-dark">
-                    {row.inland != null ? `${row.inland}d` : "—"}
+                  <td className="px-2 py-2.5 text-center font-bold text-warn-dark">
+                    {row.inland != null ? `${row.inland}d` : <span className="text-sand-300 font-normal">—</span>}
                   </td>
-                  <td className="px-2 py-2 text-center text-[10px] text-sand-400">
+                  <td className="px-2 py-2.5 text-center text-[11px] text-sand-500">
                     {row.outlandReports + row.inlandReports}
                   </td>
                 </tr>
@@ -391,15 +394,22 @@ export default function StatsPage() {
             const pct = group.length > 0 ? Math.round((aorDays.length / group.length) * 100) : 0;
 
             return (
-              <div key={key} className="flex-shrink-0 w-[140px] bg-sand-50 rounded-xl p-3 snap-start">
-                <div className="text-xs font-bold text-sand-900 mb-2">{label}</div>
-                <div className="text-2xl font-bold text-brand-600 leading-none">{avg != null ? `${avg}d` : "—"}</div>
-                <div className="text-[9px] text-sand-400 mt-0.5 mb-2">avg to AOR</div>
+              <div
+                key={key}
+                className="flex-shrink-0 w-[150px] bg-white border border-sand-200 rounded-xl p-3.5 snap-start hover:border-brand-300 hover:shadow-[0_4px_12px_rgba(26,26,24,0.06)] transition-all"
+              >
+                <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">{label}</div>
+                <div className="text-2xl font-bold text-brand-600 leading-none nums-tabular">
+                  {avg != null ? <>{avg}<span className="text-base font-semibold ml-0.5">d</span></> : <span className="text-sand-300">—</span>}
+                </div>
+                <div className="text-[10px] text-sand-400 mt-0.5 mb-2.5">avg to AOR</div>
                 {/* Mini progress */}
-                <div className="w-full h-1 rounded-full bg-sand-200 mb-1.5">
+                <div className="w-full h-1.5 rounded-full bg-sand-100 overflow-hidden mb-1.5">
                   <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
                 </div>
-                <div className="text-[9px] text-sand-400">{aorDays.length}/{group.length} AOR · {outland}O {inland}I</div>
+                <div className="text-[10px] text-sand-500 nums-tabular">
+                  <span className="font-semibold text-sand-700">{aorDays.length}</span>/{group.length} AOR · {outland}O {inland}I
+                </div>
               </div>
             );
           })}
@@ -410,7 +420,7 @@ export default function StatsPage() {
       <WeeklyDigest apps={apps} />
 
       {/* Source note */}
-      <p className="text-[9px] text-sand-400 mt-6 text-center">
+      <p className="text-[11px] text-sand-400 mt-8 mb-2 text-center leading-relaxed">
         All data is community-reported. Processing times vary by case.
       </p>
     </div>
