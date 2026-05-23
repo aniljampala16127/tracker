@@ -88,9 +88,10 @@ export default function CommunityPage() {
 
   const fetchData = useCallback(async () => {
     const [appsRes, commentsRes] = await Promise.all([
-      // Community builds threads from each entry's comments — needs the
-      // full payload (the default list endpoint omits comments).
-      fetch("/api/applications?include=comments"),
+      // Community no longer reads entry-level comments, so the default
+      // (comment-less) applications payload is plenty — only needed for
+      // myCohortMonth derivation.
+      fetch("/api/applications"),
       fetch("/api/comments"),
     ]);
     const appsData = await appsRes.json();
@@ -116,12 +117,13 @@ export default function CommunityPage() {
     return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
   }, [apps]);
 
-  // Build threads — each carries a cohortKey ("YYYY-MM" or null) for the
-  // subreddit-style pill + the cohort filter strip.
+  // Build threads — only cohort-level threads belong here. Entry-attached
+  // comments stay on the entry (visible in the dashboard EditModal). Mixing
+  // them was confusing — a private "PJ left this question on JK's entry"
+  // shouldn't show up in the public Community feed.
   const threads: ThreadData[] = useMemo(() => {
     const result: ThreadData[] = [];
 
-    // Cohort-level threads — the cohort_month column on the comment row.
     const topCohort = cohortComments.filter(c => !c.parent_id);
     topCohort.forEach(root => {
       const allInThread = cohortComments.filter(c => c.id === root.id || isDescendant(c, root.id, cohortComments));
@@ -134,28 +136,9 @@ export default function CommunityPage() {
       });
     });
 
-    // Entry-level threads — derive cohort from the parent app's submitted date.
-    apps.forEach(app => {
-      if (!app.comments || app.comments.length === 0) return;
-      const s = buildStepsMap(app.step_events || []);
-      const key = s.submitted ? monthKeyFromDate(s.submitted) : null;
-      const label = key ? monthLabel(key) : "General";
-      const tops = app.comments.filter(c => !c.parent_id);
-      tops.forEach(root => {
-        const allInThread = app.comments!.filter(c => c.id === root.id || isDescendant(c, root.id, app.comments!));
-        result.push({
-          root,
-          allComments: allInThread,
-          label,
-          cohortKey: key,
-          totalReplies: allInThread.length - 1,
-        });
-      });
-    });
-
     result.sort((a, b) => b.root.created_at.localeCompare(a.root.created_at));
     return result;
-  }, [apps, cohortComments]);
+  }, [cohortComments]);
 
   // Auto-derive the user's own cohort from their app's submitted step.
   // Used to skip the month picker when posting; null falls back to manual select.
@@ -198,15 +181,21 @@ export default function CommunityPage() {
   const effectiveMonth = newQMonth || myCohortMonth || "";
 
   const handleNewQuestion = async () => {
-    if (!newQText.trim() || !effectiveMonth || !myPinHash) return;
+    if (!newQText.trim() || !effectiveMonth || !myPinHash || posting) return;
     setPosting(true);
-    await fetch("/api/comments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cohort_month: effectiveMonth, pin_hash: myPinHash, text: newQText.trim(), parent_id: null, anonymous }),
-    });
-    setNewQText(""); setNewQMonth(""); setNewQ(false); setAnonymous(false); setPosting(false);
-    fetchData();
+    try {
+      await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cohort_month: effectiveMonth, pin_hash: myPinHash, text: newQText.trim(), parent_id: null, anonymous }),
+      });
+      // Await the refetch so the spinner is visible until the new post
+      // actually appears in the feed.
+      await fetchData();
+      setNewQText(""); setNewQMonth(""); setNewQ(false); setAnonymous(false);
+    } finally {
+      setPosting(false);
+    }
   };
 
   if (loading) {
@@ -271,9 +260,10 @@ export default function CommunityPage() {
               <button
                 onClick={handleNewQuestion}
                 disabled={!newQText.trim() || !effectiveMonth || posting}
-                className="flex-1 py-2 bg-brand-500 text-white text-sm font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98] hover:bg-brand-600"
+                className="flex-1 py-2 bg-brand-500 text-white text-sm font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98] hover:bg-brand-600 inline-flex items-center justify-center gap-2"
               >
-                {posting ? "Posting…" : "Post question"}
+                {posting && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
+                {posting ? "Posting" : "Post question"}
               </button>
               <button
                 onClick={() => { setNewQ(false); setNewQText(""); setNewQMonth(""); setAnonymous(false); }}
@@ -913,7 +903,7 @@ function CommentNode({ comment: c, allComments, depth, opPinHash, myPinHash, onR
 // Reply input — inline toggle
 function ReplyInput({ parentId, comment, myPinHash, onRefresh, compact }: {
   parentId: string; comment: Comment; myPinHash: string | null;
-  onRefresh: () => void; compact?: boolean;
+  onRefresh: () => void | Promise<void>; compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -923,20 +913,26 @@ function ReplyInput({ parentId, comment, myPinHash, onRefresh, compact }: {
   if (!myPinHash) return null;
 
   const handlePost = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || posting) return;
     setPosting(true);
-    await fetch("/api/comments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        application_id: comment.application_id || undefined,
-        cohort_month: comment.cohort_month || undefined,
-        pin_hash: myPinHash, text: text.trim(),
-        parent_id: parentId, anonymous: anon,
-      }),
-    });
-    setText(""); setOpen(false); setAnon(false); setPosting(false);
-    onRefresh();
+    try {
+      await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          application_id: comment.application_id || undefined,
+          cohort_month: comment.cohort_month || undefined,
+          pin_hash: myPinHash, text: text.trim(),
+          parent_id: parentId, anonymous: anon,
+        }),
+      });
+      // Await the parent refetch so the spinner stays visible until the
+      // reply lands in the feed.
+      await Promise.resolve(onRefresh());
+      setText(""); setOpen(false); setAnon(false);
+    } finally {
+      setPosting(false);
+    }
   };
 
   if (!open) {
@@ -969,10 +965,12 @@ function ReplyInput({ parentId, comment, myPinHash, onRefresh, compact }: {
         <input value={text} onChange={(e) => setText(e.target.value.slice(0, 500))}
           onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(); }}
           placeholder="Write a reply…" autoFocus
-          className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+          disabled={posting}
+          className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 disabled:opacity-60" />
         <button onClick={handlePost} disabled={!text.trim() || posting}
-          className="px-3 py-1.5 bg-brand-500 text-white text-[11px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98] hover:bg-brand-600">
-          {posting ? "…" : "Reply"}
+          className="px-3 py-1.5 bg-brand-500 text-white text-[11px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98] hover:bg-brand-600 inline-flex items-center gap-1.5">
+          {posting && <span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
+          {posting ? "Posting" : "Reply"}
         </button>
         <button
           onClick={() => { setOpen(false); setText(""); }}

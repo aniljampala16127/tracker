@@ -1155,10 +1155,20 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
   // default (egress optimization). We hit /api/comments?application_id=X
   // when the modal opens.
   const [modalComments, setModalComments] = useState<Comment[]>(app.comments || []);
+  const refreshModalComments = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/comments?application_id=${encodeURIComponent(app.id)}`);
+      const data = await res.json();
+      if (Array.isArray(data)) setModalComments(data);
+    } catch { /* ignore */ }
+  }, [app.id]);
   useEffect(() => {
     // If the parent already supplied comments (e.g. opened via Community
     // page with ?include=comments), skip the fetch.
-    if (app.comments && app.comments.length === (app.comment_count || 0)) return;
+    if (app.comments && app.comments.length === (app.comment_count || 0)) {
+      setModalComments(app.comments);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -1169,6 +1179,12 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
     })();
     return () => { cancelled = true; };
   }, [app.id, app.comments, app.comment_count]);
+
+  // When a comment is posted/deleted via CommentsSection, refresh BOTH the
+  // modal's comment list AND the parent app data (for the badge count).
+  const handleCommentRefresh = useCallback(async () => {
+    await Promise.all([refreshModalComments(), Promise.resolve(onRefresh())]);
+  }, [refreshModalComments, onRefresh]);
 
   useEffect(() => {
     const saved = localStorage.getItem(`gckey-done-${app.id}`);
@@ -1449,7 +1465,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
       <CommentsSection
         applicationId={app.id}
         comments={modalComments}
-        onRefresh={onRefresh}
+        onRefresh={handleCommentRefresh}
       />
 
       {/* Spam report — only when entry is suspicious AND viewer isn't the owner */}
