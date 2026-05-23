@@ -113,36 +113,37 @@ export default function ApplicationDetailPage() {
   return (
     <div>
       <button onClick={() => router.push("/dashboard")}
-        className="flex items-center gap-1.5 text-sm text-sand-500 hover:text-sand-800 transition-colors mb-4">
-        <ArrowLeftIcon size={14} /> Back
+        className="inline-flex items-center gap-1.5 text-[11px] text-sand-500 hover:text-sand-800 transition-colors mb-4 font-semibold uppercase tracking-wider">
+        <ArrowLeftIcon size={12} /> Back
       </button>
 
       {/* Header */}
       <Card className="mb-4">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex justify-between items-start mb-4 gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
             <Avatar initials={app.initials} size="lg" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-sand-900">{app.initials}</h1>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-0.5">Application</p>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h1 className="text-xl font-bold text-sand-900 tracking-tight leading-none">{app.initials}</h1>
                 {app.pin_hash ? (
-                  <span title={pinVerified ? "PIN verified" : "PIN protected"}>
+                  <span title={pinVerified ? "PIN verified" : "PIN protected"} className={`inline-flex items-center justify-center w-5 h-5 rounded ${pinVerified ? "bg-brand-500/15 text-brand-700" : "bg-sand-100 text-sand-500"}`}>
                     {pinVerified ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-500">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
                       </svg>
                     ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sand-400">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                       </svg>
                     )}
                   </span>
                 ) : (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-warn-light text-warn-dark font-semibold">Unclaimed</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-warn/15 text-warn-dark font-bold uppercase tracking-wider">Unclaimed</span>
                 )}
               </div>
-              <p className="text-sm text-sand-500">{app.country_origin} · {app.sponsor_status} · {app.stream}</p>
-              {app.notes && <p className="text-xs text-sand-400 italic mt-0.5">{app.notes}</p>}
+              <p className="text-[12px] text-sand-500 truncate">{app.country_origin} · {app.sponsor_status} · {app.stream}</p>
+              {app.notes && <p className="text-[11px] text-sand-400 italic mt-1">{app.notes}</p>}
             </div>
           </div>
           <Button variant="danger" size="sm" onClick={() => requirePin("delete")} disabled={deleting}>
@@ -151,14 +152,15 @@ export default function ApplicationDetailPage() {
         </div>
         <div className="flex items-center gap-3">
           <StepTimeline currentStep={app.current_step} stepsCompleted={stepsMap} />
-          <span className="text-sm font-bold text-brand-600">{pct}%</span>
+          <span className="text-sm font-bold text-brand-600 nums-tabular">{pct}%</span>
         </div>
       </Card>
 
       {/* Step timeline */}
       <Card className="mb-4">
-        <h2 className="text-sm font-bold text-sand-900 mb-3">Step Timeline</h2>
-        <div className="divide-y divide-sand-100">
+        <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Progress</p>
+        <h2 className="text-base font-bold text-sand-900 tracking-tight mb-3">Step timeline</h2>
+        <div className="divide-y divide-sand-100 nums-tabular">
           {STEPS.map((step, i) => {
             const stepDate = stepsMap[step.id];
             const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
@@ -168,28 +170,39 @@ export default function ApplicationDetailPage() {
             const isFuture = i > currentIdx + 1;
 
             return (
-              <div key={step.id} className={`flex items-center gap-3 py-3 ${isFuture ? "opacity-40" : ""}`}>
-                <div className="w-7 flex justify-center">
-                  <StepIcon stepId={step.id} size={20}
-                    className={isDone ? "text-brand-500" : isNext ? "text-warn" : "text-sand-300"} />
+              <div key={step.id} className={`flex items-center gap-3 py-3 -mx-1 px-1 rounded-lg transition-colors ${
+                isNext ? "bg-warn/10"
+                : isFuture ? "opacity-40"
+                : ""
+              }`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  isDone ? "bg-brand-500/15"
+                  : isNext ? "bg-warn/20"
+                  : "bg-sand-100"
+                }`}>
+                  <StepIcon stepId={step.id} size={18}
+                    className={isDone ? "text-brand-600" : isNext ? "text-warn-dark" : "text-sand-400"} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-sand-900">{step.label}</div>
-                  <div className="text-[11px] text-sand-400">{step.description}</div>
+                  <div className="text-[13px] font-bold text-sand-900 flex items-center gap-1.5">
+                    <span className="truncate">{step.label}</span>
+                    {isNext && <span className="text-[9px] font-bold text-warn-dark uppercase tracking-wider">Next</span>}
+                  </div>
+                  <div className="text-[11px] text-sand-500 truncate">{step.description}</div>
                 </div>
-                <div className="text-right min-w-[100px]">
+                <div className="text-right min-w-[100px] flex-shrink-0">
                   {isDone ? (
                     <>
-                      <div className="text-xs font-medium text-sand-700">{formatDate(stepDate)}</div>
-                      {duration != null && i > 0 && <div className="text-[10px] text-brand-500 font-medium">{duration} days</div>}
+                      <div className="text-[12px] font-bold text-sand-800">{formatDate(stepDate)}</div>
+                      {duration != null && i > 0 && <div className="text-[10px] text-brand-600 font-semibold">{duration}d</div>}
                     </>
                   ) : isNext ? (
                     editingStep === step.id ? (
-                      <input type="date" className="text-xs px-2 py-1 border border-sand-200 rounded-md" autoFocus
+                      <input type="date" className="text-xs px-2 py-1 border border-sand-200 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 nums-tabular" autoFocus
                         onChange={(e) => { if (e.target.value) markStepDone(step.id, e.target.value); }}
                         onBlur={() => setEditingStep(null)} />
                     ) : (
-                      <Button size="sm" onClick={() => requirePin(step.id)}>Mark Done</Button>
+                      <Button size="sm" onClick={() => requirePin(step.id)}>Mark done</Button>
                     )
                   ) : (
                     <span className="text-[11px] text-sand-400">~{step.avgWeeksOutland[0] * 7}–{step.avgWeeksOutland[1] * 7}d</span>
@@ -204,19 +217,20 @@ export default function ApplicationDetailPage() {
       {/* Estimated completion */}
       {est && (
         <Card>
-          <div className="flex items-center gap-2 mb-3">
+          <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Forecast</p>
+          <div className="flex items-center gap-2 mb-1">
             <ClockIcon size={16} className="text-brand-500" />
-            <h2 className="text-sm font-bold text-sand-900">Estimated Completion</h2>
+            <h2 className="text-base font-bold text-sand-900 tracking-tight">Estimated completion</h2>
           </div>
-          <p className="text-xs text-sand-400 mb-3">Based on IRCC averages for {app.stream} stream</p>
-          <div className="flex gap-8">
-            <div>
-              <span className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider block">Earliest</span>
-              <span className="text-base font-bold text-brand-600">{formatDate(est.earliest)}</span>
+          <p className="text-[12px] text-sand-500 mb-4">Based on IRCC averages for {app.stream} stream.</p>
+          <div className="grid grid-cols-2 gap-3 nums-tabular">
+            <div className="bg-brand-500/[0.08] border border-brand-500/20 rounded-lg p-3">
+              <span className="text-[10px] font-bold text-brand-700 uppercase tracking-[0.08em] block mb-1">Earliest</span>
+              <span className="text-xl font-bold text-brand-600 leading-none">{formatDate(est.earliest)}</span>
             </div>
-            <div>
-              <span className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider block">Latest</span>
-              <span className="text-base font-bold text-warn">{formatDate(est.latest)}</span>
+            <div className="bg-warn/15 border border-warn/30 rounded-lg p-3">
+              <span className="text-[10px] font-bold text-warn-dark uppercase tracking-[0.08em] block mb-1">Latest</span>
+              <span className="text-xl font-bold text-warn-dark leading-none">{formatDate(est.latest)}</span>
             </div>
           </div>
         </Card>
