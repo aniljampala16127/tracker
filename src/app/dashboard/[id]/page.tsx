@@ -12,7 +12,7 @@ import { toast } from "@/lib/toast";
 import { StepTimeline } from "@/components/StepTimeline";
 import { PinModal } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
-import { StepIcon, ArrowLeftIcon, TrashIcon, ClockIcon } from "@/components/icons";
+import { ArrowLeftIcon, TrashIcon, ClockIcon } from "@/components/icons";
 import { Button, Avatar, Card } from "@/components/ui";
 import { playMilestoneSound } from "@/lib/sounds";
 import { DetailSkeleton } from "@/components/Skeletons";
@@ -174,46 +174,64 @@ export default function ApplicationDetailPage() {
       {/* Step timeline */}
       <Card className="mb-4">
         <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Progress</p>
-        <h2 className="text-base font-bold text-sand-900 tracking-tight mb-3">Step timeline</h2>
-        <div className="divide-y divide-sand-100 nums-tabular">
+        <h2 className="text-base font-bold text-sand-900 tracking-tight mb-4">Step timeline</h2>
+
+        {/* Vertical timeline matching the /calculator + EditModal pattern */}
+        <div className="relative nums-tabular">
+          <div className="absolute left-[19px] top-5 bottom-5 w-[2px] bg-sand-200" aria-hidden="true" />
+
+          <div className="space-y-0">
           {STEPS.map((step, i) => {
             const stepDate = stepsMap[step.id];
             const prevDate = i > 0 ? stepsMap[STEPS[i - 1].id] : null;
             const duration = stepDate && prevDate ? daysBetween(prevDate, stepDate) : null;
-            const isDone = i <= currentIdx && stepDate;
-            const isNext = step.id === nextStep;
-            const isFuture = i > currentIdx + 1;
+            const isDone = i <= currentIdx && !!stepDate;
+            const isNext = step.id === nextStep && !isDone;
+            const isFuture = !isDone && !isNext;
+
+            const nodeClass = isDone
+              ? "bg-brand-500 shadow-md shadow-brand-500/30"
+              : isNext
+              ? "bg-white border-[3px] border-warn"
+              : "bg-white border-2 border-sand-300";
 
             return (
-              <div key={step.id} className={`flex items-center gap-3 py-3 -mx-1 px-1 rounded-lg transition-colors ${
-                isNext ? "bg-warn/10"
-                : isFuture ? "opacity-40"
-                : ""
-              }`}>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  isDone ? "bg-brand-500/15"
-                  : isNext ? "bg-warn/20"
-                  : "bg-sand-100"
-                }`}>
-                  <StepIcon stepId={step.id} size={18}
-                    className={isDone ? "text-brand-600" : isNext ? "text-warn-dark" : "text-sand-400"} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-bold text-sand-900 flex items-center gap-1.5">
-                    <span className="truncate">{step.label}</span>
-                    {isNext && <span className="text-[9px] font-bold text-warn-dark uppercase tracking-wider">Next</span>}
-                  </div>
-                  <div className="text-[11px] text-sand-500 truncate">{step.description}</div>
-                </div>
-                <div className="text-right min-w-[100px] flex-shrink-0">
+              <div key={step.id} className="relative flex items-start gap-3.5 py-2.5">
+                {/* Node */}
+                <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${nodeClass}`}>
                   {isDone ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17L4 12" />
+                    </svg>
+                  ) : isNext ? (
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-warn opacity-70 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-warn" />
+                    </span>
+                  ) : (
+                    <span className="w-1.5 h-1.5 rounded-full bg-sand-300" />
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0 pt-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`text-[14px] font-bold ${isFuture ? "text-sand-500" : "text-sand-900"}`}>{step.label}</span>
+                    {isNext && <span className="text-[9px] font-bold text-warn-dark uppercase tracking-wider bg-warn/15 px-1.5 py-0.5 rounded">Next</span>}
+                  </div>
+                  <p className={`text-[11px] mt-0.5 truncate ${
+                    isDone ? "text-brand-600" : isNext ? "text-warn-dark/80" : "text-sand-500"
+                  }`}>{step.description}</p>
+                </div>
+
+                <div className="flex-shrink-0 pt-1 text-right min-w-[100px]">
+                  {isDone && stepDate ? (
                     <>
                       <div className="text-[12px] font-bold text-sand-800">{formatDate(stepDate)}</div>
-                      {duration != null && i > 0 && <div className="text-[10px] text-brand-600 font-semibold">{duration}d</div>}
+                      {duration != null && i > 0 && <div className="text-[10px] text-brand-600 font-bold mt-0.5">{duration}d</div>}
                     </>
                   ) : isNext ? (
                     editingStep === step.id ? (
-                      <input type="date" className="text-xs px-2 py-1 border border-sand-200 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 nums-tabular" autoFocus
+                      <input type="date" className="text-xs px-2 py-1.5 border border-sand-200 bg-sand-50 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors nums-tabular" autoFocus
                         onChange={(e) => { if (e.target.value) markStepDone(step.id, e.target.value); }}
                         onBlur={() => setEditingStep(null)} />
                     ) : (
@@ -226,6 +244,7 @@ export default function ApplicationDetailPage() {
               </div>
             );
           })}
+          </div>
         </div>
       </Card>
 
