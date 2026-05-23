@@ -73,9 +73,9 @@ export function FilterBar({
         {activeCount > 0 && (
           <button
             onClick={() => onChange(EMPTY_FILTERS)}
-            className="text-[11px] text-error hover:text-error-dark font-medium px-2 py-1 rounded transition-colors"
+            className="text-[10px] text-error hover:text-error-dark font-bold uppercase tracking-wider px-2 py-1 rounded-md hover:bg-error/10 transition-colors nums-tabular"
           >
-            Clear all ({activeCount})
+            Clear · {activeCount}
           </button>
         )}
       </div>
@@ -94,13 +94,13 @@ function FilterPill({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
-        "text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer appearance-none",
-        "bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20",
+        "text-[12px] px-3 py-2 rounded-lg border transition-all cursor-pointer appearance-none font-semibold",
+        "focus:outline-none focus:ring-2 focus:ring-brand-500/20",
         "pr-7 bg-[length:12px] bg-[right_8px_center] bg-no-repeat",
         "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%238A8880%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')]",
         active
-          ? "border-brand-400 bg-brand-50 text-brand-700 font-semibold"
-          : "border-sand-200 text-sand-600"
+          ? "border-brand-400 bg-brand-500/12 text-brand-700"
+          : "border-sand-200 bg-white text-sand-700 hover:bg-sand-50"
       )}
     >
       {options.map((opt, i) => (
@@ -139,44 +139,44 @@ function FilterDropdown({
       <button
         onClick={() => { setOpen(!open); setSearch(""); }}
         className={cn(
-          "text-xs px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5",
+          "text-[12px] px-3 py-2 rounded-lg border transition-all flex items-center gap-1.5 font-semibold",
           active
-            ? "border-brand-400 bg-brand-50 text-brand-700 font-semibold"
-            : "border-sand-200 text-sand-600 bg-white hover:bg-sand-50"
+            ? "border-brand-400 bg-brand-500/12 text-brand-700"
+            : "border-sand-200 text-sand-700 bg-white hover:bg-sand-50"
         )}
       >
-        {value || `All ${label === "Country" ? "Countries" : label + "s"}`}
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+        {value || `All ${label === "Country" ? "countries" : label.toLowerCase() + "s"}`}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
           className={cn("transition-transform", open && "rotate-180")}>
           <path d="M6 9L12 15L18 9" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-sand-200 rounded-lg shadow-lg w-56 max-h-60 overflow-hidden flex flex-col">
+        <div className="absolute z-50 top-full left-0 mt-1.5 bg-white border border-sand-200 rounded-xl shadow-xl w-60 max-h-64 overflow-hidden flex flex-col dropdown-enter">
           <div className="p-2 border-b border-sand-100">
             <input
-              type="text" autoFocus placeholder={`Search ${label.toLowerCase()}...`}
-              className="w-full px-2 py-1.5 text-xs rounded border border-sand-200 focus:outline-none focus:ring-1 focus:ring-brand-500/30"
+              type="text" autoFocus placeholder={`Search ${label.toLowerCase()}…`}
+              className="w-full px-2.5 py-1.5 text-[12px] rounded-md border border-sand-200 bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors"
               value={search} onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-y-auto flex-1 py-1">
             <button
               className={cn(
-                "w-full text-left px-3 py-1.5 text-xs hover:bg-brand-50 transition-colors",
-                !value && "bg-brand-50 text-brand-700 font-medium"
+                "w-full text-left px-3 py-1.5 text-[12px] transition-colors",
+                !value ? "bg-brand-500/12 text-brand-700 font-bold" : "text-sand-700 hover:bg-sand-50"
               )}
               onClick={() => { onChange(""); setOpen(false); }}
             >
-              All {label}s
+              All {label.toLowerCase()}s
             </button>
             {filtered.map((opt) => (
               <button
                 key={opt}
                 className={cn(
-                  "w-full text-left px-3 py-1.5 text-xs hover:bg-brand-50 transition-colors",
-                  opt === value && "bg-brand-50 text-brand-700 font-medium"
+                  "w-full text-left px-3 py-1.5 text-[12px] transition-colors",
+                  opt === value ? "bg-brand-500/12 text-brand-700 font-bold" : "text-sand-700 hover:bg-sand-50"
                 )}
                 onClick={() => { onChange(opt); setOpen(false); }}
               >
@@ -184,7 +184,7 @@ function FilterDropdown({
               </button>
             ))}
             {filtered.length === 0 && (
-              <div className="px-3 py-2 text-[11px] text-sand-400">No matches</div>
+              <div className="px-3 py-2 text-[11px] text-sand-400 italic">No matches</div>
             )}
           </div>
         </div>
