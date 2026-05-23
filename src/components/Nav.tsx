@@ -77,10 +77,26 @@ function useUnreadComments(pathname: string): number {
     }
   }, [pathname]);
 
-  // Re-check periodically (every 60s)
+  // Periodic re-check — but only while the tab is visible and only at
+  // a relaxed cadence. The previous 5-min unconditional poll was firing
+  // /api/applications + /api/comments fetches even for idle background
+  // tabs, which contributed meaningfully to Supabase egress.
   useEffect(() => {
-    const interval = setInterval(check, 300000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (interval) return;
+      interval = setInterval(check, 15 * 60 * 1000); // 15 min
+    };
+    const stop = () => {
+      if (interval) { clearInterval(interval); interval = null; }
+    };
+    const onVis = () => {
+      if (document.visibilityState === "visible") { check(); start(); }
+      else stop();
+    };
+    onVis();
+    document.addEventListener("visibilitychange", onVis);
+    return () => { stop(); document.removeEventListener("visibilitychange", onVis); };
   }, [check]);
 
   return count;

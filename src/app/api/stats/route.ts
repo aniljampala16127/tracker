@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse, NextRequest } from "next/server";
 
-export const dynamic = "force-dynamic";
+// No force-dynamic — we want Vercel CDN caching for the public branch.
+// Private (logged-in) branch still emits no-cache headers below.
 
 const STEP_LABELS: Record<string, string> = {
   submitted: "Submitted", aor: "AOR", bil: "BIL",

@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
+// No force-dynamic — let Vercel CDN cache GET via Cache-Control below.
 
 function getSupabase() {
   return createClient(
@@ -86,12 +86,13 @@ export async function GET() {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("comments")
-    .select("*")
+    // Tight column list — drop unused fields to shrink egress.
+    .select("id, application_id, cohort_month, pin_hash, author_name, text, parent_id, created_at")
     .not("cohort_month", "is", null)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data || [], {
-    headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
+    headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
   });
 }
