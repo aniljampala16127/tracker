@@ -958,13 +958,13 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
   };
 
   return (
-    <div className="border border-sand-200 rounded-xl mb-3 overflow-hidden bg-sand-50/30">
+    <div className="border border-sand-200 rounded-2xl mb-3 overflow-hidden bg-white">
       {/* Header */}
       <div className="px-4 py-3">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Your Timeline</span>
-            <span className="text-[10px] font-bold text-brand-600">{completedCount}/{visibleSteps.length}</span>
+        <div className="flex items-center justify-between mb-1 gap-2">
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em]">Your timeline</span>
+            <span className="text-[11px] font-bold text-brand-600 nums-tabular">{completedCount}<span className="text-sand-400 font-medium">/{visibleSteps.length}</span></span>
           </div>
           <div className="flex items-center gap-2">
             <TimelineExport app={app} />
@@ -974,24 +974,33 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
         {nextStep && !expanded && (
           <button
             onClick={() => { setExpanded(true); const t = new Date().toISOString().split("T")[0]; setStepDate(t); setTimeout(() => setActiveStep(nextStep.id), 100); }}
-            className="w-full flex items-center gap-3 mt-2 px-3 py-2.5 rounded-lg bg-warn-light border border-warn/20 active:scale-[0.98] transition-all">
-            <div className="w-2.5 h-2.5 rounded-full bg-warn animate-pulse flex-shrink-0" />
-            <span className="text-sm font-medium text-sand-900 flex-1 text-left">{nextStep.label}</span>
-            <span className="text-xs bg-warn text-white px-3 py-1 rounded-lg font-medium">Update</span>
+            className="w-full flex items-center gap-3 mt-2 px-3.5 py-3 rounded-xl bg-warn/12 border border-warn/30 hover:bg-warn/20 active:scale-[0.98] transition-all">
+            <div className="relative flex h-2.5 w-2.5 flex-shrink-0">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-warn opacity-60 animate-ping" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-warn" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-[10px] font-bold text-warn-dark uppercase tracking-[0.08em]">Next step</div>
+              <div className="text-sm font-bold text-sand-900 truncate">{nextStep.label}</div>
+            </div>
+            <span className="text-[11px] bg-warn text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 shadow-sm">Update <span aria-hidden>→</span></span>
           </button>
         )}
         {!nextStep && app.is_complete && (
-          <div className="mt-2 px-3 py-2 rounded-lg bg-brand-50 text-center">
-            <span className="text-xs font-medium text-brand-600">All steps complete!</span>
+          <div className="mt-2 px-3 py-2.5 rounded-lg bg-brand-500/10 border border-brand-500/20 text-center">
+            <span className="text-[12px] font-bold text-brand-700 inline-flex items-center gap-1.5">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
+              All steps complete
+            </span>
           </div>
         )}
       </div>
 
       {/* Expand/collapse toggle */}
       <button onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-center gap-1 py-2 border-t border-sand-100 text-[10px] text-sand-400 font-medium hover:text-sand-600 transition-colors">
+        className="w-full flex items-center justify-center gap-1.5 py-2 border-t border-sand-100 text-[10px] text-sand-500 font-bold uppercase tracking-wider hover:text-brand-600 hover:bg-sand-50/60 transition-colors">
         {expanded ? "Hide steps" : "View all steps"}
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
           <path d="M6 9L12 15L18 9" />
         </svg>
@@ -1039,38 +1048,40 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
 
               return (
                 <div key={step.id}>
-                  <div className={`flex items-center gap-3 rounded-lg transition-all ${
-                    isDone ? "px-3 py-2 bg-brand-50" : isIncomplete ? "px-3 py-2 bg-white border border-sand-100" : "px-3 py-1"
+                  <div className={`flex items-center gap-3 rounded-lg transition-all nums-tabular ${
+                    isDone ? "px-3 py-2 bg-brand-500/10 border border-brand-500/20"
+                    : isIncomplete ? "px-3 py-2 bg-white border border-sand-200"
+                    : "px-3 py-1.5"
                   }`}>
                     <div className={`flex-shrink-0 rounded-full ${
                       isDone ? "w-2.5 h-2.5 bg-brand-500" : isIncomplete ? "w-2 h-2 bg-sand-300 border border-sand-400" : "w-1.5 h-1.5 bg-sand-300"
                     }`} />
                     <div className="flex-1 min-w-0">
-                      <span className={`font-medium ${isDone ? "text-sm text-sand-900" : isIncomplete ? "text-xs text-sand-600" : "text-[11px] text-sand-400"}`}>{step.label}</span>
-                      {isIncomplete && <div className="text-[9px] text-sand-400">{step.hint}</div>}
+                      <span className={`font-semibold ${isDone ? "text-sm text-sand-900" : isIncomplete ? "text-[13px] text-sand-700" : "text-[11px] text-sand-400"}`}>{step.label}</span>
+                      {isIncomplete && <div className="text-[10px] text-sand-500 mt-0.5">{step.hint}</div>}
                     </div>
 
                     {/* Completed: date + edit + undo */}
                     {isDone && (
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <div className="text-right">
-                          <div className="text-xs font-medium text-sand-700">{formatNice(date!).replace(/, \d{4}/, "")}</div>
-                          {days != null && i > 0 && <div className="text-[9px] text-brand-500 font-semibold">{days}d{daysLabel}</div>}
+                          <div className="text-[12px] font-bold text-sand-800">{formatNice(date!).replace(/, \d{4}/, "")}</div>
+                          {days != null && i > 0 && <div className="text-[10px] text-brand-600 font-bold">{days}d{daysLabel}</div>}
                         </div>
                         {step.id !== "submitted" && (
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1 flex-shrink-0 ml-1">
                             <button onClick={() => { setEditingStep(step.id); setEditDate(date!); }}
-                              className="text-[10px] px-2 py-1 rounded-md bg-sand-100 text-sand-500 font-medium hover:bg-sand-200 transition-colors min-h-[28px]">
+                              className="text-[10px] px-2 py-1.5 rounded-md text-sand-500 hover:text-brand-600 hover:bg-sand-100 font-bold uppercase tracking-wider transition-colors min-h-[28px]">
                               Edit
                             </button>
                             <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
-                              className="text-[10px] px-2 py-1 rounded-md bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50 min-h-[28px]">
-                              {undoing ? "..." : "Undo"}
+                              className="text-[10px] px-2 py-1.5 rounded-md text-sand-500 hover:text-error hover:bg-error/10 font-bold uppercase tracking-wider transition-colors disabled:opacity-50 min-h-[28px]">
+                              {undoing ? "…" : "Undo"}
                             </button>
                           </div>
                         )}
                         {step.id === "submitted" && (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-600">
                             <path d="M20 6L9 17L4 12" />
                           </svg>
                         )}
@@ -1080,7 +1091,7 @@ function TimelineSection({ app, stepsMap, currentIdx, nextStepId, latestComplete
                     {/* Incomplete: Update button */}
                     {isIncomplete && activeStep !== step.id && (
                       <button onClick={() => { const t = new Date().toISOString().split("T")[0]; setStepDate(t); setActiveStep(step.id); }}
-                        className="text-[10px] bg-sand-200 text-sand-700 px-2.5 py-1 rounded-lg font-medium hover:bg-sand-300 transition-all active:scale-95">
+                        className="text-[11px] bg-brand-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-brand-600 transition-all active:scale-95 shadow-sm">
                         Update
                       </button>
                     )}
