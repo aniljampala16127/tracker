@@ -162,25 +162,28 @@ export default function CountryPageClient({ slug, country }: { slug: string; cou
 
       {/* Header */}
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-sand-900">{country}</h1>
-        <p className="text-xs text-sand-500 mt-0.5">
-          Spousal sponsorship processing times · {stats.total} applications tracked
+        <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Country breakdown</p>
+        <h1 className="text-2xl font-bold text-sand-900 tracking-tight">{country}</h1>
+        <p className="text-[13px] text-sand-500 mt-0.5 nums-tabular">
+          Spousal sponsorship processing times · <span className="font-semibold text-sand-700">{stats.total}</span> applications tracked
         </p>
       </div>
 
-      {/* Hero stats */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        <div className="bg-white border border-sand-200 rounded-xl p-3 text-center">
-          <div className="text-[10px] text-sand-500 uppercase tracking-wider font-semibold">Total</div>
-          <div className="text-2xl font-bold text-sand-900">{stats.total}</div>
-        </div>
-        <div className="bg-white border border-sand-200 rounded-xl p-3 text-center">
-          <div className="text-[10px] text-sand-500 uppercase tracking-wider font-semibold">Outland</div>
-          <div className="text-2xl font-bold text-brand-600">{stats.outlandCount}</div>
-        </div>
-        <div className="bg-white border border-sand-200 rounded-xl p-3 text-center">
-          <div className="text-[10px] text-sand-500 uppercase tracking-wider font-semibold">Inland</div>
-          <div className="text-2xl font-bold text-warn">{stats.inlandCount}</div>
+      {/* Hero stat strip — divided cells in one card */}
+      <div className="bg-white border border-sand-200 rounded-2xl shadow-[0_1px_2px_rgba(26,26,24,0.04)] overflow-hidden mb-5">
+        <div className="grid grid-cols-3 divide-x divide-sand-100">
+          <div className="p-4">
+            <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1.5">Total</div>
+            <div className="text-3xl font-bold text-sand-900 leading-none nums-tabular">{stats.total}</div>
+          </div>
+          <div className="p-4">
+            <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1.5">Outland</div>
+            <div className="text-3xl font-bold text-brand-600 leading-none nums-tabular">{stats.outlandCount}</div>
+          </div>
+          <div className="p-4">
+            <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1.5">Inland</div>
+            <div className="text-3xl font-bold text-warn-dark leading-none nums-tabular">{stats.inlandCount}</div>
+          </div>
         </div>
       </div>
 

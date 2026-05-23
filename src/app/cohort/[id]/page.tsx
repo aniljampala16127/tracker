@@ -167,25 +167,25 @@ export default function CohortPage() {
       </button>
 
       {/* Header */}
-      <div className="bg-white border border-sand-200 rounded-2xl p-5 mb-4">
-        <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-1">Your Submission Week</div>
-        <h1 className="text-lg font-bold text-sand-900 mb-1">{week.label}</h1>
-        <p className="text-xs text-sand-500 mb-4">
-          {cohort.length} {cohort.length === 1 ? "person" : "people"} submitted this week
+      <div className="bg-white border border-sand-200 rounded-2xl p-5 mb-4 shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
+        <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Your submission week</p>
+        <h1 className="text-xl font-bold text-sand-900 tracking-tight mb-1 nums-tabular">{week.label}</h1>
+        <p className="text-[12px] text-sand-500 mb-4 nums-tabular">
+          <span className="font-semibold text-sand-700">{cohort.length}</span> {cohort.length === 1 ? "person" : "people"} submitted this week
         </p>
 
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-brand-50 rounded-lg p-2.5 text-center">
-            <div className="text-lg font-bold text-brand-600">{gotAor.length}</div>
-            <div className="text-[9px] text-brand-500 font-medium">Got AOR</div>
+          <div className="bg-brand-500/[0.08] border border-brand-500/20 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-brand-600 leading-none nums-tabular">{gotAor.length}</div>
+            <div className="text-[10px] text-brand-700 font-bold uppercase tracking-[0.06em] mt-1">Got AOR</div>
           </div>
-          <div className="bg-warn-light rounded-lg p-2.5 text-center">
-            <div className="text-lg font-bold text-warn-dark">{waiting.length}</div>
-            <div className="text-[9px] text-warn-dark font-medium">Waiting</div>
+          <div className="bg-warn/15 border border-warn/30 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-warn-dark leading-none nums-tabular">{waiting.length}</div>
+            <div className="text-[10px] text-warn-dark font-bold uppercase tracking-[0.06em] mt-1">Waiting</div>
           </div>
-          <div className="bg-sand-50 rounded-lg p-2.5 text-center">
-            <div className="text-lg font-bold text-sand-700">{cohort.length > 0 ? Math.round((gotAor.length / cohort.length) * 100) : 0}%</div>
-            <div className="text-[9px] text-sand-500 font-medium">AOR Rate</div>
+          <div className="bg-white border border-sand-200 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-sand-800 leading-none nums-tabular">{cohort.length > 0 ? Math.round((gotAor.length / cohort.length) * 100) : 0}<span className="text-base font-semibold">%</span></div>
+            <div className="text-[10px] text-sand-500 font-bold uppercase tracking-[0.06em] mt-1">AOR rate</div>
           </div>
         </div>
       </div>
@@ -221,8 +221,11 @@ export default function CohortPage() {
       {/* Got AOR */}
       {gotAor.length > 0 && (
         <div className="mb-4">
-          <div className="text-[10px] font-semibold text-brand-600 uppercase tracking-wider mb-2 px-1">
-            Got AOR ({gotAor.length})
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+            <span className="text-[10px] font-bold text-brand-700 uppercase tracking-[0.08em] nums-tabular">
+              Got AOR ({gotAor.length})
+            </span>
           </div>
           <div className="space-y-1.5 entries-stagger">
             {gotAor.map(person => (
@@ -235,8 +238,11 @@ export default function CohortPage() {
       {/* Waiting */}
       {waiting.length > 0 && (
         <div className="mb-4">
-          <div className="text-[10px] font-semibold text-warn-dark uppercase tracking-wider mb-2 px-1">
-            Waiting for AOR ({waiting.length})
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-warn" />
+            <span className="text-[10px] font-bold text-warn-dark uppercase tracking-[0.08em] nums-tabular">
+              Waiting for AOR ({waiting.length})
+            </span>
           </div>
           <div className="space-y-1.5 entries-stagger">
             {waiting.map(person => (
@@ -246,8 +252,8 @@ export default function CohortPage() {
         </div>
       )}
 
-      <p className="text-[9px] text-sand-400 mt-3 text-center">
-        Tap any card to view their timeline
+      <p className="text-[11px] text-sand-400 mt-3 text-center">
+        Tap any card to view their timeline.
       </p>
 
       {/* Read-only timeline modal */}
