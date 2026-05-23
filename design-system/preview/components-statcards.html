@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<title>Stat cards</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin:0; background: var(--sand-50); font-family: var(--font-sans); }
+  .wrap { padding: 16px 22px; display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .card { background:#fff; border: 1px solid var(--sand-200); border-radius: 12px; padding: 16px; text-align: center; }
+  .icon { width: 32px; height: 32px; border-radius: 8px; background: var(--brand-100); display:flex; align-items:center; justify-content:center; margin: 0 auto 8px; }
+  .value { font-size: 24px; font-weight: 700; color: var(--sand-900); letter-spacing: -0.02em; }
+  .label { font-size: 10px; color: var(--sand-400); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+  .card.highlight { background: var(--brand-100); border-color: transparent; }
+  .card.highlight .value { color: var(--brand-600); }
+  .card.highlight .icon { background: var(--brand-200); }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12L11 14L15 10"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
+    <div class="value">312</div>
+    <div class="label">Applications</div>
+  </div>
+  <div class="card">
+    <div class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div>
+    <div class="value">48</div>
+    <div class="label">Countries</div>
+  </div>
+  <div class="card highlight">
+    <div class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#245740" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6V12L16 14"/></svg></div>
+    <div class="value">87d</div>
+    <div class="label">Avg AOR</div>
+  </div>
+  <div class="card">
+    <div class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17L4 12"/></svg></div>
+    <div class="value">214</div>
+    <div class="label">Got AOR</div>
+  </div>
+</div>
+</body></html>

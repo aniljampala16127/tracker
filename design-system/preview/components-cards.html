@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<title>Cards</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin:0; background: var(--sand-50); font-family: var(--font-sans); }
+  .wrap { padding: 16px 22px; display:grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 12px; }
+  .card { background:#fff; border:1px solid var(--sand-200); border-radius: 12px; padding: 16px; }
+  .card.hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: var(--brand-300); }
+  .card.you { background: rgba(45,106,79,0.05); border-bottom: 2px solid var(--brand-200); border-radius: 12px; }
+  .row { display:flex; align-items:center; gap: 10px; }
+  .avatar { width: 40px; height: 40px; border-radius: 10px; background: var(--brand-500); color: #fff; display:flex; align-items:center; justify-content:center; font-weight: 700; font-size: 13px; flex-shrink:0; }
+  .avatar.muted { background: var(--sand-100); color: var(--sand-600); border-radius: 10px; }
+  .name { font-size: 13px; font-weight: 700; color: var(--sand-900); }
+  .meta { font-size: 11px; color: var(--sand-500); margin-top: 1px; }
+  .right { margin-left:auto; text-align: right; }
+  .step { font-size: 11px; font-weight: 700; color: var(--brand-600); line-height: 1.1; }
+  .day { font-size: 10px; color: var(--sand-400); }
+  .you-pill { background: var(--brand-100); color: var(--brand-700); padding: 2px 7px; border-radius: 9999px; font-size: 9px; font-weight: 700; margin-left: 4px; }
+  .label { font-size: 10px; font-weight: 700; color: var(--sand-400); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="card you">
+    <div class="label">Your application</div>
+    <div class="row">
+      <div class="avatar">JK</div>
+      <div>
+        <div class="name">JK <span class="you-pill">YOU</span></div>
+        <div class="meta">India · Permanent Resident · Sub Aug 14</div>
+      </div>
+      <div class="right"><div class="step">AOR</div><div class="day">Day 87</div></div>
+    </div>
+  </div>
+
+  <div class="card hover">
+    <div class="label">Hover state</div>
+    <div class="row">
+      <div class="avatar muted">MV</div>
+      <div>
+        <div class="name">MV</div>
+        <div class="meta">Vietnam · Citizen · Inland</div>
+      </div>
+      <div class="right"><div class="step" style="color:var(--brand-600);">Medical</div><div class="day">Day 142</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Default card</div>
+    <div class="row">
+      <div class="avatar muted">SR</div>
+      <div>
+        <div class="name">SR</div>
+        <div class="meta">Philippines · Citizen · Outland</div>
+      </div>
+      <div class="right"><div class="step" style="color:var(--sand-600);">Background</div><div class="day">Day 64</div></div>
+    </div>
+  </div>
+</div>
+</body></html>

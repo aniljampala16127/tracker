@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<title>Step timeline</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin:0; background: var(--sand-50); font-family: var(--font-sans); }
+  .wrap { padding: 18px 22px; }
+  .card { background:#fff; border:1px solid var(--sand-200); border-radius: 12px; padding: 16px; }
+  .head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 14px; }
+  .name { font-size: 13px; font-weight: 700; color: var(--sand-900); }
+  .pct { font-size: 12px; font-weight: 700; color: var(--brand-600); }
+  .track { display:flex; align-items:center; gap: 4px; }
+  .dot { width: 22px; height: 22px; border-radius: 50%; display:flex; align-items:center; justify-content:center; border: 2px solid var(--sand-200); background: #fff; color: var(--sand-400); flex-shrink: 0; }
+  .dot.done { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
+  .dot.active { background: #fff; border-color: var(--brand-500); color: var(--brand-500); box-shadow: 0 0 0 4px rgba(45,106,79,0.12); }
+  .bar { flex: 1; height: 2px; background: var(--sand-200); }
+  .bar.done { background: var(--brand-500); }
+  .legend { display:flex; gap: 16px; margin-top: 10px; font-size: 10px; color: var(--sand-500); }
+  .lg-item { display:flex; align-items:center; gap: 5px; }
+  .lg-dot { width: 8px; height: 8px; border-radius:50%; }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="head">
+      <div class="name">JK · India · Inland</div>
+      <div class="pct">45%</div>
+    </div>
+    <div class="track">
+      <div class="dot done">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M5 12L10 17L19 8"/></svg>
+      </div>
+      <div class="bar done"></div>
+      <div class="dot done"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M5 12L10 17L19 8"/></svg></div>
+      <div class="bar done"></div>
+      <div class="dot active">3</div>
+      <div class="bar"></div>
+      <div class="dot">4</div>
+      <div class="bar"></div>
+      <div class="dot">5</div>
+      <div class="bar"></div>
+      <div class="dot">6</div>
+      <div class="bar"></div>
+      <div class="dot">7</div>
+    </div>
+    <div class="legend">
+      <span class="lg-item"><span class="lg-dot" style="background:var(--brand-500);"></span>Done</span>
+      <span class="lg-item"><span class="lg-dot" style="border:2px solid var(--brand-500);background:#fff;"></span>In progress (BIL)</span>
+      <span class="lg-item"><span class="lg-dot" style="border:2px solid var(--sand-200);background:#fff;"></span>Pending</span>
+    </div>
+  </div>
+</div>
+</body></html>

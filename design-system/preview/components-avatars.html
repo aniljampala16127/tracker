@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<title>Avatars</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin:0; background: var(--sand-50); font-family: var(--font-sans); }
+  .wrap { padding: 16px 22px; display:flex; gap: 24px; align-items:center; flex-wrap: wrap; }
+  .group { display:flex; flex-direction:column; gap: 6px; align-items:center; }
+  .label { font-size: 10px; color: var(--sand-500); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .av { border-radius: 50%; background: var(--brand-100); color: var(--brand-600); font-weight: 700; display:flex; align-items:center; justify-content:center; }
+  .av-sm { width: 32px; height: 32px; font-size: 12px; }
+  .av-md { width: 40px; height: 40px; font-size: 14px; }
+  .av-lg { width: 48px; height: 48px; font-size: 16px; }
+  .av-square { border-radius: 12px; background: var(--brand-500); color: #fff; width: 48px; height: 48px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size: 14px; }
+  .row { display:flex; gap: 6px; }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="group"><div class="row"><div class="av av-sm">JK</div><div class="av av-md">MV</div><div class="av av-lg">SR</div></div><div class="label">Initials · 3 sizes · brand-100/600</div></div>
+  <div class="group"><div class="av-square">JK</div><div class="label">"You" tile · brand-500</div></div>
+  <div class="group"><div class="row" style="color:var(--brand-600);">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.5 7.5L4 6.5L7 11L3 14H8L7 19L12 16L17 19L16 14H21L17 11L20 6.5L14.5 7.5L12 2Z"/><path d="M12 16V22"/></svg>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88" fill="currentColor" fill-opacity="0.15"/></svg>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4L2 20H22L12 4Z"/></svg>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C4 8 6 6 8 8C10 10 10 14 12 12C14 10 14 6 16 8C18 10 20 8 22 12"/><path d="M2 17C4 13 6 11 8 13C10 15 10 19 12 17C14 15 14 11 16 13C18 15 20 13 22 17" opacity="0.4"/></svg>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+  </div><div class="label">Optional avatar glyphs (17 total)</div></div>
+</div>
+</body></html>

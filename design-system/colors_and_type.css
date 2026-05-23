@@ -1,0 +1,207 @@
+/* ════════════════════════════════════════════════════════════
+   SponsorTrack — Colors + Type
+   Direct port of tracker repo's globals.css + tailwind.config.ts
+   ════════════════════════════════════════════════════════════ */
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  /* ── Sand scale ── warm neutrals (light) ─────────────────── */
+  --sand-50:  #FAFAF8;
+  --sand-100: #F2F1ED;
+  --sand-200: #E8E6E1;
+  --sand-300: #D5D3CE;
+  --sand-400: #B0ADA6;
+  --sand-500: #8A8880;
+  --sand-600: #65635D;
+  --sand-700: #43423E;
+  --sand-800: #2B2A27;
+  --sand-900: #1A1A18;
+
+  /* ── Brand green ─────────────────────────────────────────── */
+  --brand-50:  #F0F7F2;
+  --brand-100: #D4E8DC;
+  --brand-200: #A8D1B8;
+  --brand-300: #74B08A;
+  --brand-400: #4A9468;
+  --brand-500: #2D6A4F;  /* primary */
+  --brand-600: #245740;
+  --brand-700: #1B4331;
+  --brand-800: #133022;
+  --brand-900: #0A1D14;
+
+  /* ── Accent: warn (gold/amber) ───────────────────────────── */
+  --warn-light: #FDF3DC;
+  --warn:       #D4A03C;
+  --warn-dark:  #9B7420;
+
+  /* ── Accent: error (terracotta) ──────────────────────────── */
+  --error-light: #FCEAE7;
+  --error:       #C05746;
+  --error-dark:  #8B3D30;
+
+  /* ── Surfaces ────────────────────────────────────────────── */
+  --surface-card: #FFFFFF;
+  --surface-card-border: #E8E6E1;
+  --surface-modal: #FFFFFF;
+  --surface-nav: rgba(255,255,255,0.8);
+  --surface-input: #FFFFFF;
+
+  /* ── Semantic tokens ─────────────────────────────────────── */
+  --fg-1: var(--sand-900);   /* primary text */
+  --fg-2: var(--sand-700);   /* body */
+  --fg-3: var(--sand-500);   /* muted */
+  --fg-4: var(--sand-400);   /* placeholder, tertiary */
+  --bg-page: var(--sand-50);
+  --bg-card: var(--surface-card);
+  --border-soft: var(--sand-200);
+  --border-strong: var(--sand-300);
+  --accent: var(--brand-500);
+  --accent-hover: var(--brand-600);
+
+  /* ── Radii ───────────────────────────────────────────────── */
+  --radius-sm: 6px;     /* badge, small chip */
+  --radius-md: 8px;     /* button, input */
+  --radius-lg: 12px;    /* card */
+  --radius-xl: 16px;    /* modal, large card */
+  --radius-2xl: 24px;
+  --radius-pill: 9999px;
+
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(26,26,24,0.04);
+  --shadow-md: 0 4px 12px rgba(26,26,24,0.08);
+  --shadow-lg: 0 8px 24px rgba(26,26,24,0.10);
+  --shadow-brand: 0 8px 24px rgba(45,106,79,0.20);
+
+  /* ── Spacing scale (4-pt grid) ───────────────────────────── */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ── Type ────────────────────────────────────────────────── */
+  --font-sans: "DM Sans", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "ui-monospace", "SF Mono", Menlo, monospace;
+
+  /* Type scale — used throughout the product
+     Names mirror Tailwind sizes so they're easy to map. */
+  --fs-9:   9px;   /* micro labels under nav icons */
+  --fs-10: 10px;   /* eyebrows, captions */
+  --fs-11: 11px;   /* table caps, helper text */
+  --fs-12: 12px;   /* xs body */
+  --fs-14: 14px;   /* body */
+  --fs-16: 16px;   /* lead */
+  --fs-18: 18px;   /* h4 */
+  --fs-20: 20px;   /* h3 */
+  --fs-24: 24px;   /* stat value */
+  --fs-30: 30px;   /* h2, hero on mobile */
+  --fs-36: 36px;   /* h1 desktop hero */
+
+  /* ── Motion ──────────────────────────────────────────────── */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-pop:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-slow: 400ms;
+}
+
+/* ════════════════════════════════════════════════════════════
+   DARK theme — reversed sand scale + brighter brand
+   ════════════════════════════════════════════════════════════ */
+.dark {
+  --sand-50:  #0E0E0D;
+  --sand-100: #171715;
+  --sand-200: #252422;
+  --sand-300: #333230;
+  --sand-400: #5A5955;
+  --sand-500: #7A7872;
+  --sand-600: #A8A6A0;
+  --sand-700: #C8C6C0;
+  --sand-800: #E0DFDB;
+  --sand-900: #F0EFEB;
+
+  --brand-50:  #0C1F15;
+  --brand-100: #14312A;
+  --brand-200: #1C4B3A;
+  --brand-300: #2D6A4F;
+  --brand-400: #3D8B68;
+  --brand-500: #4A9E78;
+  --brand-600: #5DB888;
+  --brand-700: #7DCCA0;
+  --brand-800: #A8DFC0;
+  --brand-900: #D4F0E0;
+
+  --warn-light: #2A2315;
+  --warn:       #E0AD42;
+  --warn-dark:  #C89E3A;
+  --error-light: #2A1714;
+  --error:       #E06A58;
+  --error-dark:  #C08070;
+
+  --surface-card:        #1C1B19;
+  --surface-card-border: #252422;
+  --surface-modal:       #1C1B19;
+  --surface-nav: rgba(14,14,13,0.85);
+  --surface-input: #171715;
+}
+
+/* ════════════════════════════════════════════════════════════
+   Semantic element styles — drop-in defaults
+   ════════════════════════════════════════════════════════════ */
+html, body {
+  font-family: var(--font-sans);
+  background: var(--bg-page);
+  color: var(--fg-1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1 {
+  font-size: var(--fs-30);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--fg-1);
+}
+@media (min-width: 640px) {
+  h1 { font-size: var(--fs-36); }
+}
+
+h2 { font-size: var(--fs-20); font-weight: 700; color: var(--fg-1); letter-spacing: -0.01em; line-height: 1.2; }
+h3 { font-size: var(--fs-16); font-weight: 700; color: var(--fg-1); }
+h4 { font-size: var(--fs-14); font-weight: 700; color: var(--fg-1); }
+
+p  { font-size: var(--fs-14); color: var(--fg-2); line-height: 1.55; }
+small, .caption { font-size: var(--fs-12); color: var(--fg-3); }
+
+/* The eyebrow label that appears all over the app:
+   ALL-CAPS, tight tracking, sand-500, 10-11px, 600-700 weight */
+.eyebrow {
+  font-size: var(--fs-11);
+  font-weight: 700;
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.eyebrow-xs {
+  font-size: var(--fs-10);
+  font-weight: 700;
+  color: var(--fg-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+code, kbd, .mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
