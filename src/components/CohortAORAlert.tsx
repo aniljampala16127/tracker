@@ -130,64 +130,66 @@ export function CohortAORAlert({ apps }: { apps: Application[] }) {
   return (
     <>
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
-      <div className="mb-4 bg-gradient-to-r from-brand-500 to-brand-600 rounded-xl p-4 text-white relative overflow-hidden animate-in">
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-
+      <div className="mb-4 tile-brand rounded-2xl p-4 text-white relative overflow-hidden animate-in shadow-lg shadow-brand-500/15">
         {/* Dismiss button */}
         <button
           onClick={handleDismiss}
-          className="absolute top-3 right-3 text-white/50 hover:text-white/80 transition-colors"
+          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          aria-label="Dismiss"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
 
-        {/* Icon */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">🎉</span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-white/70">Cohort Update</span>
-        </div>
-
-        {/* Main message */}
-        <div className="text-sm font-bold mb-1">
-          {alert.entries.length === 1 ? (
-            <>{first.initials} from your submission week got AOR!</>
-          ) : (
-            <>{alert.entries.length} people from your week got AOR!</>
-          )}
+        {/* Eyebrow + title */}
+        <div className="pr-7 mb-3">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-60 animate-ping" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/80">Cohort update</span>
+          </div>
+          <div className="text-[15px] font-bold tracking-tight nums-tabular">
+            {alert.entries.length === 1 ? (
+              <>{first.initials} from your week got <span className="text-white">AOR</span>.</>
+            ) : (
+              <><span>{alert.entries.length}</span> people from your week got <span>AOR</span>.</>
+            )}
+          </div>
         </div>
 
         {/* Details */}
-        <div className="space-y-1.5 mb-3">
+        <div className="space-y-1.5 mb-3 nums-tabular">
           {alert.entries.slice(0, 3).map((a, i) => (
-            <div key={i} className="flex items-center gap-2 bg-white/10 rounded-lg px-2.5 py-1.5">
-              <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-bold flex-shrink-0 ${
-                a.stream === "Outland" ? "bg-white/20" : "bg-yellow-400/20"
+            <div key={i} className="flex items-center gap-2 bg-white/10 rounded-lg px-2.5 py-1.5 backdrop-blur-sm">
+              <div className={`w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+                a.stream === "Outland" ? "bg-white/25" : "bg-warn/40"
               }`}>
                 {a.initials.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[11px] font-semibold">{a.initials}</span>
-                <span className="text-[10px] text-white/60 ml-1">{a.country} · {a.stream}</span>
-                <div className="text-[9px] text-white/40">Sub {fmt(a.subDate)}</div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[12px] font-bold">{a.initials}</span>
+                  <span className="text-[10px] text-white/70 truncate">{a.country} · {a.stream}</span>
+                </div>
+                <div className="text-[10px] text-white/55">Sub {fmt(a.subDate)}</div>
               </div>
               <div className="text-right flex-shrink-0">
-                <div className="text-[11px] font-bold">{a.days}d</div>
-                <div className="text-[9px] text-white/50">AOR {fmt(a.aorDate)}</div>
+                <div className="text-[13px] font-bold leading-none">{a.days}d</div>
+                <div className="text-[10px] text-white/55 mt-0.5">AOR {fmt(a.aorDate)}</div>
               </div>
             </div>
           ))}
           {moreCount > 2 && (
-            <div className="text-[10px] text-white/50 text-center">+{moreCount - 2} more</div>
+            <div className="text-[11px] text-white/60 text-center font-semibold">+{moreCount - 2} more</div>
           )}
         </div>
 
         {/* Encouraging message */}
-        <div className="text-[11px] text-white/70">
-          You submitted {fmt(alert.mySubmitted)} — AORs are reaching your week! 🤞
+        <div className="text-[11px] text-white/75 nums-tabular">
+          You submitted {fmt(alert.mySubmitted)} — AORs are reaching your week.
         </div>
       </div>
     </>

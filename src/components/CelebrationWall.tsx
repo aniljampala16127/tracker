@@ -49,24 +49,26 @@ export function CelebrationWall({ apps }: CelebrationWallProps) {
   return (
     <div className="mb-4">
       {celebrations.map((pr, i) => (
-        <div key={i} className="bg-gradient-to-r from-warn-light via-warn-light/50 to-brand-50 border border-warn/30 rounded-xl p-4 mb-2 relative overflow-hidden">
-          {/* Sparkle decorations */}
-          <div className="absolute top-2 right-3 text-warn opacity-40 text-lg">*</div>
-          <div className="absolute top-4 right-8 text-brand-400 opacity-30 text-sm">*</div>
-          <div className="absolute bottom-2 right-5 text-warn opacity-30 text-base">*</div>
-
+        <div
+          key={i}
+          className="bg-white border border-warn/30 rounded-2xl p-4 mb-2 relative overflow-hidden shadow-[0_1px_2px_rgba(212,160,60,0.08)]"
+          style={{
+            backgroundImage:
+              "radial-gradient(80% 100% at 0% 50%, rgba(212,160,60,0.10), transparent 70%), radial-gradient(80% 100% at 100% 50%, rgba(45,106,79,0.06), transparent 70%)",
+          }}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-warn to-warn-dark flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-warn/30">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-warn to-warn-dark flex items-center justify-center text-white font-bold text-sm shadow-md shadow-warn/40 flex-shrink-0">
               {pr.initials.slice(0, 2)}
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-sand-900">{pr.initials}</span>
-                <span className="text-sm">became a PR!</span>
-                <span className="text-base">&#127809;</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold text-warn-dark uppercase tracking-[0.08em]">New PR</span>
+                <span className="text-[14px] font-bold text-sand-900">{pr.initials}</span>
+                <span className="text-[13px] text-sand-700">became a PR.</span>
               </div>
-              <div className="text-[10px] text-sand-500 mt-0.5">
-                {pr.country} · {pr.stream} · {pr.totalDays > 0 ? `${pr.totalDays} days total` : ""} · eCoPR {fmtDate(pr.ecoprDate)}
+              <div className="text-[11px] text-sand-500 mt-0.5 truncate nums-tabular">
+                {pr.country} · {pr.stream}{pr.totalDays > 0 ? ` · ${pr.totalDays} days total` : ""} · eCoPR {fmtDate(pr.ecoprDate)}
               </div>
             </div>
           </div>
