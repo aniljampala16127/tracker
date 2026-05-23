@@ -95,6 +95,7 @@ export default function DashboardPage() {
   
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showStale, setShowStale] = useState(false);
   const [celebrateApp, setCelebrateApp] = useState<Application | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
@@ -149,8 +150,43 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []);
 
+  // Community average days to AOR — used to detect "stale" abandoned entries
+  // (submitted long ago, well past avg, but never marked AOR).
+  const avgAorDays = useMemo(() => {
+    const samples: number[] = [];
+    apps.forEach(a => {
+      const s = buildStepsMap(a.step_events || []);
+      if (s.submitted && s.aor) samples.push(daysBetween(s.submitted, s.aor));
+    });
+    if (samples.length < 5) return null; // not enough data to call anything "stale"
+    return Math.round(samples.reduce((x, y) => x + y, 0) / samples.length);
+  }, [apps]);
+
+  // An app is "stale" if submitted long ago and the user never marked AOR.
+  // Threshold = 2× community avg AOR (so well past when AOR should've landed).
+  const isStale = useCallback((a: Application): boolean => {
+    if (!avgAorDays) return false;
+    const s = buildStepsMap(a.step_events || []);
+    if (!s.submitted) return false;
+    if (s.aor) return false; // already past AOR, not stale
+    const days = daysBetween(s.submitted, localToday());
+    return days > avgAorDays * 2;
+  }, [avgAorDays]);
+
+  // Stale-entry count is useful in the filter chip even when they're hidden.
+  const staleCount = useMemo(() => apps.filter(isStale).length, [apps, isStale]);
+
   // Filtered apps
   const filteredApps = useMemo(() => {
+    const savedHash = typeof window !== "undefined" ? localStorage.getItem("sponsortrack-pins") : null;
+    let mySavedHashes: Set<string> = new Set();
+    try {
+      if (savedHash) {
+        const store = JSON.parse(savedHash);
+        mySavedHashes = new Set(Object.values(store) as string[]);
+      }
+    } catch { /* ignore */ }
+
     return apps.filter((a) => {
       if (filters.stream && a.stream !== filters.stream) return false;
       if (filters.country && a.country_origin !== filters.country) return false;
@@ -160,9 +196,15 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
         const q = searchQuery.toLowerCase();
         if (!a.initials.toLowerCase().includes(q) && !a.country_origin.toLowerCase().includes(q)) return false;
       }
+      // Stale-entry filter — hide abandoned apps unless the user opts in OR
+      // the entry belongs to the current user (they should always see their own).
+      if (!showStale && isStale(a)) {
+        const isMine = a.pin_hash && mySavedHashes.has(a.pin_hash);
+        if (!isMine) return false;
+      }
       return true;
     });
-  }, [apps, filters, searchQuery]);
+  }, [apps, filters, searchQuery, showStale, isStale]);
 
   // Unique values for filter dropdowns (from actual data)
   const availableCountries = useMemo(() => Array.from(new Set(apps.map(a => a.country_origin))).sort(), [apps]);
@@ -486,6 +528,26 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
           onChange={setFilters}
           availableCountries={availableCountries}
         />
+      )}
+
+      {/* Stale entries toggle — only show when we have enough data to detect them */}
+      {staleCount > 0 && (
+        <div className="flex items-center justify-between gap-2 mb-3 -mt-1">
+          <p className="text-[11px] text-sand-500 nums-tabular">
+            <span className="font-bold text-sand-700">{staleCount}</span> entries past <span className="nums-tabular font-medium">{avgAorDays! * 2}d</span> without AOR
+            {!showStale && <span className="text-sand-400"> · hidden</span>}
+          </p>
+          <button
+            onClick={() => setShowStale(v => !v)}
+            className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors ${
+              showStale
+                ? "bg-warn/15 text-warn-dark hover:bg-warn/25"
+                : "bg-white border border-sand-200 text-sand-600 hover:border-brand-300 hover:text-brand-700"
+            }`}
+          >
+            {showStale ? "Hide stale" : "Show stale"}
+          </button>
+        </div>
       )}
 
       {/* Bar Chart — collapsible */}

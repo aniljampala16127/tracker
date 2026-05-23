@@ -178,7 +178,7 @@ export function AORWaveTracker({ apps }: { apps: Application[] }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[10px] text-sand-500 font-bold uppercase tracking-[0.08em]">This week</div>
-          <div className="text-[13px] font-bold text-sand-900 nums-tabular"><span>{data.weekTotal}</span> <span className="text-sand-500 font-medium">updates</span> · <span>{data.waiting}</span> <span className="text-sand-500 font-medium">waiting for AOR</span></div>
+          <div className="text-[13px] font-bold text-sand-900 nums-tabular"><span>{data.weekTotal}</span> <span className="text-sand-500 font-medium">updates</span></div>
         </div>
         {/* Collapsed: mini dots */}
         <div className="flex gap-1 flex-shrink-0"
