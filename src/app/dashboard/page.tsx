@@ -1040,14 +1040,21 @@ function InlineClaim({ appId, appInitials, onClaimed, onCancel }: {
   }
 
   return (
-    <div className="bg-warn-light/50 border border-warn/30 rounded-xl p-3 mb-3">
-      <p className="text-xs text-sand-700 mb-2"><strong>{appInitials}</strong> has no PIN. Claim it to edit and track.</p>
-      {error && <p className="text-[10px] text-error mb-2">{error}</p>}
+    <div className="bg-warn/10 border border-warn/30 rounded-xl p-3.5 mb-3">
+      <div className="flex items-start gap-2.5 mb-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-warn-dark flex-shrink-0 mt-0.5">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <p className="text-[12px] text-warn-dark leading-relaxed">
+          <strong className="font-bold">{appInitials}</strong> has no PIN. Claim it to edit and track.
+        </p>
+      </div>
+      {error && <p className="text-[11px] text-error mb-2 font-medium">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={handleClaim} disabled={claiming} className="px-4 py-1.5 bg-brand-500 text-white text-xs font-semibold rounded-lg disabled:opacity-50">
-          {claiming ? "..." : "Claim & Get PIN"}
+        <button onClick={handleClaim} disabled={claiming} className="px-3.5 py-1.5 bg-brand-500 text-white text-[11px] font-semibold rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50">
+          {claiming ? "…" : "Claim & get PIN"}
         </button>
-        <button onClick={onCancel} className="px-3 py-1.5 text-xs text-sand-500">Cancel</button>
+        <button onClick={onCancel} className="px-3 py-1.5 text-[11px] text-sand-500 font-semibold uppercase tracking-wider hover:text-sand-800 transition-colors">Cancel</button>
       </div>
     </div>
   );
@@ -1667,66 +1674,71 @@ function IntentModal({ open, onClose, onNewUser, apps, onReconnected }: {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Get Started">
+    <Modal open={open} onClose={onClose} title="Get started">
       {mode === "choose" ? (
-        <div className="space-y-3">
-          <p className="text-sm text-sand-500 mb-4">Are you new here, or reconnecting a previous entry?</p>
+        <div className="space-y-2.5">
+          <p className="text-[13px] text-sand-500 mb-4 leading-relaxed">Are you new here, or reconnecting a previous entry?</p>
 
           <button
             onClick={onNewUser}
-            className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-sand-200 bg-white hover:bg-brand-50 hover:border-brand-300 transition-all active:scale-[0.98] text-left"
+            className="group w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-sand-200 bg-white hover:border-brand-300 hover:shadow-[0_4px_12px_rgba(45,106,79,0.08)] transition-all active:scale-[0.98] text-left"
           >
-            <div className="w-11 h-11 rounded-xl bg-brand-500 flex items-center justify-center flex-shrink-0">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M12 5V19M5 12H19"/></svg>
+            <div className="w-12 h-12 rounded-xl bg-brand-500 flex items-center justify-center flex-shrink-0 shadow-md shadow-brand-500/25">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5V19M5 12H19"/></svg>
             </div>
-            <div>
-              <div className="text-sm font-bold text-sand-900">I&apos;m new</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-bold text-sand-900">I&apos;m new</div>
               <div className="text-[11px] text-sand-500">Add my application for the first time</div>
             </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sand-300 group-hover:text-brand-500 transition-colors flex-shrink-0"><path d="M9 18L15 12L9 6"/></svg>
           </button>
 
           <button
             onClick={() => setMode("pin")}
-            className="w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-sand-200 bg-white hover:bg-brand-50 hover:border-brand-300 transition-all active:scale-[0.98] text-left"
+            className="group w-full flex items-center gap-4 px-4 py-4 rounded-xl border border-sand-200 bg-white hover:border-brand-300 hover:shadow-[0_4px_12px_rgba(45,106,79,0.08)] transition-all active:scale-[0.98] text-left"
           >
-            <div className="w-11 h-11 rounded-xl bg-sand-200 flex items-center justify-center flex-shrink-0">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#65635D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-12 h-12 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
               </svg>
             </div>
-            <div>
-              <div className="text-sm font-bold text-sand-900">I have a PIN</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-bold text-sand-900">I have a PIN</div>
               <div className="text-[11px] text-sand-500">Reconnect my existing entry on this device</div>
             </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sand-300 group-hover:text-brand-500 transition-colors flex-shrink-0"><path d="M9 18L15 12L9 6"/></svg>
           </button>
         </div>
       ) : (
         <div>
-          <button onClick={() => setMode("choose")} className="flex items-center gap-1 text-xs text-sand-500 hover:text-sand-800 mb-4 transition-colors">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5"/><path d="M12 19L5 12L12 5"/></svg>
+          <button onClick={() => setMode("choose")} className="inline-flex items-center gap-1 text-[11px] text-sand-500 hover:text-sand-800 mb-4 transition-colors font-semibold uppercase tracking-wider">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19L5 12L12 5"/></svg>
             Back
           </button>
-          <p className="text-sm text-sand-500 mb-4">Enter your 4-digit PIN to reconnect your entry on this device.</p>
+          <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1.5">Reconnect</p>
+          <p className="text-[14px] text-sand-700 mb-4 leading-relaxed">Enter your 4-digit PIN to reconnect your entry on this device.</p>
           <input
             type="tel"
             inputMode="numeric"
             maxLength={4}
-            placeholder="Enter 4-digit PIN"
+            placeholder="••••"
             value={claimPin}
             autoFocus
             onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
             onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
-            className="w-full px-4 py-4 text-xl text-center rounded-xl border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.5em] font-mono mb-3"
+            className={`w-full px-4 py-4 text-2xl text-center rounded-xl border bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white tracking-[0.5em] font-mono font-bold mb-3 transition-colors ${
+              claimError ? "border-error shake" : "border-sand-200"
+            }`}
           />
           <button
             onClick={handleClaim}
             disabled={claimPin.length !== 4 || claiming}
-            className="w-full py-3 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-40 mb-2"
+            className="w-full py-3 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed mb-2 shadow-[0_4px_12px_rgba(45,106,79,0.15)]"
           >
-            {claiming ? "Reconnecting..." : claimPin.length === 4 ? "Reconnect My Entry" : `Enter ${4 - claimPin.length} more digit${4 - claimPin.length === 1 ? "" : "s"}`}
+            {claiming ? "Reconnecting…" : claimPin.length === 4 ? "Reconnect my entry" : `Enter ${4 - claimPin.length} more digit${4 - claimPin.length === 1 ? "" : "s"}`}
           </button>
-          {claimError && <p className="text-xs text-error text-center mb-2">{claimError}</p>}
-          <p className="text-[10px] text-sand-400 text-center">This is the 4-digit PIN you set when you first added your application.</p>
+          {claimError && <p className="text-[11px] text-error text-center font-medium mb-2">{claimError}</p>}
+          <p className="text-[11px] text-sand-400 text-center leading-relaxed">This is the 4-digit PIN you set when you first added your application.</p>
         </div>
       )}
     </Modal>
@@ -1790,9 +1802,9 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
         <Select label="Application Type" value={form.subcategory} onChange={(e) => u("subcategory", e.target.value)} options={[{ value: "", label: "Select type..." }, ...APPLICATION_SUBCATEGORIES.map((c) => ({ value: c, label: c }))]} disabled={loading} />
         <Select label="Quebec *" value={form.province} onChange={(e) => u("province", e.target.value)} options={[{ value: "Outside Quebec", label: "Outside Quebec" }, { value: "Quebec", label: "Inside Quebec" }]} disabled={loading} />
         <Select label="MEI Type" value={form.mei_type} onChange={(e) => u("mei_type", e.target.value)} options={MEI_TYPES.map((m) => ({ value: m, label: m || "Select..." }))} disabled={loading} />
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-semibold text-sand-500 uppercase tracking-wider">Submission Date *</label>
-          <input type="date" className="px-3 py-2 rounded-lg border border-sand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 disabled:opacity-60"
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em]">Submission date <span className="text-error">*</span></label>
+          <input type="date" className="px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors disabled:opacity-60 nums-tabular"
             value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} max={localToday()} required disabled={loading} />
         </div>
         <PinInput value={form.pin} onChange={(v) => u("pin", v)} />
@@ -1873,38 +1885,42 @@ function CelebrationModal({ app, allApps, onClose }: {
     <Modal open={true} onClose={onClose} title="">
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
       <div className="text-center py-2">
-        <h2 className="text-xl font-bold text-sand-900 mb-1">You&apos;re in! 🎉</h2>
-        <p className="text-sm text-sand-500 mb-5">
-          Application #{position} in the community
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-500 mb-3 shadow-lg shadow-brand-500/25">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
+        </div>
+        <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">You&apos;re in</p>
+        <h2 className="text-2xl font-bold text-sand-900 mb-1 tracking-tight">Application added</h2>
+        <p className="text-[13px] text-sand-500 mb-5 nums-tabular">
+          Application <span className="font-semibold text-sand-700">#{position}</span> in the community.
         </p>
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           {avgAor && aorPrediction && (
-            <div className="bg-brand-50 rounded-xl p-3 text-center col-span-2">
-              <div className="text-[10px] font-semibold text-brand-700 uppercase tracking-wider">Predicted AOR</div>
-              <div className="text-lg font-bold text-brand-600">~{aorPrediction}</div>
-              <div className="text-[10px] text-brand-500">Based on {app.stream} avg of {avgAor} days</div>
+            <div className="bg-brand-500/[0.08] border border-brand-500/20 rounded-xl p-4 text-center col-span-2">
+              <div className="text-[10px] font-bold text-brand-700 uppercase tracking-[0.08em] mb-1.5">Predicted AOR</div>
+              <div className="text-2xl font-bold text-brand-600 leading-none nums-tabular">~{aorPrediction}</div>
+              <div className="text-[11px] text-brand-600/80 mt-1.5 nums-tabular">Based on {app.stream} avg of {avgAor} days</div>
             </div>
           )}
-          <div className="bg-sand-50 rounded-xl p-3 text-center">
-            <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Queue Position</div>
-            <div className="text-lg font-bold text-sand-900">#{streamApps.filter(a => !a.step_events?.some(e => e.step_id === "aor")).length}</div>
-            <div className="text-[10px] text-sand-400">waiting for AOR</div>
+          <div className="bg-white border border-sand-200 rounded-xl p-3 text-center">
+            <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Queue position</div>
+            <div className="text-2xl font-bold text-sand-900 leading-none nums-tabular">#{streamApps.filter(a => !a.step_events?.some(e => e.step_id === "aor")).length}</div>
+            <div className="text-[10px] text-sand-400 mt-1">waiting for AOR</div>
           </div>
-          <div className="bg-sand-50 rounded-xl p-3 text-center">
-            <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider">Same Week</div>
-            <div className="text-lg font-bold text-sand-900">{sameWeek.length}</div>
-            <div className="text-[10px] text-sand-400">submitted same week</div>
+          <div className="bg-white border border-sand-200 rounded-xl p-3 text-center">
+            <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">Same week</div>
+            <div className="text-2xl font-bold text-sand-900 leading-none nums-tabular">{sameWeek.length}</div>
+            <div className="text-[10px] text-sand-400 mt-1">submitted same week</div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <a href="/me" className="block w-full px-4 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98]">
-            View My Dashboard
+          <a href="/me" className="block w-full px-4 py-3 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-[0_4px_12px_rgba(45,106,79,0.15)]">
+            View my dashboard <span aria-hidden>→</span>
           </a>
-          <button onClick={onClose} className="w-full px-4 py-2.5 text-sand-500 text-sm font-medium hover:text-sand-700 transition-colors">
-            Stay on Tracker
+          <button onClick={onClose} className="w-full px-4 py-2.5 text-sand-500 text-sm font-semibold hover:text-sand-700 transition-colors">
+            Stay on tracker
           </button>
         </div>
       </div>
