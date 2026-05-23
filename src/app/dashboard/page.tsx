@@ -137,7 +137,6 @@ export default function DashboardPage() {
 
   // Scroll to top on mount
   const topRef = useRef<HTMLDivElement>(null);
-  const topRef = useRef<HTMLDivElement>(null);
 const submittingRef = useRef(false); // synchronous lock against double-clicks
   useEffect(() => {
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
