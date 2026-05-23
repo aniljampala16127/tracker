@@ -1348,8 +1348,12 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
       </div>
       )}
 
-      <div className="space-y-1">
-        {visibleSteps.map((step, i) => {
+      {/* Step-by-step timeline — vertical timeline with state-aware nodes */}
+      <div className="relative nums-tabular">
+        <div className="absolute left-[19px] top-5 bottom-5 w-[2px] bg-sand-200" aria-hidden="true" />
+
+        <div className="space-y-0">
+        {visibleSteps.map((step) => {
           const date = stepsMap[step.id];
           const aorDate = stepsMap.aor;
           const aorIdx = STEPS.findIndex(s => s.id === "aor");
@@ -1359,90 +1363,155 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
           let daysLabel = "";
           if (date && step.id === "aor" && stepsMap.submitted) {
             days = daysBetween(stepsMap.submitted, date);
+            daysLabel = "from sub";
           } else if (date && step.id === "biometrics_given" && stepsMap.bil) {
             days = daysBetween(stepsMap.bil, date);
-            daysLabel = " from BIL";
+            daysLabel = "from BIL";
           } else if (date && step.id === "biometrics_done" && stepsMap.biometrics_given) {
             days = daysBetween(stepsMap.biometrics_given, date);
-            daysLabel = " from Bio Given";
+            daysLabel = "from Bio Given";
           } else if (date && step.id === "medicals_attended" && stepsMap.medical) {
             days = daysBetween(stepsMap.medical, date);
-            daysLabel = " from Med Req";
+            daysLabel = "from Med Req";
           } else if (date && step.id === "medical_passed" && stepsMap.medicals_attended) {
             days = daysBetween(stepsMap.medicals_attended, date);
-            daysLabel = " from Med Attended";
+            daysLabel = "from Med Attended";
           } else if (date && isPostAor) {
             days = daysBetween(aorDate!, date);
-            daysLabel = " from AOR";
+            daysLabel = "from AOR";
           }
           const isDone = !!date;
-          const isIncomplete = !date && step.id !== "submitted";
+          const isNext = !isDone && step.id === nextStep;
+          const isEditing = activeStep === step.id;
+
+          // Node styling per state
+          const nodeClass = isDone
+            ? "bg-brand-500 shadow-md shadow-brand-500/30"
+            : isNext
+            ? "bg-white border-[3px] border-warn"
+            : "bg-white border-2 border-sand-300";
 
           return (
             <React.Fragment key={step.id}>
-            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${isDone ? "bg-brand-50/50" : isIncomplete ? "bg-white" : "opacity-40"}`}>
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isDone ? "bg-brand-500" : isIncomplete ? "bg-sand-200 border border-sand-400" : "bg-sand-200"}`} />
-              <div className="flex-1">
-                <div className="text-sm font-medium text-sand-900">{step.label}</div>
+            <div className="relative flex items-start gap-3.5 py-2.5">
+              {/* Node */}
+              <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${nodeClass}`}>
+                {isDone ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17L4 12" />
+                  </svg>
+                ) : isNext ? (
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-warn opacity-70 animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-warn" />
+                  </span>
+                ) : (
+                  <span className="w-1.5 h-1.5 rounded-full bg-sand-300" />
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0 pt-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`text-[14px] font-bold ${isDone || isNext ? "text-sand-900" : "text-sand-500"}`}>{step.label}</span>
+                  {isNext && <span className="text-[9px] font-bold text-warn-dark uppercase tracking-wider bg-warn/15 px-1.5 py-0.5 rounded">Next</span>}
+                </div>
                 {isDone && (
-                  <div className="text-xs text-sand-500">
-                    {formatDate(date)}{days != null && i > 0 && <span className="text-brand-500 font-semibold ml-1">({days}d{daysLabel})</span>}
+                  <p className="text-[11px] text-brand-600 mt-0.5 font-medium">
+                    {formatDate(date)}{days != null && <span className="text-sand-500 font-normal"> · {days}d {daysLabel}</span>}
+                  </p>
+                )}
+                {!isDone && isNext && (
+                  <p className="text-[11px] text-warn-dark/80 mt-0.5">Mark this when IRCC confirms</p>
+                )}
+                {!isDone && !isNext && step.hint && (
+                  <p className="text-[11px] text-sand-500 mt-0.5">{step.hint}</p>
+                )}
+
+                {/* Done — reactions row */}
+                {isDone && (
+                  <div className="mt-2">
+                    <Reactions applicationId={app.id} stepId={step.id} />
                   </div>
                 )}
-                {isIncomplete && <div className="text-[9px] text-sand-400">{step.hint}</div>}
-              </div>
-              {isIncomplete && isOwner && (
-                <div className="flex items-center gap-2">
-                  {activeStep === step.id ? (
-                    <input type="date" autoFocus className="text-xs px-2 py-1 border border-sand-200 rounded-md bg-white step-input-enter"
-                      max={localToday()} value={stepDate}
+
+                {/* Editing — date input + save inline under the label */}
+                {!isDone && isEditing && isOwner && (
+                  <div className="mt-2 flex items-center gap-2 step-input-enter">
+                    <input
+                      type="date"
+                      autoFocus
+                      max={localToday()}
+                      value={stepDate}
                       onChange={(e) => setStepDate(e.target.value)}
                       onBlur={() => { if (!stepDate) setActiveStep(null); }}
-                      onKeyDown={(e) => { if (e.key === "Enter" && stepDate) { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}} />
-                  ) : null}
-                  {activeStep === step.id && stepDate ? (
-                    <button className="text-xs bg-brand-500 text-white px-3 py-1 rounded-md font-medium hover:bg-brand-600 step-input-enter active:scale-95"
-                      onClick={() => { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}>Save</button>
-                  ) : activeStep !== step.id ? (
-                    <button className="text-[10px] bg-sand-200 text-sand-700 px-2.5 py-1 rounded-md font-medium hover:bg-sand-300"
-                      onClick={() => setActiveStep(step.id)}>Update</button>
-                  ) : null}
-                </div>
-              )}
-              {isDone && (
-                <div className="flex items-center gap-1">
-                  <Reactions applicationId={app.id} stepId={step.id} compact />
-                  {isOwner && step.id !== "submitted" ? (
-                    <button onClick={() => handleUndoStep(step.id)} disabled={undoing}
-                      className="text-[10px] px-2 py-1 rounded-md bg-error-light text-error font-medium hover:bg-error/10 transition-colors disabled:opacity-50 min-h-[28px]">
-                      {undoing ? "..." : "Undo"}
+                      onKeyDown={(e) => { if (e.key === "Enter" && stepDate) { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}}
+                      className="text-[12px] px-2 py-1.5 border border-sand-200 rounded-md bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors nums-tabular"
+                    />
+                    {stepDate && (
+                      <button
+                        onClick={() => { handleStepSave(step.id, stepDate); setStepDate(""); setActiveStep(null); }}
+                        className="text-[11px] bg-brand-500 text-white px-3 py-1.5 rounded-md font-semibold hover:bg-brand-600 transition-colors active:scale-95"
+                      >
+                        Save
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setActiveStep(null); setStepDate(""); }}
+                      className="text-[10px] text-sand-500 hover:text-sand-800 px-1 font-semibold uppercase tracking-wider"
+                    >
+                      Cancel
                     </button>
-                  ) : (
-                    <span className="text-brand-500 text-xs">✓</span>
-                  )}
-                </div>
-              )}
-            </div>
-            {isDone && (
-              <div className="pl-9 -mt-1 mb-1">
-                <Reactions applicationId={app.id} stepId={step.id} />
+                  </div>
+                )}
               </div>
-            )}
-            {/* GCKey guide — after AOR */}
+
+              {/* Right column — primary action */}
+              <div className="flex-shrink-0 pt-1">
+                {isDone && isOwner && step.id !== "submitted" && (
+                  <button
+                    onClick={() => handleUndoStep(step.id)}
+                    disabled={undoing}
+                    className="text-[10px] px-2 py-1.5 rounded-md text-sand-500 hover:text-error hover:bg-error/10 font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
+                  >
+                    {undoing ? "…" : "Undo"}
+                  </button>
+                )}
+                {!isDone && !isEditing && isOwner && (
+                  <button
+                    onClick={() => { setActiveStep(step.id); setStepDate(""); }}
+                    className={`text-[11px] px-3 py-1.5 rounded-md font-semibold transition-colors ${
+                      isNext
+                        ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
+                        : "bg-white border border-sand-200 text-sand-600 hover:border-brand-300 hover:text-brand-700"
+                    }`}
+                  >
+                    Mark done
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* GCKey guide — inline after AOR */}
             {step.id === "aor" && !!stepsMap.aor && (
-              gckeyDone ? (
-                <div className="flex items-center gap-3 px-3 py-2 rounded-lg mx-1 mt-1 mb-1 bg-brand-50/50">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-brand-500"><path d="M20 6L9 17L4 12" /></svg>
-                  <span className="text-xs text-brand-600 flex-1">GCKey & IRCC Tracker set up</span>
-                  {isOwner && <button onClick={toggleGckey} className="text-[9px] text-sand-400">Undo</button>}
-                </div>
-              ) : (
-                <GCKeyGuideInline appId={app.id} isOwner={isOwner} onDone={toggleGckey} />
-              )
+              <div className="pl-[54px] pb-2">
+                {gckeyDone ? (
+                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-brand-500/10 border border-brand-500/20">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-600 flex-shrink-0"><path d="M20 6L9 17L4 12" /></svg>
+                    <span className="text-[12px] text-brand-700 font-semibold flex-1">GCKey &amp; IRCC tracker set up</span>
+                    {isOwner && (
+                      <button onClick={toggleGckey} className="text-[10px] text-sand-500 hover:text-sand-800 uppercase tracking-wider font-semibold">Undo</button>
+                    )}
+                  </div>
+                ) : (
+                  <GCKeyGuideInline appId={app.id} isOwner={isOwner} onDone={toggleGckey} />
+                )}
+              </div>
             )}
             </React.Fragment>
           );
         })}
+        </div>
       </div>
 
       {/* Reconnect / Forgot PIN / Claim entry */}
