@@ -559,17 +559,29 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
 
       {/* Empty state */}
       {filteredApps.length === 0 && (
-        <div className="text-center py-20 bg-white border border-sand-200 rounded-xl">
-          <p className="text-sand-500 text-sm mb-4">
+        <div className="text-center py-16 bg-white border border-sand-200 rounded-2xl">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-50 border border-brand-100 mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {searchQuery
+                ? <><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></>
+                : isFiltered
+                ? <><path d="M3 6H21M6 12H18M10 18H14"/></>
+                : <><path d="M12 5V19M5 12H19"/></>}
+            </svg>
+          </div>
+          <p className="text-sand-900 text-base font-bold tracking-tight mb-1">
             {searchQuery ? `No results for "${searchQuery}"` : isFiltered ? "No entries match your filters" : "No entries yet"}
+          </p>
+          <p className="text-sand-500 text-[13px] mb-4 max-w-xs mx-auto leading-relaxed">
+            {searchQuery ? "Try a different name or country." : isFiltered ? "Clear the active filters to see all entries." : "Be the first to add your application."}
           </p>
           {(isFiltered || searchQuery) ? (
             <Button onClick={() => { setFilters(EMPTY_FILTERS); setSearchQuery(""); }} size="sm" variant="secondary">
-              Clear All
+              Clear all
             </Button>
           ) : (
             <Button onClick={() => setShowIntent(true)} size="sm">
-              <PlusIcon size={14} className="text-white" /> Add First Entry
+              <PlusIcon size={14} className="text-white" /> Add first entry
             </Button>
           )}
         </div>
@@ -693,6 +705,17 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                   ? daysBetween(stepsMap.submitted, hasAor && stepsMap.aor ? stepsMap.aor : new Date().toISOString().split("T")[0])
                   : null;
                 const isMe = myEntry?.id === app.id;
+                // Most recent non-submitted milestone — gives mobile users a
+                // "when was their last move" signal that desktop gets via the
+                // 21-column table.
+                const lastMilestone = completedSteps
+                  .filter(s => s.id !== "submitted")
+                  .reduce<{ label: string; date: string } | null>((latest, s) => {
+                    const d = stepsMap[s.id];
+                    if (!d) return latest;
+                    if (!latest || d > latest.date) return { label: s.label, date: d };
+                    return latest;
+                  }, null);
 
                 return (
                   <div
@@ -740,6 +763,11 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                         {app.country_origin} · {app.sponsor_status}
                         {stepsMap.submitted && <span> · Sub {formatDate(stepsMap.submitted)}</span>}
                       </div>
+                      {lastMilestone && (
+                        <div className="text-[10px] text-brand-600 truncate mt-0.5 font-semibold nums-tabular">
+                          Last: {lastMilestone.label} · {formatDate(lastMilestone.date).replace(/, \d{4}/, "")}
+                        </div>
+                      )}
                     </div>
 
                     {/* Status + progress bar */}

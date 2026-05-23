@@ -151,9 +151,17 @@ export default function CohortPage() {
 
   if (!myApp || !mySubmitted || !week) {
     return (
-      <div className="py-12 text-center">
-        <p className="text-sand-500 mb-4">Application not found</p>
-        <button onClick={() => router.push("/me")} className="text-sm text-brand-500 font-medium">Back to My App</button>
+      <div className="py-16 text-center bg-white border border-sand-200 rounded-2xl">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sand-100 mb-4">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sand-500">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <p className="text-sand-900 text-base font-bold tracking-tight mb-1">Application not found</p>
+        <p className="text-sand-500 text-[13px] mb-4 max-w-xs mx-auto leading-relaxed">It may have been removed, or your link is stale.</p>
+        <button onClick={() => router.push("/me")} className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-brand-600 hover:text-brand-700 transition-colors">
+          Back to my app <span aria-hidden>→</span>
+        </button>
       </div>
     );
   }
