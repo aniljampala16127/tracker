@@ -81,15 +81,38 @@ export async function DELETE(request: Request) {
   return NextResponse.json({ success: true });
 }
 
-// GET — fetch cohort comments
-export async function GET() {
+// GET — fetch comments.
+//
+// Modes:
+//   default                           → cohort comments only (cohort_month NOT NULL)
+//   ?application_id=<uuid>            → comments for that one application
+//   ?type=entry                       → ALL entry-level comments (application_id NOT NULL)
+//
+// The application_id mode is used by the dashboard EditModal to lazy-fetch
+// comments for a single entry without pulling everyone else's into the
+// main /api/applications payload.
+export async function GET(request: Request) {
   const supabase = getSupabase();
-  const { data, error } = await supabase
+  const url = new URL(request.url);
+  const appId = url.searchParams.get("application_id");
+  const type = url.searchParams.get("type");
+
+  const baseSelect = "id, application_id, cohort_month, pin_hash, author_name, text, parent_id, created_at";
+
+  let query = supabase
     .from("comments")
-    // Tight column list — drop unused fields to shrink egress.
-    .select("id, application_id, cohort_month, pin_hash, author_name, text, parent_id, created_at")
-    .not("cohort_month", "is", null)
+    .select(baseSelect)
     .order("created_at", { ascending: false });
+
+  if (appId) {
+    query = query.eq("application_id", appId);
+  } else if (type === "entry") {
+    query = query.not("application_id", "is", null);
+  } else {
+    query = query.not("cohort_month", "is", null);
+  }
+
+  const { data, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data || [], {

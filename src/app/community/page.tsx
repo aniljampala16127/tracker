@@ -88,7 +88,9 @@ export default function CommunityPage() {
 
   const fetchData = useCallback(async () => {
     const [appsRes, commentsRes] = await Promise.all([
-      fetch("/api/applications"),
+      // Community builds threads from each entry's comments — needs the
+      // full payload (the default list endpoint omits comments).
+      fetch("/api/applications?include=comments"),
       fetch("/api/comments"),
     ]);
     const appsData = await appsRes.json();

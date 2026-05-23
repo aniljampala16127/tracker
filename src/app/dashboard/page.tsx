@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Application, ApplicationFormData, StepId } from "@/lib/types";
+import { Application, ApplicationFormData, StepId, Comment } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, MEI_TYPES, getNextStep, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
 import { hashPin, isValidPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
@@ -725,10 +725,10 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                           app.stream === "Outland" ? "bg-brand-100 text-brand-700" : "bg-warn/15 text-warn-dark"
                         }`}>{app.stream}</span>
                         <ReactionsBadge applicationId={app.id} />
-                        {(app.comments?.length || 0) > 0 && (
+                        {(app.comment_count || 0) > 0 && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sand-100 text-sand-600 font-bold flex items-center gap-0.5 leading-none nums-tabular">
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                            {app.comments!.length}
+                            {app.comment_count}
                           </span>
                         )}
                       </div>
@@ -1151,6 +1151,25 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
   const visibleSteps = getVisibleSteps(app.stream);
   const [gckeyDone, setGckeyDone] = useState(false);
 
+  // Lazy-fetch comments for this entry — the list endpoint omits them by
+  // default (egress optimization). We hit /api/comments?application_id=X
+  // when the modal opens.
+  const [modalComments, setModalComments] = useState<Comment[]>(app.comments || []);
+  useEffect(() => {
+    // If the parent already supplied comments (e.g. opened via Community
+    // page with ?include=comments), skip the fetch.
+    if (app.comments && app.comments.length === (app.comment_count || 0)) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/comments?application_id=${encodeURIComponent(app.id)}`);
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data)) setModalComments(data);
+      } catch { /* ignore — empty state stays */ }
+    })();
+    return () => { cancelled = true; };
+  }, [app.id, app.comments, app.comment_count]);
+
   useEffect(() => {
     const saved = localStorage.getItem(`gckey-done-${app.id}`);
     if (saved === "true") setGckeyDone(true);
@@ -1429,7 +1448,7 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
       {/* Comments / Questions */}
       <CommentsSection
         applicationId={app.id}
-        comments={app.comments || []}
+        comments={modalComments}
         onRefresh={onRefresh}
       />
 

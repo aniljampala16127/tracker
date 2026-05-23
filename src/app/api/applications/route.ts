@@ -86,36 +86,67 @@ const APP_COLUMNS = [
   "created_at",
 ].join(", ");
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = getSupabase();
+
+  // Comments are bulky and only Community + Nav-unread + the dashboard
+  // EditModal actually render them. 8 of 10 pages that call this endpoint
+  // never touch them, so we gate them behind ?include=comments to skip
+  // the payload by default. A `comment_count` is always returned so the
+  // dashboard table can still show its badge.
+  const url = new URL(request.url);
+  const includeComments = url.searchParams.get("include")?.split(",").includes("comments");
+
+  const select = includeComments
+    ? `${APP_COLUMNS},
+        step_events(step_id, event_date, created_at),
+        comments(id, application_id, pin_hash, author_name, text, parent_id, created_at),
+        spam_reports(reporter_pin_hash)`
+    : `${APP_COLUMNS},
+        step_events(step_id, event_date, created_at),
+        comments(id),
+        spam_reports(reporter_pin_hash)`;
+
   const { data, error } = await supabase
     .from("applications")
-    .select(`
-      ${APP_COLUMNS},
-      step_events(step_id, event_date, created_at),
-      comments(id, application_id, cohort_month, pin_hash, author_name, text, parent_id, created_at),
-      spam_reports(reporter_pin_hash)
-    `)
+    .select(select)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const today = new Date().toISOString().split("T")[0];
-  const cleaned = (data || []).map(app => {
-    const reports = (app.spam_reports || []) as { reporter_pin_hash: string }[];
+  const cleaned = ((data as unknown[]) || []).map((row) => {
+    const app = row as Record<string, unknown> & {
+      is_anonymous?: boolean;
+      initials?: string;
+      province?: string;
+      step_events?: { event_date: string }[];
+      comments?: { id: string; created_at?: string }[];
+      spam_reports?: { reporter_pin_hash: string }[];
+    };
+    const reports = app.spam_reports || [];
     const reportCount = reports.length;
+    const commentRows = app.comments || [];
+
     const out: Record<string, unknown> = {
       ...app,
       province: app.province === "Quebec" ? "Quebec" : "Outside Quebec",
-      step_events: (app.step_events || []).filter((e: { event_date: string }) => e.event_date <= today),
+      step_events: (app.step_events || []).filter(e => e.event_date <= today),
       initials: app.is_anonymous ? "Anonymous" : app.initials,
       _real_initials: app.initials,
-      comments: (app.comments || []).sort((a: { created_at: string }, b: { created_at: string }) => a.created_at.localeCompare(b.created_at)),
+      comment_count: commentRows.length,
       spam_report_count: reportCount,
     };
-    // Drop spam_reports payload and skip reporter_hashes array unless there
-    // actually are reports — keeps the response tiny for the 99% of clean
-    // entries and the response is gzip-friendly.
+
+    if (includeComments) {
+      out.comments = commentRows
+        .slice()
+        .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+    } else {
+      // Drop the {id: ...} placeholders — count is already on comment_count.
+      delete out.comments;
+    }
+
     delete out.spam_reports;
     if (reportCount > 0) {
       out.spam_reporter_hashes = reports.map(r => r.reporter_pin_hash);
@@ -125,8 +156,9 @@ export async function GET() {
 
   return NextResponse.json(cleaned, {
     headers: {
-      // 60s CDN cache + 5min SWR. Egress to Supabase drops ~80% under load
-      // because most reads now come from Vercel's edge cache.
+      // Two distinct cache buckets so Vercel doesn't blend with/without
+      // comments. Vary forces separate edge entries per URL anyway, but
+      // the explicit hint keeps intermediaries honest.
       "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
     },
   });

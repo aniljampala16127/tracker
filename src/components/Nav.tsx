@@ -32,7 +32,9 @@ function useUnreadComments(pathname: string): number {
     // Fetch apps + cohort comments
     try {
       const [appsRes, commentsRes] = await Promise.all([
-        fetch("/api/applications"),
+        // Nav unread-count scans each entry's comments — needs the full
+        // payload (default list endpoint omits comments to save egress).
+        fetch("/api/applications?include=comments"),
         fetch("/api/comments"),
       ]);
       const apps = await appsRes.json();

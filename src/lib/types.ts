@@ -22,7 +22,11 @@ export interface Application {
   created_at: string;
   updated_at: string;
   step_events?: StepEvent[];
+  // comments is only present when GET /api/applications was called with
+  // ?include=comments. The dashboard table only needs the count, which is
+  // always returned in comment_count.
   comments?: Comment[];
+  comment_count?: number;
   // Spam-report aggregate columns supplied by GET /api/applications.
   // spam_report_count is the number of distinct reporters; reporter_hashes
   // lets the client check whether the current user has already reported.
