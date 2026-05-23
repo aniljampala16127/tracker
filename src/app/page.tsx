@@ -383,7 +383,7 @@ export default function LandingPage() {
                   <button
                     onClick={handleClaim}
                     disabled={claimPin.length !== 4 || claiming}
-                    className="px-4 py-2.5 bg-sand-900 text-white text-sm font-semibold rounded-lg hover:bg-sand-800 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-4 py-2.5 bg-sand-900 text-sand-50 text-sm font-semibold rounded-lg hover:bg-sand-800 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {claiming ? "…" : "Reconnect"}
                   </button>

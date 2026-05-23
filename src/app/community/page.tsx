@@ -304,20 +304,31 @@ function hashHue(s: string): number {
 }
 
 function Avatar({ name, size = 28, you = false, op = false }: { name: string; size?: number; you?: boolean; op?: boolean }) {
-  // "you" → brand fill. "OP" → warm gold fill. Otherwise stable-hashed pastel.
-  let bg: string, fg: string, ring = "";
-  if (you) { bg = "var(--brand-500)"; fg = "#fff"; ring = "ring-2 ring-brand-200"; }
-  else if (op) { bg = "var(--warn)"; fg = "#fff"; }
-  else {
-    const hue = hashHue(name);
-    bg = `hsl(${hue} 38% 92%)`;
-    fg = `hsl(${hue} 45% 30%)`;
+  // "you" → brand fill (always green). "OP" → warm gold. Otherwise hashed-hue
+  // class whose lightness flips for dark mode (see globals.css .avatar-hashed).
+  const base = "inline-flex items-center justify-center rounded-full flex-shrink-0 font-bold";
+  const dims = { width: size, height: size, fontSize: Math.round(size * 0.42) };
+
+  if (you) {
+    return (
+      <span aria-hidden="true" className={`${base} ring-2 ring-brand-200 bg-brand-500 text-white`} style={dims}>
+        {initialsOf(name)}
+      </span>
+    );
   }
+  if (op) {
+    return (
+      <span aria-hidden="true" className={`${base} text-white`} style={{ ...dims, background: "var(--warn)" }}>
+        {initialsOf(name)}
+      </span>
+    );
+  }
+  const hue = hashHue(name);
   return (
     <span
       aria-hidden="true"
-      className={`inline-flex items-center justify-center rounded-full flex-shrink-0 font-bold ${ring}`}
-      style={{ width: size, height: size, background: bg, color: fg, fontSize: Math.round(size * 0.42) }}
+      className={`${base} avatar-hashed`}
+      style={{ ...dims, ["--avatar-hue" as string]: String(hue) }}
     >
       {initialsOf(name)}
     </span>
@@ -368,7 +379,7 @@ function ThreadCard({ thread, myPinHash, onRefresh, lastSeen }: {
       <button
         onClick={() => setExpanded(!expanded)}
         className={`w-full px-4 pt-3 pb-2.5 text-left transition-colors ${
-          isRootNew ? "bg-brand-50/60 hover:bg-brand-50" : "hover:bg-sand-50/50"
+          isRootNew ? "bg-brand-500/[0.06] hover:bg-brand-500/10" : "hover:bg-sand-50/50"
         }`}
       >
         <div className="flex items-start gap-3">
@@ -444,7 +455,7 @@ function ThreadCard({ thread, myPinHash, onRefresh, lastSeen }: {
         >
           {/* "X new since your last visit" sticky banner */}
           {newRepliesCount > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-brand-50 border-b border-brand-100 text-[11px] font-semibold text-brand-700">
+            <div className="flex items-center gap-2 px-4 py-2 bg-brand-500/10 border-b border-brand-500/20 text-[11px] font-semibold text-brand-600">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-60 animate-ping" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
@@ -597,7 +608,7 @@ function CommentNode({ comment: c, allComments, depth, opPinHash, myPinHash, onR
         {/* ─── Comment block — solid tinted background when unread ─── */}
         <div className={`rounded-lg transition-colors ${
           isNew
-            ? "bg-brand-50 ring-1 ring-brand-200 -mx-2 px-2 py-1.5"
+            ? "bg-brand-500/10 ring-1 ring-brand-500/25 -mx-2 px-2 py-1.5"
             : "py-0.5"
         }`}>
           {/* Header row */}

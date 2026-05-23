@@ -95,6 +95,7 @@
    ═══════════════════════════════════════ */
 .dark .bg-white { background-color: var(--surface-card) !important; }
 .dark .bg-white\/80 { background-color: var(--surface-nav) !important; }
+.dark .bg-white\/85 { background-color: var(--surface-nav) !important; }
 
 /* Nav + bottom nav */
 .dark header { background-color: var(--surface-card) !important; border-color: var(--sand-200) !important; }
@@ -208,6 +209,12 @@ body {
     radial-gradient(60% 80% at 12% 0%, rgba(45,106,79,0.07), transparent 70%),
     radial-gradient(50% 70% at 100% 100%, rgba(212,160,60,0.07), transparent 70%);
 }
+/* In dark, bump alpha so the glow remains visible against #0E0E0D bg */
+.dark .hero-glow::before {
+  background:
+    radial-gradient(60% 80% at 12% 0%, rgba(74,158,120,0.10), transparent 70%),
+    radial-gradient(50% 70% at 100% 100%, rgba(224,173,66,0.08), transparent 70%);
+}
 
 /* Tile gradient for the bottom CTA — brand to brand-dark with
    a subtle warm corner so it doesn't read as flat fill. */
@@ -216,10 +223,28 @@ body {
     radial-gradient(120% 90% at 100% 0%, rgba(212,160,60,0.18), transparent 60%),
     linear-gradient(135deg, var(--brand-500) 0%, var(--brand-700) 100%);
 }
+/* In dark, brand-500/700 brighten — explicitly use the deep light-mode greens
+   so the CTA stays rich and keeps strong contrast with white text. */
+.dark .tile-brand {
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(224,173,66,0.20), transparent 60%),
+    linear-gradient(135deg, #1B4331 0%, #0A1D14 100%);
+}
 
 /* Soft inner divider for stacked rows in a card */
 .row-divide > * + * { border-top: 1px solid var(--sand-100); }
 .dark .row-divide > * + * { border-top-color: var(--sand-200); }
+
+/* Hashed-hue avatar — author identity via stable color.
+   Uses --avatar-hue (0–360) supplied inline. Lightness adapts to theme. */
+.avatar-hashed {
+  background: hsl(var(--avatar-hue, 200) 38% 92%);
+  color:      hsl(var(--avatar-hue, 200) 45% 30%);
+}
+.dark .avatar-hashed {
+  background: hsl(var(--avatar-hue, 200) 28% 22%);
+  color:      hsl(var(--avatar-hue, 200) 55% 78%);
+}
 
 * { -webkit-tap-highlight-color: transparent; }
 a, button { touch-action: manipulation; }
