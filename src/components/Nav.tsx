@@ -8,9 +8,19 @@ import { cn } from "@/lib/utils";
 
 import { ActivityPanel } from "@/components/ActivityFeed";
 
-// Track unread comments for the logged-in user
-function useUnreadComments(pathname: string): number {
+// Track unread comments for the logged-in user.
+// Returns the total unread count + a "delta" — how many of those arrived
+// since the previous check (so the Nav can fire a toast when fresh replies
+// land while the tab is open).
+function useUnreadComments(pathname: string): { count: number; deltaTick: number; lastDelta: number } {
   const [count, setCount] = useState(0);
+  // Bumped every time we observe NEW unreads on a non-first check. The Nav
+  // listens to this to fire its toast.
+  const [deltaTick, setDeltaTick] = useState(0);
+  const [lastDelta, setLastDelta] = useState(0);
+  // null on first check — we don't want to flash a toast on initial load,
+  // only when count grows mid-session.
+  const prevCountRef = useRef<number | null>(null);
 
   const check = useCallback(async () => {
     if (typeof window === "undefined") return;
@@ -66,6 +76,15 @@ function useUnreadComments(pathname: string): number {
       });
 
       setCount(unread);
+
+      // Only emit a delta on subsequent checks (skip first-mount), and only
+      // when the count grew (don't toast on dismissals).
+      const prev = prevCountRef.current;
+      if (prev !== null && unread > prev) {
+        setLastDelta(unread - prev);
+        setDeltaTick(t => t + 1);
+      }
+      prevCountRef.current = unread;
     } catch { /* ignore */ }
   }, []);
 
@@ -76,6 +95,7 @@ function useUnreadComments(pathname: string): number {
     if (pathname.startsWith("/community")) {
       localStorage.setItem("community-last-seen", new Date().toISOString());
       setCount(0);
+      prevCountRef.current = 0;
     }
   }, [pathname]);
 
@@ -101,7 +121,7 @@ function useUnreadComments(pathname: string): number {
     return () => { stop(); document.removeEventListener("visibilitychange", onVis); };
   }, [check]);
 
-  return count;
+  return { count, deltaTick, lastDelta };
 }
 
 function MeIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
@@ -321,9 +341,35 @@ function ThemeToggle() {
   );
 }
 
+// Default browser-tab title — we prefix this with "(N) " when unread.
+const BASE_TITLE = "SponsorTrack — Canada Spousal Sponsorship Tracker | Real IRCC Processing Times";
+
 export function Nav() {
   const pathname = usePathname();
-  const unreadCount = useUnreadComments(pathname);
+  const { count: unreadCount, deltaTick, lastDelta } = useUnreadComments(pathname);
+
+  // ── Browser-tab title badge — "(3) SponsorTrack …" while unread > 0 ──
+  // We re-apply on every pathname change too, because Next.js metadata
+  // reapplies the static title after client-side navigation.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const target = unreadCount > 0 ? `(${unreadCount > 99 ? "99+" : unreadCount}) ${BASE_TITLE}` : BASE_TITLE;
+    if (document.title !== target) document.title = target;
+  }, [unreadCount, pathname]);
+
+  // ── Transient toast — fires when new replies arrive mid-session ──
+  // Doesn't fire on first mount (the badge already conveys "you have N").
+  const [toast, setToast] = useState<{ delta: number; total: number; key: number } | null>(null);
+  useEffect(() => {
+    if (deltaTick === 0) return; // skip the initial value
+    setToast({ delta: lastDelta, total: unreadCount, key: deltaTick });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deltaTick]);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast?.key]);
 
   // Force scroll to top on every route change — aggressive approach
   useEffect(() => {
@@ -362,6 +408,46 @@ export function Nav() {
         </div>
       </header>
       <MobileBottomNav pathname={pathname} unreadCount={unreadCount} />
+
+      {/* Reply toast — bottom-right on desktop, top-center on mobile.
+          Positioned above the mobile bottom-nav (safe-area + nav height). */}
+      {toast && (
+        <Link
+          href="/community"
+          onClick={() => setToast(null)}
+          className="fixed z-[60] left-3 right-3 sm:left-auto sm:right-4 sm:bottom-4 sm:w-[320px] top-16 sm:top-auto bg-white border border-sand-200 rounded-2xl shadow-xl shadow-black/15 p-3.5 panel-enter group"
+          aria-live="polite"
+          role="status"
+        >
+          <div className="flex items-start gap-3">
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-brand-500 flex-shrink-0 shadow-md shadow-brand-500/25">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-error opacity-70 animate-ping" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-error border-2 border-white" />
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-0.5">New activity</p>
+              <p className="text-[13px] font-bold text-sand-900 leading-snug">
+                <span className="nums-tabular">{toast.delta}</span> new {toast.delta === 1 ? "reply" : "replies"}
+              </p>
+              <p className="text-[11px] text-brand-600 font-semibold mt-1 group-hover:text-brand-700">View in Community <span aria-hidden>→</span></p>
+            </div>
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setToast(null); }}
+              className="w-6 h-6 -mt-0.5 -mr-0.5 rounded-md flex items-center justify-center text-sand-400 hover:text-sand-700 hover:bg-sand-100 transition-colors flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6L18 18" />
+              </svg>
+            </button>
+          </div>
+        </Link>
+      )}
     </>
   );
 }
