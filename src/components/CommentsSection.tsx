@@ -78,9 +78,9 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
   const replies = comments.filter(c => c.parent_id);
 
   return (
-    <div className="mt-3 pt-3 border-t border-sand-100">
-      <div className="text-[10px] font-semibold text-sand-500 uppercase tracking-wider mb-2">
-        Questions & Comments {comments.length > 0 && `(${comments.length})`}
+    <div className="mt-3 pt-4 border-t border-sand-100">
+      <div className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-3 nums-tabular">
+        Questions &amp; comments {comments.length > 0 && `· ${comments.length}`}
       </div>
 
       {/* Existing comments */}
@@ -88,20 +88,23 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
         <div className="space-y-2 mb-3">
           {topLevel.map(c => (
             <div key={c.id}>
-              <div className="bg-sand-50 rounded-lg px-3 py-2">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-[11px] font-semibold text-sand-800">{c.author_name}</span>
-                  <span className="text-[9px] text-sand-400">{timeAgo(c.created_at)}</span>
+              <div className="bg-white border border-sand-200 rounded-lg px-3 py-2.5">
+                <div className="flex items-baseline gap-1.5 mb-1">
+                  <span className="text-[12px] font-bold text-sand-900">{c.author_name}</span>
+                  {c.pin_hash === myPinHash && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-500 text-white uppercase tracking-wider leading-none">YOU</span>
+                  )}
+                  <span className="text-[10px] text-sand-400 nums-tabular ml-auto">{timeAgo(c.created_at)}</span>
                 </div>
-                <p className="text-xs text-sand-700 leading-relaxed">{c.text}</p>
-                <div className="flex items-center gap-3 mt-1">
+                <p className="text-[13px] text-sand-700 leading-relaxed whitespace-pre-wrap">{c.text}</p>
+                <div className="flex items-center gap-3 mt-2 text-[10px] font-semibold uppercase tracking-wider">
                   <button onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}
-                    className="text-[9px] text-brand-500 font-medium hover:underline">
+                    className="text-sand-500 hover:text-brand-600 transition-colors">
                     {replyTo === c.id ? "Cancel" : "Reply"}
                   </button>
                   {c.pin_hash === myPinHash && (
                     <button onClick={() => handleDelete(c.id)}
-                      className="text-[9px] text-sand-400 hover:text-error font-medium">
+                      className="text-sand-400 hover:text-error transition-colors">
                       Delete
                     </button>
                   )}
@@ -110,41 +113,47 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
 
               {/* Replies */}
               {replies.filter(r => r.parent_id === c.id).map(r => (
-                <div key={r.id} className="ml-4 mt-1.5 bg-brand-50/50 rounded-lg px-3 py-2">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[11px] font-semibold text-sand-800">{r.author_name}</span>
-                    <span className="text-[9px] text-sand-400">{timeAgo(r.created_at)}</span>
+                <div key={r.id} className="ml-4 mt-1.5 border-l-2 border-sand-200 pl-3">
+                  <div className="bg-brand-500/[0.06] rounded-lg px-3 py-2 border border-brand-500/15">
+                    <div className="flex items-baseline gap-1.5 mb-1">
+                      <span className="text-[12px] font-bold text-sand-900">{r.author_name}</span>
+                      {r.pin_hash === myPinHash && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-500 text-white uppercase tracking-wider leading-none">YOU</span>
+                      )}
+                      <span className="text-[10px] text-sand-400 nums-tabular ml-auto">{timeAgo(r.created_at)}</span>
+                    </div>
+                    <p className="text-[13px] text-sand-700 leading-relaxed whitespace-pre-wrap">{r.text}</p>
+                    {r.pin_hash === myPinHash && (
+                      <button onClick={() => handleDelete(r.id)}
+                        className="text-[10px] text-sand-400 hover:text-error font-semibold uppercase tracking-wider mt-1.5 transition-colors">
+                        Delete
+                      </button>
+                    )}
                   </div>
-                  <p className="text-xs text-sand-700 leading-relaxed">{r.text}</p>
-                  {r.pin_hash === myPinHash && (
-                    <button onClick={() => handleDelete(r.id)}
-                      className="text-[9px] text-sand-400 hover:text-error font-medium mt-1">
-                      Delete
-                    </button>
-                  )}
                 </div>
               ))}
 
               {/* Reply input */}
               {replyTo === c.id && myPinHash && (
-                <div className="ml-4 mt-1.5">
+                <div className="ml-4 mt-2 pl-3 border-l-2 border-sand-200">
                   <div className="flex gap-1.5">
                     <input
                       value={text}
                       onChange={(e) => setText(e.target.value.slice(0, 500))}
                       onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(); }}
-                      placeholder="Write a reply..."
-                      className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                      placeholder="Write a reply…"
+                      autoFocus
+                      className="flex-1 px-2.5 py-1.5 text-[12px] rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
                     />
                     <button onClick={handlePost} disabled={!text.trim() || posting}
-                      className="px-3 py-1.5 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50">
-                      {posting ? "..." : "Reply"}
+                      className="px-3 py-1.5 bg-brand-500 text-white text-[11px] font-semibold rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50">
+                      {posting ? "…" : "Reply"}
                     </button>
                   </div>
-                  <label className="flex items-center gap-1.5 mt-1 cursor-pointer">
+                  <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer w-fit">
                     <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)}
                       className="w-3.5 h-3.5 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
-                    <span className="text-[10px] text-sand-400">Post anonymously</span>
+                    <span className="text-[10px] text-sand-500">Post anonymously</span>
                   </label>
                 </div>
               )}
@@ -152,7 +161,7 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
           ))}
         </div>
       ) : (
-        <p className="text-[10px] text-sand-400 mb-3">No questions yet. Be the first to ask!</p>
+        <p className="text-[12px] text-sand-400 mb-3 italic">No questions yet. Be the first to ask.</p>
       )}
 
       {/* New comment input (top-level) */}
@@ -163,24 +172,24 @@ export function CommentsSection({ applicationId, comments, onRefresh }: Props) {
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 500))}
               onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handlePost(); }}
-              placeholder="Ask a question..."
-              className="flex-1 px-2.5 py-2 text-xs rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              placeholder="Ask a question…"
+              className="flex-1 px-3 py-2 text-[13px] rounded-lg border border-sand-200 bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors"
             />
             <button onClick={handlePost} disabled={!text.trim() || posting}
-              className="px-3 py-2 bg-brand-500 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.98]">
-              {posting ? "..." : "Post"}
+              className="px-3.5 py-2 bg-brand-500 text-white text-[12px] font-semibold rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50 active:scale-[0.98]">
+              {posting ? "…" : "Post"}
             </button>
           </div>
-          <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
+          <label className="flex items-center gap-1.5 mt-2 cursor-pointer w-fit">
             <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)}
               className="w-3.5 h-3.5 rounded border-sand-300 text-brand-500 focus:ring-brand-500/20" />
-            <span className="text-[10px] text-sand-400">Post anonymously</span>
+            <span className="text-[10px] text-sand-500">Post anonymously</span>
           </label>
         </div>
       )}
 
       {!myPinHash && (
-        <p className="text-[9px] text-sand-400 italic">Add your application first to post questions.</p>
+        <p className="text-[11px] text-sand-400 italic">Add your application first to post questions.</p>
       )}
     </div>
   );

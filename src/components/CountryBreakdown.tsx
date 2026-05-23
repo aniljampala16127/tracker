@@ -67,17 +67,20 @@ export function CountryBreakdown({ apps }: { apps: Application[] }) {
   );
 
   return (
-    <div className="bg-white border border-sand-200 rounded-xl mb-5 overflow-hidden">
+    <div className="bg-white border border-sand-200 rounded-2xl mb-4 overflow-hidden">
       {/* Header — always visible, tap to toggle */}
       <button onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-sand-50 transition-colors">
-        <div>
-          <h2 className="text-sm font-bold text-sand-900">AOR by Country</h2>
-          <p className="text-[11px] text-sand-400">
+        className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-colors ${
+          expanded ? "bg-sand-50/60 border-b border-sand-100" : "hover:bg-sand-50/60"
+        }`}>
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-bold text-sand-900 tracking-tight truncate">AOR by country</h2>
+          <p className="text-[11px] text-sand-500 truncate nums-tabular">
             {data.length} countries · avg days to AOR
           </p>
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          className="text-sand-400 flex-shrink-0"
           style={{ transition: "transform 0.3s ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
           <path d="M6 9L12 15L18 9" />
         </svg>
@@ -95,50 +98,51 @@ export function CountryBreakdown({ apps }: { apps: Application[] }) {
           transitionDelay: expanded ? "0.1s" : "0s",
         }}>
 
-      <div className="space-y-3">
+      <div className="space-y-3 nums-tabular">
         {data.map(d => (
           <div key={d.country}>
             {/* Country header */}
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2">
-                <a href={`/country/${d.country.toLowerCase().replace(/\s+/g, "-")}`} className="text-xs font-semibold text-brand-600 hover:underline">{d.country}</a>
-                <span className="text-[9px] text-sand-400">{d.totalEntries} entries · {d.totalAor} AOR</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#A8A69E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="M9 18L15 12L9 6"/></svg>
-              </div>
-            </div>
+            <a
+              href={`/country/${d.country.toLowerCase().replace(/\s+/g, "-")}`}
+              className="group inline-flex items-center gap-2 mb-1.5 hover:text-brand-700 transition-colors"
+            >
+              <span className="text-[13px] font-bold text-brand-600 group-hover:text-brand-700">{d.country}</span>
+              <span className="text-[10px] text-sand-500">{d.totalEntries} entries · {d.totalAor} AOR</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-sand-300 group-hover:text-brand-500 transition-colors"><path d="M9 18L15 12L9 6"/></svg>
+            </a>
 
             {/* Bars */}
             <div className="space-y-1">
               {d.outlandAvg != null && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[8px] text-sand-400 w-12 text-right flex-shrink-0">Outland</span>
-                  <div className="flex-1 h-4 bg-sand-50 rounded-full overflow-hidden">
+                  <span className="text-[10px] text-sand-500 w-14 text-right flex-shrink-0 font-medium">Outland</span>
+                  <div className="flex-1 h-4 bg-sand-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand-500 rounded-full flex items-center justify-end pr-1.5 transition-all"
                       style={{ width: `${Math.max((d.outlandAvg / maxAvg) * 100, 15)}%` }}
                     >
-                      <span className="text-[8px] font-bold text-white">{d.outlandAvg}d</span>
+                      <span className="text-[9px] font-bold text-white">{d.outlandAvg}d</span>
                     </div>
                   </div>
-                  <span className="text-[8px] text-sand-400 w-4 flex-shrink-0">{d.outlandCount}</span>
+                  <span className="text-[10px] text-sand-400 w-5 flex-shrink-0 font-medium">{d.outlandCount}</span>
                 </div>
               )}
               {d.inlandAvg != null && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[8px] text-sand-400 w-12 text-right flex-shrink-0">Inland</span>
-                  <div className="flex-1 h-4 bg-sand-50 rounded-full overflow-hidden">
+                  <span className="text-[10px] text-sand-500 w-14 text-right flex-shrink-0 font-medium">Inland</span>
+                  <div className="flex-1 h-4 bg-sand-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-warn rounded-full flex items-center justify-end pr-1.5 transition-all"
                       style={{ width: `${Math.max((d.inlandAvg / maxAvg) * 100, 15)}%` }}
                     >
-                      <span className="text-[8px] font-bold text-white">{d.inlandAvg}d</span>
+                      <span className="text-[9px] font-bold text-white">{d.inlandAvg}d</span>
                     </div>
                   </div>
-                  <span className="text-[8px] text-sand-400 w-4 flex-shrink-0">{d.inlandCount}</span>
+                  <span className="text-[10px] text-sand-400 w-5 flex-shrink-0 font-medium">{d.inlandCount}</span>
                 </div>
               )}
               {d.totalAor === 0 && (
-                <div className="text-[9px] text-sand-300 italic pl-14">No AOR data yet</div>
+                <div className="text-[10px] text-sand-400 italic pl-[64px]">No AOR data yet</div>
               )}
             </div>
           </div>
@@ -148,14 +152,14 @@ export function CountryBreakdown({ apps }: { apps: Application[] }) {
       {/* Legend */}
       <div className="flex items-center gap-4 mt-4 pt-3 border-t border-sand-100">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-brand-500" />
-          <span className="text-[9px] text-sand-500">Outland avg</span>
+          <div className="w-2 h-2 rounded-full bg-brand-500" />
+          <span className="text-[10px] text-sand-500 font-semibold">Outland avg</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-warn" />
-          <span className="text-[9px] text-sand-500">Inland avg</span>
+          <div className="w-2 h-2 rounded-full bg-warn" />
+          <span className="text-[10px] text-sand-500 font-semibold">Inland avg</span>
         </div>
-        <span className="text-[9px] text-sand-400 ml-auto">count on right</span>
+        <span className="text-[10px] text-sand-400 ml-auto">count on right</span>
       </div>
         </div>
       </div>
