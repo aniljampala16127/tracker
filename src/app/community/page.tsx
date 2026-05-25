@@ -170,6 +170,9 @@ export default function CommunityPage() {
 
   // Filter strip state — "" means "All cohorts".
   const [selectedCohort, setSelectedCohort] = useState<string>("");
+  // Single-open accordion — opening a new thread auto-closes any other.
+  // null = nothing open.
+  const [openThreadId, setOpenThreadId] = useState<string | null>(null);
   const visibleThreads = useMemo(
     () => (selectedCohort ? threads.filter(t => t.cohortKey === selectedCohort) : threads),
     [threads, selectedCohort]
@@ -317,6 +320,8 @@ export default function CommunityPage() {
               onRefresh={fetchData}
               lastSeen={lastSeen}
               onCohortClick={setSelectedCohort}
+              isOpen={openThreadId === t.root.id}
+              onToggle={() => setOpenThreadId(prev => prev === t.root.id ? null : t.root.id)}
             />
           ))}
         </div>
@@ -562,14 +567,24 @@ function AuthorTag({ kind }: { kind: "OP" | "YOU" }) {
 // Root = the "post" with its own header and a prominent meta row.
 // Children = nested CommentNode rows with a collapsible depth rail.
 // ─────────────────────────────────────────────────────────────
-function ThreadCard({ thread, myPinHash, onRefresh, lastSeen, onCohortClick }: {
+function ThreadCard({ thread, myPinHash, onRefresh, lastSeen, onCohortClick, isOpen, onToggle }: {
   thread: ThreadData;
   myPinHash: string | null;
   onRefresh: () => void;
   lastSeen: string;
   onCohortClick?: (key: string) => void;
+  // Accordion behavior — parent owns the "which thread is open" state so
+  // opening a new thread auto-closes any other.
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const expanded = isOpen;
+  const setExpanded = (v: boolean | ((p: boolean) => boolean)) => {
+    // Either form ends up just toggling — the parent's onToggle handles
+    // close-others.
+    const next = typeof v === "function" ? v(expanded) : v;
+    if (next !== expanded) onToggle();
+  };
   const { root, allComments, totalReplies } = thread;
 
   const isRootNew = root.created_at > lastSeen;
