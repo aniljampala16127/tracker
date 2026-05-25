@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { TOAST_EVENT, ToastDetail, ToastKind } from "@/lib/toast";
+import { playSound } from "@/lib/sounds";
 
 interface ToastItem {
   id: number;
@@ -32,6 +33,11 @@ export function Toaster() {
         // Cap stack height — drop oldest if needed.
         return next.length > MAX_STACK ? next.slice(next.length - MAX_STACK) : next;
       });
+      // Auto-play a short synthesized sound matching the toast kind.
+      // Respects the global mute preference inside playSound itself.
+      if (detail.kind === "success") playSound("success");
+      else if (detail.kind === "error") playSound("error");
+      else playSound("subtle");
       window.setTimeout(() => dismiss(item.id), detail.duration);
     };
     window.addEventListener(TOAST_EVENT, handler);

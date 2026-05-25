@@ -5,8 +5,49 @@ import { usePathname } from "next/navigation";
 import { useRef, useEffect, useState, useCallback } from "react";
 import { PlaneIcon, BarChartIcon, ClockIcon, UsersIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { isSoundEnabled, setSoundEnabled, playSound } from "@/lib/sounds";
 
 import { ActivityPanel } from "@/components/ActivityFeed";
+
+function SoundToggle() {
+  // null until mount so SSR + first paint don't disagree.
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  useEffect(() => { setEnabled(isSoundEnabled()); }, []);
+
+  const toggle = () => {
+    const next = !enabled;
+    setEnabled(next);
+    setSoundEnabled(next);
+    // Play the success sound when turning ON so the user hears what they
+    // just enabled. Stay silent when muting (obviously).
+    if (next) playSound("success");
+  };
+
+  if (enabled === null) return <div className="w-8 h-8" aria-hidden />;
+
+  return (
+    <button
+      onClick={toggle}
+      className="w-8 h-8 rounded-lg flex items-center justify-center text-sand-500 hover:text-sand-800 hover:bg-sand-100 transition-all"
+      aria-label={enabled ? "Mute sounds" : "Enable sounds"}
+      title={enabled ? "Sounds on — click to mute" : "Sounds off — click to enable"}
+    >
+      {enabled ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M15.54 8.46a5 5 0 010 7.07" />
+          <path d="M19.07 4.93a10 10 0 010 14.14" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <line x1="23" y1="9" x2="17" y2="15" />
+          <line x1="17" y1="9" x2="23" y2="15" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 // Track unread comments for the logged-in user.
 // Returns the total unread count + a "delta" — how many of those arrived
@@ -402,6 +443,7 @@ export function Nav() {
           </Link>
           <DesktopTabs pathname={pathname} unreadCount={unreadCount} />
           <div className="flex items-center gap-0.5">
+            <SoundToggle />
             <ThemeToggle />
             <ActivityPanel />
           </div>

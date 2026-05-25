@@ -14,6 +14,7 @@ export function Button({
   size = "md",
   className,
   children,
+  onClick,
   ...props
 }: ButtonProps) {
   const base =
@@ -34,9 +35,18 @@ export function Button({
     md: "text-sm px-4 py-2",
     lg: "text-sm px-6 py-2.5",
   };
+  // Tap-sound on primary clicks — matches the ripple. Lazy-imported so the
+  // Web Audio API isn't initialized until someone actually clicks.
+  const handleClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
+    if (variant === "primary") {
+      import("@/lib/sounds").then(({ playSound }) => playSound("tap")).catch(() => {});
+    }
+    onClick?.(e);
+  };
   return (
     <button
       className={cn(base, variants[variant], sizes[size], className)}
+      onClick={handleClick}
       {...props}
     >
       {children}
@@ -348,7 +358,13 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   const contentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    if (open) { setVisible(true); setClosing(false); }
+    if (open) {
+      setVisible(true);
+      setClosing(false);
+      // Quiet "open" cue. Lazy-imported so audio is initialized only when
+      // a modal actually appears, not at first paint.
+      import("@/lib/sounds").then(({ playSound }) => playSound("open")).catch(() => {});
+    }
   }, [open]);
 
   // Scroll modal content to top when opening
@@ -363,6 +379,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   const handleClose = React.useCallback(() => {
     setClosing(true);
+    import("@/lib/sounds").then(({ playSound }) => playSound("close")).catch(() => {});
     setTimeout(() => { setVisible(false); setClosing(false); onClose(); }, 220);
   }, [onClose]);
 

@@ -8,7 +8,7 @@ import { getSavedPinHash, hashPin, removeSavedPin, savePinForApp } from "@/lib/p
 import { toast } from "@/lib/toast";
 import { Confetti } from "@/components/Confetti";
 import { PositionRunway } from "@/components/PositionRunway";
-import { playMilestoneSound } from "@/lib/sounds";
+import { playMilestoneSound, playSound } from "@/lib/sounds";
 import { TimelineExport } from "@/components/TimelineExport";
 import { MeSkeleton } from "@/components/Skeletons";
 import { PullToRefresh } from "@/components/PullToRefresh";
@@ -183,8 +183,11 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
 
   const handleSaveStep = async (stepId: string, date: string) => {
     setSaving(true);
-    if (navigator.vibrate) navigator.vibrate(12);
-    playMilestoneSound();
+    if (navigator.vibrate) navigator.vibrate(stepId === "ecopr" ? [12, 30, 12, 30, 20] : 12);
+    // eCoPR is the destination of the whole journey — give it the bigger
+    // three-note arpeggio. Every other step gets the standard milestone chime.
+    if (stepId === "ecopr") playSound("complete");
+    else playMilestoneSound();
     const pinHash = getSavedPinHash(app.id);
     const res = await fetch("/api/steps", {
       method: "POST",

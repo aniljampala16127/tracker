@@ -14,7 +14,7 @@ import { PinModal } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
 import { ArrowLeftIcon, TrashIcon, ClockIcon } from "@/components/icons";
 import { Button, Avatar, Card } from "@/components/ui";
-import { playMilestoneSound } from "@/lib/sounds";
+import { playMilestoneSound, playSound } from "@/lib/sounds";
 import { DetailSkeleton } from "@/components/Skeletons";
 
 export default function ApplicationDetailPage() {
@@ -72,8 +72,9 @@ export default function ApplicationDetailPage() {
 
   const markStepDone = async (stepId: StepId, date: string) => {
     if (!app) return;
-    if (navigator.vibrate) navigator.vibrate(12);
-    playMilestoneSound();
+    if (navigator.vibrate) navigator.vibrate(stepId === "ecopr" ? [12, 30, 12, 30, 20] : 12);
+    if (stepId === "ecopr") playSound("complete");
+    else playMilestoneSound();
     const pinHash = getSavedPinHash(app.id);
     const res = await fetch("/api/steps", {
       method: "POST",
