@@ -13,6 +13,7 @@ import { CountryBreakdown } from "@/components/CountryBreakdown";
 import { StatsSkeleton } from "@/components/Skeletons";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { DigestImageExport } from "@/components/DigestImageExport";
+import { Modal } from "@/components/ui";
 
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -55,9 +56,24 @@ function CollapsibleSection({ title, subtitle, children }: { title: string; subt
   );
 }
 
+// Reporter row supplied to the per-step modal — pre-computed so the
+// modal doesn't have to re-walk the apps array on click.
+interface StepReporter {
+  appId: string;
+  initials: string;
+  country: string;
+  stream: "Outland" | "Inland";
+  days: number;
+  eventDate: string;
+}
+
 export default function StatsPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  // When non-null, show a modal listing the reporters for that step.
+  const [reportersModal, setReportersModal] = useState<
+    { stepLabel: string; reporters: StepReporter[] } | null
+  >(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -105,6 +121,8 @@ export default function StatsPage() {
       else if (step.id === "medical_passed") fromLabel = " (from Med Attended)";
       else if (isPostAor) fromLabel = " (from AOR)";
 
+      const reporters: StepReporter[] = [];
+
       apps.forEach((a) => {
         const s = buildStepsMap(a.step_events || []);
         if (!s[step.id]) return;
@@ -132,7 +150,24 @@ export default function StatsPage() {
         if (d < 0 || d > getOutlierMax(a.province)) return;
         if (a.stream === "Outland") outlandDays.push(d);
         else inlandDays.push(d);
+
+        // Capture the reporter for the per-step modal. Stream is narrowed
+        // to the two valid values since the bar chart already discards
+        // anything else.
+        if (a.stream === "Outland" || a.stream === "Inland") {
+          reporters.push({
+            appId: a.id,
+            initials: a.initials,
+            country: a.country_origin,
+            stream: a.stream,
+            days: d,
+            eventDate: s[step.id]!,
+          });
+        }
       });
+
+      // Sort reporters fastest → slowest by default; ties break by event date.
+      reporters.sort((x, y) => x.days - y.days || y.eventDate.localeCompare(x.eventDate));
 
       return {
         step: step.shortLabel,
@@ -141,6 +176,7 @@ export default function StatsPage() {
         inland: inlandDays.length ? Math.round(inlandDays.reduce((a, b) => a + b, 0) / inlandDays.length) : null,
         outlandReports: outlandDays.length,
         inlandReports: inlandDays.length,
+        reporters,
       };
     });
   }, [apps]);
@@ -271,8 +307,24 @@ export default function StatsPage() {
                   <td className="px-2 py-2.5 text-center font-bold text-warn-dark">
                     {row.inland != null ? `${row.inland}d` : <span className="text-sand-300 font-normal">—</span>}
                   </td>
-                  <td className="px-2 py-2.5 text-center text-[11px] text-sand-500">
-                    {row.outlandReports + row.inlandReports}
+                  <td className="px-2 py-2.5 text-center">
+                    {(row.outlandReports + row.inlandReports) > 0 ? (
+                      <button
+                        onClick={() => setReportersModal({
+                          stepLabel: row.fullLabel,
+                          reporters: row.reporters,
+                        })}
+                        className="inline-flex items-center gap-1 text-[12px] font-bold text-brand-600 hover:text-brand-700 hover:bg-brand-500/10 px-2 py-0.5 rounded transition-colors group"
+                        title="See who reported this step"
+                      >
+                        <span className="nums-tabular">{row.outlandReports + row.inlandReports}</span>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="t-icon-slide-x text-brand-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <path d="M9 18L15 12L9 6"/>
+                        </svg>
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-sand-300">0</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -428,6 +480,55 @@ export default function StatsPage() {
       <p className="text-[11px] text-sand-400 mt-8 mb-2 text-center leading-relaxed">
         All data is community-reported. Processing times vary by case.
       </p>
+
+      {/* Per-step reporters modal */}
+      <Modal
+        open={reportersModal !== null}
+        onClose={() => setReportersModal(null)}
+        title={reportersModal ? `${reportersModal.stepLabel} · ${reportersModal.reporters.length} report${reportersModal.reporters.length === 1 ? "" : "s"}` : ""}
+      >
+        {reportersModal && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-bold text-sand-500 uppercase tracking-[0.06em] px-3 pb-1.5 border-b border-sand-100">
+              <span>Reporter</span>
+              <span>Days</span>
+            </div>
+            <div className="max-h-[55vh] overflow-y-auto -mr-2 pr-2">
+              {reportersModal.reporters.map((r, i) => (
+                <div
+                  key={`${r.appId}-${i}`}
+                  className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-sand-50 transition-colors border-b border-sand-50/80 last:border-b-0"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-full bg-sand-100 flex items-center justify-center text-[10px] font-bold text-sand-700 shrink-0">
+                      {r.initials}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-semibold text-sand-900 truncate">{r.country}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded ${
+                          r.stream === "Outland" ? "bg-brand-500/12 text-brand-700" : "bg-warn/15 text-warn-dark"
+                        }`}>
+                          {r.stream}
+                        </span>
+                        <span className="text-[10px] text-sand-400 nums-tabular">
+                          {new Date(r.eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[14px] font-bold text-sand-900 nums-tabular shrink-0">
+                    {r.days}<span className="text-[10px] font-normal text-sand-400 ml-0.5">d</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {reportersModal.reporters.length === 0 && (
+              <p className="text-center text-[12px] text-sand-400 italic py-6">No reports yet</p>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
     </PullToRefresh>
   );
