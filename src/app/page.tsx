@@ -6,21 +6,21 @@ import { hashPin, savePinForApp } from "@/lib/pin";
 import Link from "next/link";
 
 function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (target === 0) return;
-    const duration = 1200;
-    const steps = 30;
-    const increment = target / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= target) { setCount(target); clearInterval(timer); }
-      else setCount(Math.floor(current));
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [target]);
-  return <>{count}{suffix}</>;
+  // We don't tween the value any more — the digit-pop-in animation from
+  // transitions.dev provides the perceived motion in a single, more
+  // refined gesture. We just show the final value and let CSS animate
+  // each digit in with a staggered blur-slide.
+  const text = `${target}${suffix}`;
+  // Bump on each target change so React remounts the spans and the CSS
+  // animation re-fires.
+  const key = `${target}-${suffix}`;
+  return (
+    <span key={key} className="t-digit-group is-animating">
+      {text.split("").map((ch, i) => (
+        <span key={i} className="t-digit">{ch}</span>
+      ))}
+    </span>
+  );
 }
 
 interface EntryInfo {
@@ -357,7 +357,7 @@ export default function LandingPage() {
             <div className="flex flex-col items-center gap-3 max-w-md mx-auto">
               <Link
                 href="/dashboard"
-                className="w-full px-6 py-3.5 bg-brand-500 text-white font-semibold text-[15px] rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-lg shadow-brand-500/25 text-center"
+                className="t-ripple w-full px-6 py-3.5 bg-brand-500 text-white font-semibold text-[15px] rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-lg shadow-brand-500/25 text-center"
               >
                 Add your application
               </Link>

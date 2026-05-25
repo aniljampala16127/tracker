@@ -57,7 +57,7 @@ export function Toaster() {
           onClick={() => dismiss(t.id)}
         >
           {t.kind === "success" && (
-            <span className="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-brand-500/30">
+            <span className="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-brand-500/30 t-success-check" data-state="in">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 6L9 17L4 12" />
               </svg>

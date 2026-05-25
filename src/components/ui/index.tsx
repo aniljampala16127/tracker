@@ -18,8 +18,11 @@ export function Button({
 }: ButtonProps) {
   const base =
     "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed";
+  // Primary brand buttons get the tactile click-ripple from transitions.dev.
+  // The other variants stay quieter — too many ripples and the page reads
+  // like a demo, not a calm civic tracker.
   const variants = {
-    primary: "bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700",
+    primary: "t-ripple bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700",
     secondary:
       "bg-white text-sand-900 border border-sand-200 hover:bg-sand-50 active:bg-sand-100",
     danger:

@@ -466,14 +466,167 @@ button, a, [role="button"] {
   to { opacity: 0; transform: translateY(16px) scale(0.97); }
 }
 
-/* Shake animation for PIN errors */
-.shake {
-  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+/* ═══════════════════════════════════════════════════════
+   transitions.dev — handpicked motion primitives
+   (https://github.com/Jakubantalik/transitions.dev)
+   Tokens + classes for: number pop-in, success check,
+   notification badge slide-in, error shake, click ripple.
+   Each respects prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* Number pop-in */
+  --t-digit-dur: 500ms;
+  --t-digit-distance: 8px;
+  --t-digit-stagger: 70ms;
+  --t-digit-blur: 2px;
+  --t-digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+
+  /* Success check */
+  --t-check-rotate-from: 80deg;
+  --t-check-y-amount: 16px;
+  --t-check-blur-from: 8px;
+
+  /* Notification badge */
+  --t-badge-slide-dur: 260ms;
+  --t-badge-blur: 2px;
+  --t-badge-offset-x: -8px;
+  --t-badge-offset-y: 12px;
+  --t-badge-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Error shake */
+  --t-shake-distance: 6px;
+  --t-shake-overshoot: 4px;
+  --t-shake-dur-a: 80ms;
+  --t-shake-dur-b: 60ms;
 }
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 50%, 90% { transform: translateX(-6px); }
-  30%, 70% { transform: translateX(6px); }
+
+/* ── Number pop-in (digit flip) ──────────────────────────
+   <span class="t-digit-group is-animating">
+     <span class="t-digit">3</span><span class="t-digit">0</span>...
+   </span>
+   Toggle the .is-animating class to replay. */
+.t-digit-group {
+  display: inline-flex;
+  font-variant-numeric: tabular-nums;
+}
+.t-digit {
+  display: inline-block;
+  transform-origin: center;
+}
+.t-digit-group.is-animating .t-digit {
+  animation: t-digit-pop-in var(--t-digit-dur) var(--t-digit-ease) backwards;
+}
+.t-digit-group.is-animating .t-digit:nth-child(1) { animation-delay: 0ms; }
+.t-digit-group.is-animating .t-digit:nth-child(2) { animation-delay: var(--t-digit-stagger); }
+.t-digit-group.is-animating .t-digit:nth-child(3) { animation-delay: calc(var(--t-digit-stagger) * 2); }
+.t-digit-group.is-animating .t-digit:nth-child(4) { animation-delay: calc(var(--t-digit-stagger) * 3); }
+.t-digit-group.is-animating .t-digit:nth-child(5) { animation-delay: calc(var(--t-digit-stagger) * 4); }
+.t-digit-group.is-animating .t-digit:nth-child(6) { animation-delay: calc(var(--t-digit-stagger) * 5); }
+@keyframes t-digit-pop-in {
+  0%   {
+    transform: translateY(var(--t-digit-distance));
+    opacity: 0;
+    filter: blur(var(--t-digit-blur));
+  }
+  100% { transform: translateY(0); opacity: 1; filter: blur(0); }
+}
+
+/* ── Success check — fade + rotate + bob + path draw ─────
+   <span class="t-success-check" data-state="in">
+     <svg viewBox="0 0 24 24"><path d="M20 6L9 17L4 12" /></svg>
+   </span>
+   data-state="in" plays the animation; "out" hides it. */
+.t-success-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
+.t-success-check svg { display: block; overflow: visible; }
+.t-success-check svg path {
+  /* dasharray for "M20 6L9 17L4 12" measures ~30 — round up to 32 for safety */
+  stroke-dasharray: 32;
+  stroke-dashoffset: 32;
+}
+.t-success-check[data-state="in"] {
+  animation:
+    t-check-fade 550ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    t-check-rotate 550ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    t-check-blur 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    t-check-bob 450ms cubic-bezier(0.34, 1.35, 0.64, 1) forwards;
+}
+.t-success-check[data-state="in"] svg path {
+  animation: t-check-draw 550ms cubic-bezier(0.22, 1, 0.36, 1) 80ms forwards;
+}
+@keyframes t-check-fade   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes t-check-rotate { from { transform: rotate(var(--t-check-rotate-from)); } to { transform: rotate(0); } }
+@keyframes t-check-blur   { from { filter: blur(var(--t-check-blur-from)); } to { filter: blur(0); } }
+@keyframes t-check-bob    { from { translate: 0 var(--t-check-y-amount); } to { translate: 0 0; } }
+@keyframes t-check-draw   { to { stroke-dashoffset: 0; } }
+
+/* ── Notification badge — diagonal slide-in with blur ────
+   Add .t-badge-slide-in to a badge that just appeared. */
+.t-badge-slide-in {
+  animation: t-badge-slide-in var(--t-badge-slide-dur) var(--t-badge-ease) both;
+}
+@keyframes t-badge-slide-in {
+  from {
+    transform: translate(var(--t-badge-offset-x), var(--t-badge-offset-y));
+    opacity: 0;
+    filter: blur(var(--t-badge-blur));
+  }
+  to { transform: translate(0, 0); opacity: 1; filter: blur(0); }
+}
+
+/* ── Error shake — 4-segment cubic-bezier (replaces old shake) ── */
+.shake {
+  animation: t-shake calc(var(--t-shake-dur-a) * 2 + var(--t-shake-dur-b) * 2) cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes t-shake {
+  0%   { transform: translateX(0); }
+  25%  { transform: translateX(calc(var(--t-shake-distance) * -1)); }
+  50%  { transform: translateX(var(--t-shake-distance)); }
+  75%  { transform: translateX(calc(var(--t-shake-overshoot) * -1)); }
+  100% { transform: translateX(0); }
+}
+
+/* ── Click ripple — tactile feedback on primary CTAs ─────
+   Add .t-ripple to any <button>. A radial flash emanates
+   from the click point on :active. Pure CSS, no JS. */
+.t-ripple {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.t-ripple::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.18) 30%,
+    transparent 65%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.t-ripple:active::after {
+  opacity: 1;
+  transition: opacity 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-digit-group.is-animating .t-digit { animation: none !important; opacity: 1 !important; filter: blur(0) !important; transform: none !important; }
+  .t-success-check { animation: none !important; opacity: 1 !important; transform: none !important; filter: blur(0) !important; }
+  .t-success-check svg path { animation: none !important; stroke-dashoffset: 0 !important; }
+  .t-badge-slide-in { animation: none !important; transform: none !important; opacity: 1 !important; filter: blur(0) !important; }
+  .shake { animation: none !important; }
+  .t-ripple::after { transition: none !important; opacity: 0 !important; }
 }
 
 /* Panel slide-in from top-right */

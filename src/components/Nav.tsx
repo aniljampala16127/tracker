@@ -195,8 +195,8 @@ function DesktopTabs({ pathname, unreadCount }: { pathname: string; unreadCount:
             <item.icon size={14} />
             <span>{item.label}</span>
             {item.href === "/community" && unreadCount > 0 && (
-              <span className={cn(
-                "w-4 h-4 rounded-full text-[8px] font-bold flex items-center justify-center leading-none",
+              <span key={unreadCount} className={cn(
+                "t-badge-slide-in w-4 h-4 rounded-full text-[8px] font-bold flex items-center justify-center leading-none",
                 active ? "bg-white text-brand-600" : "bg-error text-white"
               )}>
                 {unreadCount > 9 ? "9+" : unreadCount}
@@ -267,7 +267,7 @@ function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCo
                   )}
                 />
                 {item.href === "/community" && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-error text-white text-[7px] font-bold flex items-center justify-center leading-none border-2 border-white">
+                  <span key={unreadCount} className="t-badge-slide-in absolute -top-1 -right-1 w-4 h-4 rounded-full bg-error text-white text-[7px] font-bold flex items-center justify-center leading-none border-2 border-white">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
