@@ -24,27 +24,33 @@ export function ClaimPinModal({
   const handleClaim = async () => {
     setClaiming(true);
     setError("");
-    const newPin = generatePin();
-    const hash = await hashPin(newPin);
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const newPin = generatePin();
+      const hash = await hashPin(newPin);
 
-    const res = await fetch("/api/applications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: appId, claim_pin_hash: hash }),
-    });
+      const res = await fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, claim_pin_hash: hash }),
+      });
 
-    if (!res.ok) {
+      if (res.ok) {
+        savePinForApp(appId, hash);
+        setPin(newPin);
+        if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
+        setStep("reveal");
+        setClaiming(false);
+        return;
+      }
+
       const data = await res.json();
-      setError(data.error || "Failed to claim. Try again.");
-      setClaiming(false);
-      return;
+      if (!data.pin_exists) {
+        setError(data.error || "Failed to claim. Try again.");
+        setClaiming(false);
+        return;
+      }
     }
-
-    // Success — save locally and show the PIN
-    savePinForApp(appId, hash);
-    setPin(newPin);
-    if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
-    setStep("reveal");
+    setError("Could not generate a unique PIN. Please try again.");
     setClaiming(false);
   };
 

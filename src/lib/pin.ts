@@ -2,6 +2,8 @@
 // PIN utilities — hash, localStorage, generation
 // ============================================
 
+import { isValidPinFormat, WEAK_PINS, randomPinCandidate } from "./pin-core";
+
 const STORAGE_KEY = "sponsortrack-pins";
 
 /**
@@ -19,7 +21,11 @@ export async function hashPin(pin: string): Promise<string> {
  * Generate a random 4-digit PIN.
  */
 export function generatePin(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
+  for (let i = 0; i < 20; i++) {
+    const pin = randomPinCandidate();
+    if (isValidPinFormat(pin)) return pin;
+  }
+  return randomPinCandidate();
 }
 
 function getPinStore(): Record<string, string> {
@@ -60,16 +66,9 @@ export function hasValidPin(appId: string, expectedHash: string): boolean {
   return getSavedPinHash(appId) === expectedHash;
 }
 
-/** Commonly guessed PINs — blocked to protect entries. */
-const WEAK_PINS = new Set([
-  "0000", "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999",
-  "1234", "4321", "1122", "1212", "0123", "3210", "9876", "6789",
-  "0007", "2580", "1004", "2023", "2024", "2025", "2026",
-]);
-
 /** Validate PIN format: exactly 4 digits and not a common weak PIN. */
 export function isValidPin(pin: string): boolean {
-  return /^\d{4}$/.test(pin) && !WEAK_PINS.has(pin);
+  return isValidPinFormat(pin);
 }
 
 /** Check if a PIN is weak (for showing warnings). */

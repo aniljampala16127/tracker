@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { Application, ApplicationFormData, StepId, Comment } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, MEI_TYPES, getNextStep, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
-import { hashPin, isValidPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
+import { hashPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
 import { toast } from "@/lib/toast";
 import { PlusIcon } from "@/components/icons";
 import { Button, Modal, Input, Select, SearchableSelect } from "@/components/ui";
-import { PinModal, PinInput } from "@/components/PinModal";
+import { PinModal } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
 import { AvatarIcon, isAvatarKey } from "@/components/AvatarIcons";
 import { CommentsSection } from "@/components/CommentsSection";
@@ -28,7 +28,7 @@ import { CelebrationWall } from "@/components/CelebrationWall";
 import { CohortAORAlert } from "@/components/CohortAORAlert";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { playMilestoneSound } from "@/lib/sounds";
+import { playMilestoneSound, playSound } from "@/lib/sounds";
 
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -98,6 +98,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showStale, setShowStale] = useState(false);
   const [celebrateApp, setCelebrateApp] = useState<Application | null>(null);
+  const [celebratePin, setCelebratePin] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   // PIN state
@@ -210,7 +211,7 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
   // Unique values for filter dropdowns (from actual data)
   const availableCountries = useMemo(() => Array.from(new Set(apps.map(a => a.country_origin))).sort(), [apps]);
 
-  const handleAdd = async (form: ApplicationFormData & { pin: string }) => {
+  const handleAdd = async (form: ApplicationFormData) => {
   // Sync lock — engages before React re-renders, defeats panic-clicks and Enter-key spam
   if (submittingRef.current) return;
   submittingRef.current = true;
@@ -224,7 +225,6 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
   setSubmitting(true);
 
   try {
-    const pinHash = await hashPin(form.pin);
     const res = await fetch("/api/applications", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -238,29 +238,29 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
         mei_type: form.mei_type || null,
         province: form.province,
         notes: form.notes || null,
-        pin_hash: pinHash,
         submitted_date: form.submitted_date,
+        auto_pin: true,
       }),
     });
 
     if (res.ok) {
       const app = await res.json();
+      const pinHash = app.pin_hash as string;
+      const generatedPin = app.generated_pin as string | undefined;
       savePinForApp(app.id, pinHash);
       setShowAdd(false);
       fetchApps();
-      // Fetch full app for celebration
       const appsRes = await fetch("/api/applications");
       const allApps = await appsRes.json();
       const fullApp = allApps.find((a: Application) => a.id === app.id);
-      if (fullApp) setCelebrateApp(fullApp);
+      if (fullApp) {
+        setCelebrateApp(fullApp);
+        setCelebratePin(generatedPin || null);
+      }
       toast.success("Application added");
     } else {
       const err = await res.json();
-      toast.error(
-        err.pin_exists
-          ? "PIN already taken — choose a different one"
-          : (err.error || "Failed to add")
-      );
+      toast.error(err.error || "Failed to add");
     }
   } catch {
     toast.error("Network error — try again");
@@ -500,8 +500,8 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
           </span>
         </div>
         {!hasMyEntry && (
-          <Button onClick={() => setShowIntent(true)} size="sm">
-            <PlusIcon size={14} className="text-white" /> Add
+          <Button onClick={() => setShowIntent(true)} size="sm" className="group">
+            <PlusIcon size={14} className="text-white t-icon-rotate-90" /> Add
           </Button>
         )}
       </div>
@@ -580,8 +580,8 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
               Clear all
             </Button>
           ) : (
-            <Button onClick={() => setShowIntent(true)} size="sm">
-              <PlusIcon size={14} className="text-white" /> Add first entry
+            <Button onClick={() => setShowIntent(true)} size="sm" className="group">
+              <PlusIcon size={14} className="text-white t-icon-rotate-90" /> Add first entry
             </Button>
           )}
         </div>
@@ -1052,9 +1052,10 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
       )}
       {celebrateApp && (
         <CelebrationModal
+          generatedPin={celebratePin}
           app={celebrateApp}
           allApps={apps}
-          onClose={() => setCelebrateApp(null)}
+          onClose={() => { setCelebrateApp(null); setCelebratePin(null); }}
         />
       )}
     </div>
@@ -1242,8 +1243,10 @@ function EditModal({ app, allApps, onClose, onMarkStep, onDelete, isOwner, onRef
   };
 
   const handleStepSave = (stepId: StepId, date: string) => {
-    if (navigator.vibrate) navigator.vibrate(12);
-    playMilestoneSound();
+    if (navigator.vibrate) navigator.vibrate(stepId === "ecopr" ? [12, 30, 12, 30, 20] : 12);
+    // eCoPR = journey complete → bigger three-note arpeggio.
+    if (stepId === "ecopr") playSound("complete");
+    else playMilestoneSound();
     onMarkStep(app.id, stepId, date);
     setShowConfetti(true);
     const stepLabel = STEPS.find(s => s.id === stepId)?.label || stepId;
@@ -2048,13 +2051,13 @@ function IntentModal({ open, onClose, onNewUser, apps, onReconnected }: {
 // ============================================
 function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
   open: boolean; onClose: () => void;
-  onSubmit: (f: ApplicationFormData & { pin: string }) => void; loading: boolean;
+  onSubmit: (f: ApplicationFormData) => void; loading: boolean;
   existingApps: Application[];
 }) {
-  const empty = {
-    initials: "", sponsor_status: "PR" as const, stream: "Outland" as const,
+  const empty: ApplicationFormData = {
+    initials: "", sponsor_status: "PR", stream: "Outland",
     country_origin: "", subcategory: "", visa_country: "", mei_type: "",
-    province: "Outside Quebec", submitted_date: "", notes: "", pin: "",
+    province: "Outside Quebec", submitted_date: "", notes: "",
   };
   const [form, setForm] = useState(empty);
   useEffect(() => { if (open) setForm(empty); }, [open]);
@@ -2084,7 +2087,6 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
     e.preventDefault();
     if (loading) return; // belt-and-suspenders: block submit if already in progress
     if (!form.initials || !form.submitted_date || !form.country_origin) return;
-    if (!isValidPin(form.pin)) return;
     onSubmit(form);
   };
 
@@ -2105,7 +2107,11 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
           <input type="date" className="px-3 py-2.5 rounded-lg border border-sand-200 text-sm bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors disabled:opacity-60 nums-tabular"
             value={form.submitted_date} onChange={(e) => u("submitted_date", e.target.value)} max={localToday()} required disabled={loading} />
         </div>
-        <PinInput value={form.pin} onChange={(v) => u("pin", v)} />
+        <div className="bg-brand-500/[0.08] border border-brand-500/20 rounded-xl px-3 py-2.5">
+          <p className="text-[11px] text-brand-800 leading-relaxed">
+            A unique <strong>4-digit PIN</strong> will be generated when you submit. You&apos;ll see it once — save it to edit or delete your entry later.
+          </p>
+        </div>
         <Input label="Notes" value={form.notes} onChange={(e) => u("notes", e.target.value)} disabled={loading} />
         {duplicate && !loading && (
           <div className="bg-warn-light border border-warn/30 rounded-lg px-3 py-2.5">
@@ -2122,7 +2128,7 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
             </div>
           </div>
         )}
-        <Button type="submit" disabled={loading || !isValidPin(form.pin)} className="w-full mt-1">
+        <Button type="submit" disabled={loading || !form.initials.trim() || !form.country_origin || !form.submitted_date} className="w-full mt-1">
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -2143,10 +2149,11 @@ function AddModal({ open, onClose, onSubmit, loading, existingApps }: {
 // ============================================
 // Post-add celebration modal
 // ============================================
-function CelebrationModal({ app, allApps, onClose }: {
-  app: Application; allApps: Application[]; onClose: () => void;
+function CelebrationModal({ app, allApps, generatedPin, onClose }: {
+  app: Application; allApps: Application[]; generatedPin: string | null; onClose: () => void;
 }) {
   const [showConfetti, setShowConfetti] = useState(true);
+  const [copied, setCopied] = useState(false);
   const stepsMap = buildStepsMap(app.step_events || []);
   const submittedDate = stepsMap.submitted;
 
@@ -2182,15 +2189,42 @@ function CelebrationModal({ app, allApps, onClose }: {
   return (
     <Modal open={true} onClose={onClose} title="">
       <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
-      <div className="text-center py-2">
+      <div className="text-center py-2 bg-brand-spotlight -m-1 px-1 rounded-2xl">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-500 mb-3 shadow-lg shadow-brand-500/25">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17L4 12"/></svg>
         </div>
         <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-1">You&apos;re in</p>
         <h2 className="text-2xl font-bold text-sand-900 mb-1 tracking-tight">Application added</h2>
-        <p className="text-[13px] text-sand-500 mb-5 nums-tabular">
+        <p className="text-[13px] text-sand-500 mb-4 nums-tabular">
           Application <span className="font-semibold text-sand-700">#{position}</span> in the community.
         </p>
+
+        {generatedPin && (
+          <div className="bg-brand-500/[0.08] border border-brand-500/25 rounded-2xl p-4 mb-4 text-left">
+            <p className="text-[10px] font-bold text-brand-700 uppercase tracking-[0.08em] mb-2 text-center">Your PIN — save it now</p>
+            <div className="flex justify-center gap-2 mb-2 nums-tabular">
+              {generatedPin.split("").map((d, i) => (
+                <div key={i} className="w-11 h-11 rounded-xl bg-white border border-brand-500/30 flex items-center justify-center text-xl font-bold text-brand-700">
+                  {d}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(generatedPin);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="w-full text-[11px] font-semibold text-brand-700 hover:text-brand-800"
+            >
+              {copied ? "Copied" : "Copy PIN"}
+            </button>
+            <p className="text-[10px] text-sand-500 mt-2 text-center leading-relaxed">
+              This PIN is not shown again. You need it to edit or delete your entry.
+            </p>
+          </div>
+        )}
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-3 mb-5">

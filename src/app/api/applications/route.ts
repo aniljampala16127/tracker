@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { allocateUniquePinHash, hashPinSync } from "@/lib/pin-server";
+import { isValidPinFormat } from "@/lib/pin-core";
 
 // NOTE: deliberately NOT setting `export const dynamic = "force-dynamic"`.
 // We want the GET handler to be eligible for Vercel CDN caching via the
@@ -167,7 +169,19 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const supabase = getSupabase();
   const body = await request.json();
-  const { initials, sponsor_status, stream, country_origin, subcategory, province, submitted_date, notes, pin_hash } = body;
+  const {
+    initials,
+    sponsor_status,
+    stream,
+    country_origin,
+    subcategory,
+    province,
+    submitted_date,
+    notes,
+    pin_hash: bodyPinHash,
+    pin: bodyPin,
+    auto_pin,
+  } = body;
 
   if (!initials || !sponsor_status || !stream || !country_origin || !submitted_date) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -176,6 +190,24 @@ export async function POST(request: Request) {
   const today = new Date().toISOString().split("T")[0];
   if (submitted_date > today) {
     return NextResponse.json({ error: "Submission date cannot be in the future" }, { status: 400 });
+  }
+
+  let pin_hash: string | undefined = bodyPinHash;
+  let generated_pin: string | undefined;
+
+  if (auto_pin || !pin_hash) {
+    const allocated = await allocateUniquePinHash(supabase);
+    if (!allocated) {
+      return NextResponse.json(
+        { error: "Could not generate a unique PIN. Please try again." },
+        { status: 503 }
+      );
+    }
+    pin_hash = allocated.hash;
+    generated_pin = allocated.pin;
+  } else if (bodyPin && typeof bodyPin === "string" && isValidPinFormat(bodyPin)) {
+    pin_hash = hashPinSync(bodyPin);
+    generated_pin = bodyPin;
   }
 
   if (!pin_hash) {
@@ -250,7 +282,10 @@ export async function POST(request: Request) {
     event_date: submitted_date,
   });
 
-  return NextResponse.json(app, { status: 201 });
+  return NextResponse.json(
+    generated_pin ? { ...app, generated_pin } : app,
+    { status: 201 }
+  );
 }
 
 export async function DELETE(request: Request) {
