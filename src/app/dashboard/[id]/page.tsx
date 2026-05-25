@@ -168,6 +168,10 @@ export default function ApplicationDetailPage() {
   const submittedDate = stepsMap.submitted;
   const est = submittedDate ? estimateCompletion(submittedDate, app.stream) : null;
 
+  // Owner = entry is unclaimed (anyone can claim) OR this device holds the PIN.
+  // Non-owners only see the Report button; Remove + Mark-done are owner-only.
+  const isOwner = !app.pin_hash || getSavedPinHash(app.id) === app.pin_hash;
+
   return (
     <div>
       <button onClick={() => router.push("/dashboard")}
@@ -205,20 +209,24 @@ export default function ApplicationDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => setShowReportModal(true)}
-              disabled={alreadyReported}
-              title={alreadyReported ? "You've already reported this entry" : "Report this entry"}
-              className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-sand-500 hover:text-error hover:bg-error/10 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-sand-500 disabled:cursor-not-allowed"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 22V4"/><path d="M4 4l13 0 -3 5 3 5 -13 0"/>
-              </svg>
-              <span className="hidden sm:inline">{alreadyReported ? "Reported" : "Report"}</span>
-            </button>
-            <Button variant="danger" size="sm" onClick={() => requirePin("delete")} disabled={deleting}>
-              <TrashIcon size={13} /> Remove
-            </Button>
+            {!isOwner && (
+              <button
+                onClick={() => setShowReportModal(true)}
+                disabled={alreadyReported}
+                title={alreadyReported ? "You've already reported this entry" : "Report this entry"}
+                className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-sand-500 hover:text-error hover:bg-error/10 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-sand-500 disabled:cursor-not-allowed"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 22V4"/><path d="M4 4l13 0 -3 5 3 5 -13 0"/>
+                </svg>
+                <span className="hidden sm:inline">{alreadyReported ? "Reported" : "Report"}</span>
+              </button>
+            )}
+            {isOwner && (
+              <Button variant="danger" size="sm" onClick={() => requirePin("delete")} disabled={deleting}>
+                <TrashIcon size={13} /> Remove
+              </Button>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -285,7 +293,7 @@ export default function ApplicationDetailPage() {
                       <div className="text-[12px] font-bold text-sand-800">{formatDate(stepDate)}</div>
                       {duration != null && i > 0 && <div className="text-[10px] text-brand-600 font-bold mt-0.5">{duration}d</div>}
                     </>
-                  ) : isNext ? (
+                  ) : isNext && isOwner ? (
                     editingStep === step.id ? (
                       <input type="date" className="text-xs px-2 py-1.5 border border-sand-200 bg-sand-50 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 focus:bg-white transition-colors nums-tabular" autoFocus
                         onChange={(e) => { if (e.target.value) markStepDone(step.id, e.target.value); }}
