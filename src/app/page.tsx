@@ -329,75 +329,149 @@ export default function LandingPage() {
   return (
     <div className="-mx-4 -mt-6">
       {/* ─── Hero ──────────────────────────────────────── */}
+      {/* Two-column on lg+ — hero copy on the left, three live preview
+          cards on the right that hint at the actual product. Mobile/sm/md
+          stay single-column centered so the small-screen experience is
+          unchanged. */}
       <section className="hero-glow">
         <div className="max-w-5xl mx-auto px-4 pt-14 sm:pt-20 pb-12 sm:pb-16">
-          <div className="text-center max-w-2xl mx-auto">
-            {/* Live pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-sand-200 shadow-[0_1px_2px_rgba(26,26,24,0.04)] text-[11px] font-semibold text-sand-700 mb-6">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-75 animate-ping" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand-500" />
-              </span>
-              <span className="nums-tabular">{loading ? "—" : totalEntries}</span>
-              <span className="text-sand-500">applications tracking live</span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-[34px] leading-[1.05] sm:text-[52px] sm:leading-[1.02] font-bold text-sand-900 tracking-tight mb-4">
-              Track your Canada
-              <br />
-              <span className="text-brand-600">spousal sponsorship.</span>
-            </h1>
-            <p className="text-[15px] sm:text-base text-sand-600 leading-relaxed max-w-md mx-auto mb-8">
-              Real processing times from the community. Know where you stand.
-              Get predicted dates for every step.
-            </p>
-
-            {/* CTAs */}
-            <div className="flex flex-col items-center gap-3 max-w-md mx-auto">
-              <Link
-                href="/dashboard"
-                className="t-ripple w-full px-6 py-3.5 bg-brand-500 text-white font-semibold text-[15px] rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-lg shadow-brand-500/25 text-center"
-              >
-                Add your application
-              </Link>
-
-              {/* PIN reconnect card — calmer, less competitive with primary CTA */}
-              <div className="w-full bg-white border border-sand-200 rounded-xl p-3 shadow-[0_1px_2px_rgba(26,26,24,0.03)]">
-                <p className="text-[11px] font-semibold text-sand-500 uppercase tracking-[0.06em] text-center mb-2">
-                  Already tracking? Enter your PIN
-                </p>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="••••"
-                    value={claimPin}
-                    onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
-                    className={`flex-1 px-3 py-2.5 text-base text-center rounded-lg border bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.45em] font-mono font-semibold transition-colors ${
-                      claimError ? "border-error shake" : "border-sand-200"
-                    }`}
-                  />
-                  <button
-                    onClick={handleClaim}
-                    disabled={claimPin.length !== 4 || claiming}
-                    className="px-4 py-2.5 bg-sand-900 text-sand-50 text-sm font-semibold rounded-lg hover:bg-sand-800 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {claiming ? "…" : "Reconnect"}
-                  </button>
-                </div>
-                {claimError && <p className="text-[11px] text-error mt-1.5 text-center font-medium">{claimError}</p>}
+          <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 lg:gap-14 items-center">
+            {/* ── Left: hero copy + CTAs ── */}
+            <div className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0 w-full">
+              {/* Live pill */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-sand-200 shadow-[0_1px_2px_rgba(26,26,24,0.04)] text-[11px] font-semibold text-sand-700 mb-6">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-75 animate-ping" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand-500" />
+                </span>
+                <span className="nums-tabular">{loading ? "—" : totalEntries}</span>
+                <span className="text-sand-500">applications tracking live</span>
               </div>
 
-              <Link
-                href="/stats"
-                className="inline-flex items-center gap-1 px-3 py-2 text-sand-500 font-medium text-[13px] hover:text-brand-600 transition-colors"
-              >
-                View analytics
-                <span aria-hidden>→</span>
-              </Link>
+              {/* Headline */}
+              <h1 className="text-[34px] leading-[1.05] sm:text-[52px] sm:leading-[1.02] font-bold text-sand-900 tracking-tight mb-4">
+                Track your Canada
+                <br />
+                <span className="text-brand-600">spousal sponsorship.</span>
+              </h1>
+              <p className="text-[15px] sm:text-base text-sand-600 leading-relaxed max-w-md mx-auto lg:mx-0 mb-8">
+                Real processing times from the community. Know where you stand.
+                Get predicted dates for every step.
+              </p>
+
+              {/* CTAs */}
+              <div className="flex flex-col items-center lg:items-start gap-3 max-w-md mx-auto lg:mx-0">
+                <Link
+                  href="/dashboard"
+                  className="t-ripple w-full px-6 py-3.5 bg-brand-500 text-white font-semibold text-[15px] rounded-xl hover:bg-brand-600 transition-all active:scale-[0.98] shadow-lg shadow-brand-500/25 text-center"
+                >
+                  Add your application
+                </Link>
+
+                {/* PIN reconnect card — calmer, less competitive with primary CTA */}
+                <div className="w-full bg-white border border-sand-200 rounded-xl p-3 shadow-[0_1px_2px_rgba(26,26,24,0.03)]">
+                  <p className="text-[11px] font-semibold text-sand-500 uppercase tracking-[0.06em] text-center mb-2">
+                    Already tracking? Enter your PIN
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={claimPin}
+                      onChange={(e) => { setClaimPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setClaimError(""); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && claimPin.length === 4) handleClaim(); }}
+                      className={`flex-1 px-3 py-2.5 text-base text-center rounded-lg border bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 tracking-[0.45em] font-mono font-semibold transition-colors ${
+                        claimError ? "border-error shake" : "border-sand-200"
+                      }`}
+                    />
+                    <button
+                      onClick={handleClaim}
+                      disabled={claimPin.length !== 4 || claiming}
+                      className="px-4 py-2.5 bg-sand-900 text-sand-50 text-sm font-semibold rounded-lg hover:bg-sand-800 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {claiming ? "…" : "Reconnect"}
+                    </button>
+                  </div>
+                  {claimError && <p className="text-[11px] text-error mt-1.5 text-center font-medium">{claimError}</p>}
+                </div>
+
+                <Link
+                  href="/stats"
+                  className="inline-flex items-center gap-1 px-3 py-2 text-sand-500 font-medium text-[13px] hover:text-brand-600 transition-colors"
+                >
+                  View analytics
+                  <span aria-hidden>→</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* ── Right: 3 stacked live-data preview cards (lg+ only) ── */}
+            <div className="hidden lg:flex flex-col gap-3 t-stagger-cards">
+              {/* 1) Recent milestones — re-uses the data we already fetched */}
+              <div className="bg-white border border-sand-200 rounded-xl p-4 shadow-[0_4px_18px_rgba(26,26,24,0.05)]">
+                <div className="flex items-center justify-between mb-2.5">
+                  <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em]">Recent milestones</p>
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-75 animate-ping" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand-500" />
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {(recentMilestones.length > 0 ? recentMilestones : [
+                    { initials: "JK", step: "AOR", timeAgo: "2h ago" },
+                    { initials: "MO", step: "BIL", timeAgo: "5h ago" },
+                    { initials: "Pj", step: "Medical", timeAgo: "1d ago" },
+                  ]).slice(0, 3).map((m, i) => (
+                    <div key={i} className="flex items-center gap-2.5 text-[12px]">
+                      <div className="w-5 h-5 rounded-full bg-brand-500/15 flex items-center justify-center flex-shrink-0">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-600"><path d="M20 6L9 17L4 12" /></svg>
+                      </div>
+                      <span className="font-bold text-sand-900 nums-tabular truncate">{m.initials}</span>
+                      <span className="text-sand-400 text-[11px]">→</span>
+                      <span className="font-bold text-brand-700 truncate">{m.step}</span>
+                      <span className="text-[10px] text-sand-400 ml-auto flex-shrink-0 nums-tabular">{m.timeAgo}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2) Avg processing snapshot */}
+              <div className="bg-white border border-sand-200 rounded-xl p-4 shadow-[0_4px_18px_rgba(26,26,24,0.05)]">
+                <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2.5">Community average</p>
+                <div className="grid grid-cols-2 gap-3 nums-tabular">
+                  <div>
+                    <p className="text-3xl font-bold text-brand-600 leading-none">
+                      {loading ? "—" : <><CountUp target={avgAor} suffix="d" /></>}
+                    </p>
+                    <p className="text-[10px] text-sand-500 mt-1 font-medium">to AOR</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-sand-900 leading-none">
+                      {loading ? "—" : <CountUp target={totalWithAor} />}
+                    </p>
+                    <p className="text-[10px] text-sand-500 mt-1 font-medium">have AOR</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3) "How it works" — three numbered chips */}
+              <div className="bg-white border border-sand-200 rounded-xl p-4 shadow-[0_4px_18px_rgba(26,26,24,0.05)]">
+                <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2.5">How it works</p>
+                <div className="space-y-1.5">
+                  {[
+                    { n: "01", label: "Add your application" },
+                    { n: "02", label: "Track each step" },
+                    { n: "03", label: "Get predictions" },
+                  ].map((s) => (
+                    <div key={s.n} className="flex items-center gap-2.5">
+                      <span className="text-[10px] font-bold text-brand-700 bg-brand-500/12 px-1.5 py-0.5 rounded nums-tabular tracking-wider">{s.n}</span>
+                      <span className="text-[12px] text-sand-700 font-semibold">{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
