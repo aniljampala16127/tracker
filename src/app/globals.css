@@ -593,6 +593,54 @@ button, a, [role="button"] {
   100% { transform: translateX(0); }
 }
 
+/* ── Icon hover micro-motions — inspired by itshover.com ─
+   Pure CSS, applied to our existing bespoke SVG icons.
+   Designed to work both when applied directly (svg:hover) and
+   when nested inside a parent with .group (group-hover). */
+.t-icon-rotate-90,
+.t-icon-slide-x,
+.t-icon-slide-y,
+.t-icon-tilt,
+.t-icon-bob,
+.t-icon-bell-ring,
+.t-icon-pulse {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Plus icon → rotates 90° on hover (Add button feels "open-able") */
+.group:hover .t-icon-rotate-90,
+.t-icon-rotate-90:hover { transform: rotate(90deg); }
+/* Arrow → slides right (the "→" affordance) */
+.group:hover .t-icon-slide-x,
+.t-icon-slide-x:hover { transform: translateX(3px); }
+/* Back-arrow → slides left */
+.group:hover .t-icon-slide-x.is-back,
+.t-icon-slide-x.is-back:hover { transform: translateX(-3px); }
+/* Chevron / "open" → drops slightly */
+.group:hover .t-icon-slide-y,
+.t-icon-slide-y:hover { transform: translateY(2px); }
+/* Bell → tilts as if ringing (spring easing) */
+.t-icon-tilt { transform-origin: top center; transition-timing-function: cubic-bezier(0.34, 1.36, 0.64, 1); }
+.group:hover .t-icon-tilt,
+.t-icon-tilt:hover { transform: rotate(-10deg); }
+/* Generic vertical lift on hover */
+.t-icon-bob { transition-timing-function: cubic-bezier(0.34, 1.36, 0.64, 1); }
+.group:hover .t-icon-bob,
+.t-icon-bob:hover { transform: translateY(-2px); }
+/* Bell ring — small shake on hover */
+.t-icon-bell-ring { transform-origin: top center; }
+.group:hover .t-icon-bell-ring,
+.t-icon-bell-ring:hover { animation: t-bell-shake 600ms cubic-bezier(0.34, 1.36, 0.64, 1); }
+@keyframes t-bell-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-12deg); }
+  40% { transform: rotate(10deg); }
+  60% { transform: rotate(-6deg); }
+  80% { transform: rotate(4deg); }
+}
+/* Pulse on hover — gentle scale up */
+.group:hover .t-icon-pulse,
+.t-icon-pulse:hover { transform: scale(1.1); }
+
 /* ── Staggered card fade-up — entrance for grouped cards ─
    Useful for hero side-columns, dashboard widget stacks, etc.
    Wrap N siblings; each fades up with a 100ms stagger. */
@@ -637,6 +685,9 @@ button, a, [role="button"] {
 
 @media (prefers-reduced-motion: reduce) {
   .t-stagger-cards > * { animation: none !important; opacity: 1 !important; transform: none !important; filter: blur(0) !important; }
+  .t-icon-rotate-90, .t-icon-slide-x, .t-icon-slide-y, .t-icon-tilt, .t-icon-bob, .t-icon-bell-ring, .t-icon-pulse { transition: none !important; }
+  .group:hover .t-icon-rotate-90, .group:hover .t-icon-slide-x, .group:hover .t-icon-slide-y, .group:hover .t-icon-tilt, .group:hover .t-icon-bob, .group:hover .t-icon-pulse { transform: none !important; }
+  .t-icon-bell-ring, .group:hover .t-icon-bell-ring { animation: none !important; transform: none !important; }
   .t-digit-group.is-animating .t-digit { animation: none !important; opacity: 1 !important; filter: blur(0) !important; transform: none !important; }
   .t-success-check { animation: none !important; opacity: 1 !important; transform: none !important; filter: blur(0) !important; }
   .t-success-check svg path { animation: none !important; stroke-dashoffset: 0 !important; }

@@ -129,8 +129,8 @@ export default function ApplicationDetailPage() {
   return (
     <div>
       <button onClick={() => router.push("/dashboard")}
-        className="inline-flex items-center gap-1.5 text-[11px] text-sand-500 hover:text-sand-800 transition-colors mb-4 font-semibold uppercase tracking-wider">
-        <ArrowLeftIcon size={12} /> Back
+        className="group inline-flex items-center gap-1.5 text-[11px] text-sand-500 hover:text-sand-800 transition-colors mb-4 font-semibold uppercase tracking-wider">
+        <span className="t-icon-slide-x is-back inline-flex"><ArrowLeftIcon size={12} /></span> Back
       </button>
 
       {/* Header */}

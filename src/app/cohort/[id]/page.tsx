@@ -169,8 +169,8 @@ export default function CohortPage() {
   return (
     <div className="page-enter">
       <button onClick={() => router.push("/me")}
-        className="flex items-center gap-1.5 text-sm text-sand-500 hover:text-sand-800 transition-colors mb-4">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19L5 12L12 5"/></svg>
+        className="group flex items-center gap-1.5 text-sm text-sand-500 hover:text-sand-800 transition-colors mb-4">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="t-icon-slide-x is-back"><path d="M19 12H5"/><path d="M12 19L5 12L12 5"/></svg>
         Back
       </button>
 
