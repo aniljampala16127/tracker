@@ -79,7 +79,7 @@ export default function MyAppPage() {
 
   if (myApps.length === 0) {
     return (
-      <div className="py-8 hero-glow">
+      <div className="py-8 hero-glow bg-dot-grid">
         <div className="bg-white border border-sand-200 rounded-2xl p-6 sm:p-8 max-w-md mx-auto shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
           <div className="text-center mb-5">
             <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-brand-500/20">

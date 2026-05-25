@@ -123,7 +123,7 @@ export default function LandingPage() {
     return (
       <div className="-mx-4 -mt-6">
         {/* ─── Welcome band ─────────────────────────── */}
-        <section className="hero-glow">
+        <section className="hero-glow bg-dot-grid">
           <div className="max-w-5xl mx-auto px-4 pt-8 pb-6">
             {myEntry ? (
               <div className="flex items-center gap-4 mb-5">
@@ -333,7 +333,7 @@ export default function LandingPage() {
           cards on the right that hint at the actual product. Mobile/sm/md
           stay single-column centered so the small-screen experience is
           unchanged. */}
-      <section className="hero-glow">
+      <section className="hero-glow bg-dot-grid">
         <div className="max-w-5xl mx-auto px-4 pt-14 sm:pt-20 pb-12 sm:pb-16">
           <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 lg:gap-14 items-center">
             {/* ── Left: hero copy + CTAs ── */}

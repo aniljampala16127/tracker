@@ -193,6 +193,43 @@ body {
   letter-spacing: 0.08em;
 }
 
+/* ═════════════════════════════════════════════════════════
+   Subtle background patterns — borrowed from patterncraft.fun
+   Design system normally says no textures, but very low-opacity
+   accents layered behind the hero / celebration surfaces add depth
+   without breaking the calm. Each has a dark-mode variant.
+   ═════════════════════════════════════════════════════════ */
+
+/* Dot grid — 1px sand dots on a 24px grid. Roughly 4% on light bg. */
+.bg-dot-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgba(26,26,24,0.07) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+.dark .bg-dot-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+}
+
+/* Line grid — 32px square cells, faint sand lines */
+.bg-line-grid {
+  background-image:
+    linear-gradient(to right, rgba(26,26,24,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(26,26,24,0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.dark .bg-line-grid {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+}
+
+/* Radial brand spotlight — for celebration surfaces only */
+.bg-brand-spotlight {
+  background-image: radial-gradient(80% 50% at 50% 0%, rgba(45,106,79,0.12), transparent 70%);
+}
+.dark .bg-brand-spotlight {
+  background-image: radial-gradient(80% 50% at 50% 0%, rgba(74,158,120,0.15), transparent 70%);
+}
+
 /* Warm sand/brand corner glow — used behind heroes + welcome bands.
    Almost invisible, adds warmth without drama (per design system). */
 .hero-glow {
