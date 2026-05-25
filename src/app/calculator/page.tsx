@@ -268,15 +268,10 @@ export default function CalculatorPage() {
   // Applicant-action steps chain from their trigger step
   // IRCC-initiated steps measure from AOR
   const STEP_BASE: Record<string, string> = {
-    aor: "submitted",
-    bil: "aor",
-    biometrics_given: "bil",
-    biometrics_done: "biometrics_given",
     // Each step's base = the step that immediately precedes it in the chain.
     // The /me Timeline uses the same chained logic — keeping them in sync so
     // "47d from BIL" on /me means the same thing as "47d from BIL" on
-    // /calculator. Without these entries, intermediate steps were falling
-    // back to the default "aor" and labelling incorrectly.
+    // /calculator.
     aor: "submitted",
     bil: "aor",
     biometrics_given: "bil",
