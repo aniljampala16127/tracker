@@ -280,52 +280,73 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* Cohort filter strip — horizontal scroll of subreddit-style pills */}
-      {cohortCounts.length > 0 && (
-        <CohortFilterStrip
-          cohorts={cohortCounts}
-          selected={selectedCohort}
-          onSelect={setSelectedCohort}
-        />
-      )}
+      {/* xl+ — 2-column with sticky filter rail. Mobile/lg-and-below stay
+          single-column with the original horizontal cohort strip. */}
+      <div className="xl:grid xl:grid-cols-[240px_minmax(0,1fr)] xl:gap-6 xl:items-start">
+        {/* Cohort filter — horizontal strip on mobile, vertical sticky rail on xl+ */}
+        {cohortCounts.length > 0 && (
+          <>
+            {/* Mobile/lg-and-below: horizontal strip */}
+            <div className="xl:hidden">
+              <CohortFilterStrip
+                cohorts={cohortCounts}
+                selected={selectedCohort}
+                onSelect={setSelectedCohort}
+                orientation="horizontal"
+              />
+            </div>
+            {/* xl+: vertical sticky sidebar */}
+            <div className="hidden xl:block xl:sticky xl:top-20">
+              <CohortFilterStrip
+                cohorts={cohortCounts}
+                selected={selectedCohort}
+                onSelect={setSelectedCohort}
+                orientation="vertical"
+              />
+            </div>
+          </>
+        )}
 
-      {/* Flat feed */}
-      {threads.length === 0 ? (
-        <div className="bg-white border border-sand-200 rounded-xl p-8 text-center">
-          <div className="w-12 h-12 rounded-xl bg-sand-100 flex items-center justify-center mx-auto mb-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sand-400"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          </div>
-          <div className="text-sm font-semibold text-sand-700 mb-1">No posts yet</div>
-          <p className="text-xs text-sand-400">Be the first to ask your cohort a question.</p>
+        {/* Feed */}
+        <div className="min-w-0">
+          {threads.length === 0 ? (
+            <div className="bg-white border border-sand-200 rounded-xl p-8 text-center">
+              <div className="w-12 h-12 rounded-xl bg-sand-100 flex items-center justify-center mx-auto mb-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-sand-400"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              </div>
+              <div className="text-sm font-semibold text-sand-700 mb-1">No posts yet</div>
+              <p className="text-xs text-sand-400">Be the first to ask your cohort a question.</p>
+            </div>
+          ) : visibleThreads.length === 0 ? (
+            <div className="bg-white border border-sand-200 rounded-xl p-6 text-center">
+              <p className="text-[13px] text-sand-500 mb-2">
+                No posts in <span className="font-bold text-sand-700">r/{selectedCohort ? cohortSlug(selectedCohort) : ""}</span> yet.
+              </p>
+              <button
+                onClick={() => setSelectedCohort("")}
+                className="text-[12px] text-brand-600 font-semibold hover:text-brand-700"
+              >
+                Show all cohorts <span aria-hidden>→</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {visibleThreads.map(t => (
+                <ThreadCard
+                  key={t.root.id}
+                  thread={t}
+                  myPinHash={myPinHash}
+                  onRefresh={fetchData}
+                  lastSeen={lastSeen}
+                  onCohortClick={setSelectedCohort}
+                  isOpen={openThreadId === t.root.id}
+                  onToggle={() => setOpenThreadId(prev => prev === t.root.id ? null : t.root.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      ) : visibleThreads.length === 0 ? (
-        <div className="bg-white border border-sand-200 rounded-xl p-6 text-center">
-          <p className="text-[13px] text-sand-500 mb-2">
-            No posts in <span className="font-bold text-sand-700">r/{selectedCohort ? cohortSlug(selectedCohort) : ""}</span> yet.
-          </p>
-          <button
-            onClick={() => setSelectedCohort("")}
-            className="text-[12px] text-brand-600 font-semibold hover:text-brand-700"
-          >
-            Show all cohorts <span aria-hidden>→</span>
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-2.5">
-          {visibleThreads.map(t => (
-            <ThreadCard
-              key={t.root.id}
-              thread={t}
-              myPinHash={myPinHash}
-              onRefresh={fetchData}
-              lastSeen={lastSeen}
-              onCohortClick={setSelectedCohort}
-              isOpen={openThreadId === t.root.id}
-              onToggle={() => setOpenThreadId(prev => prev === t.root.id ? null : t.root.id)}
-            />
-          ))}
-        </div>
-      )}
+      </div>
 
       {!myPinHash && threads.length > 0 && (
         <p className="text-[10px] text-sand-400 italic text-center mt-4">Add your application to join the conversation.</p>
@@ -501,12 +522,61 @@ function PostToCohortChip({
 }
 
 /** Horizontal cohort filter strip — "All" + each cohort pill with count. */
-function CohortFilterStrip({ cohorts, selected, onSelect }: {
+function CohortFilterStrip({ cohorts, selected, onSelect, orientation = "horizontal" }: {
   cohorts: [string, number][];
   selected: string;
   onSelect: (key: string) => void;
+  orientation?: "horizontal" | "vertical";
 }) {
   const total = cohorts.reduce((s, [, n]) => s + n, 0);
+  const isVertical = orientation === "vertical";
+
+  if (isVertical) {
+    // Sidebar mode for xl+. Eyebrow header + stacked rows that fill the rail.
+    return (
+      <div className="bg-white border border-sand-200 rounded-2xl p-3">
+        <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2 px-1">Filter by cohort</p>
+        <div className="flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => onSelect("")}
+            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors ${
+              selected === ""
+                ? "bg-brand-500 text-white shadow-[0_2px_6px_rgba(45,106,79,0.25)]"
+                : "text-sand-700 hover:bg-sand-50"
+            }`}
+          >
+            <span>All cohorts</span>
+            <span className={`text-[10px] font-bold nums-tabular px-1.5 py-0.5 rounded-full ${
+              selected === "" ? "bg-white/20 text-white" : "bg-sand-100 text-sand-500"
+            }`}>{total}</span>
+          </button>
+          {cohorts.map(([key, count]) => {
+            const active = selected === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onSelect(key)}
+                className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors ${
+                  active
+                    ? "bg-brand-500 text-white shadow-[0_2px_6px_rgba(45,106,79,0.25)]"
+                    : "text-sand-700 hover:bg-sand-50"
+                }`}
+              >
+                <span className="truncate"><span className="opacity-70">r/</span>{cohortSlug(key)}</span>
+                <span className={`text-[10px] font-bold nums-tabular px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                  active ? "bg-white/20 text-white" : "bg-sand-100 text-sand-500"
+                }`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Horizontal strip — default, for mobile/lg-and-below.
   return (
     <div className="mb-4 -mx-1 px-1">
       <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1">

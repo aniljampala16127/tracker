@@ -212,13 +212,15 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {/* AOR Progress */}
-      <CollapsibleSection title="AOR Progress" subtitle="Which submission dates are getting AOR">
-        <AORProgress apps={apps} />
-      </CollapsibleSection>
+      {/* AOR Progress + Country Breakdown — sit side-by-side on xl+,
+          stack on smaller screens. */}
+      <div className="xl:grid xl:grid-cols-2 xl:gap-4 xl:items-start">
+        <CollapsibleSection title="AOR Progress" subtitle="Which submission dates are getting AOR">
+          <AORProgress apps={apps} />
+        </CollapsibleSection>
 
-      {/* Country Breakdown */}
-      <CountryBreakdown apps={apps} />
+        <CountryBreakdown apps={apps} />
+      </div>
 
       {/* Community per-step averages */}
       <CollapsibleSection title="Community Average: Days per Step" subtitle="Based on community-reported data">
@@ -279,7 +281,9 @@ export default function StatsPage() {
         </div>
       </CollapsibleSection>
 
-      {/* Monthly Cohort Comparison */}
+      {/* Monthly Cohort Comparison + Processing Speed Trend — paired in
+          2-col on xl+. Both are charts of similar height. */}
+      <div className="xl:grid xl:grid-cols-2 xl:gap-4 xl:items-start">
       <CollapsibleSection title="Monthly Cohort Comparison" subtitle="Avg days to AOR by submission month">
         {cohortChartData.some(d => d.outlandAvg != null || d.inlandAvg != null) ? (
           <ResponsiveContainer width="100%" height={240}>
@@ -372,6 +376,7 @@ export default function StatsPage() {
           );
         })()}
       </CollapsibleSection>
+      </div>
 
       {/* Cohort summary cards — horizontal scroll */}
       <CollapsibleSection title="Monthly Cohorts" subtitle={`${Object.keys(monthCohorts).length} months tracked`}>

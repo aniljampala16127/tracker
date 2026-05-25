@@ -483,79 +483,81 @@ function MyAppCard({ app, allApps, onRefresh }: { app: Application; allApps: App
         </button>
       </div>
 
-      {activeTab === "timeline" && <>
-      {/* 2. Timeline — always visible, below edit if open */}
-      <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
-        latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
-        stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
-        handleUndoStep={handleUndoStep} handleEditStep={handleEditStep}
-        editingStep={editingStep} setEditingStep={setEditingStep} editDate={editDate} setEditDate={setEditDate}
-        saving={saving} undoing={undoing} visibleSteps={visibleSteps}
-        expanded={timelineExpanded} setExpanded={(v: boolean) => { setTimelineExpanded(v); if (v) setEditing(false); }} />
+      {activeTab === "timeline" && (
+        // 2-column on xl+ — Timeline takes the main column, side widgets
+        // (estimate, queue, cohort) stack on the right. Mobile/lg-and-below
+        // stay single-column as before so nothing reflows on narrow screens.
+        <div className="xl:grid xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] xl:gap-5 xl:items-start">
+          <div>
+            <TimelineSection app={app} stepsMap={stepsMap} currentIdx={currentIdx} nextStepId={nextStepId}
+              latestCompletedId={latestCompletedId} activeStep={activeStep} setActiveStep={setActiveStep}
+              stepDate={stepDate} setStepDate={setStepDate} handleSaveStep={handleSaveStep}
+              handleUndoStep={handleUndoStep} handleEditStep={handleEditStep}
+              editingStep={editingStep} setEditingStep={setEditingStep} editDate={editDate} setEditDate={setEditDate}
+              saving={saving} undoing={undoing} visibleSteps={visibleSteps}
+              expanded={timelineExpanded} setExpanded={(v: boolean) => { setTimelineExpanded(v); if (v) setEditing(false); }} />
+          </div>
 
-      {/* 3. Next Step Estimate — works for ALL steps */}
-      <NextStepEstimate app={app} allApps={allApps} />
+          <div className="xl:sticky xl:top-20">
+            <NextStepEstimate app={app} allApps={allApps} />
+            <PositionRunway app={app} allApps={allApps} />
 
-      {/* 3. Queue Position */}
-      <PositionRunway app={app} allApps={allApps} />
+            {submittedDate && (() => {
+              const subDate = new Date(submittedDate + "T00:00:00");
+              const day = subDate.getDay();
+              const weekStart = new Date(subDate);
+              weekStart.setDate(weekStart.getDate() - day);
+              const weekEnd = new Date(weekStart);
+              weekEnd.setDate(weekEnd.getDate() + 6);
+              const sameWeek = allApps.filter(a => {
+                if (a.id === app.id) return false;
+                const s = buildStepsMap(a.step_events || []);
+                if (!s.submitted) return false;
+                const d = new Date(s.submitted + "T00:00:00");
+                return d >= weekStart && d <= weekEnd;
+              });
+              const withAor = sameWeek.filter(a => a.step_events?.some(e => e.step_id === "aor"));
+              if (sameWeek.length === 0) return null;
+              return (
+                <a
+                  href={`/cohort/${app.id}`}
+                  className="block bg-white border border-sand-200 rounded-xl px-3.5 py-3 mb-3 hover:border-brand-300 hover:shadow-[0_4px_12px_rgba(26,26,24,0.06)] transition-all active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center flex-shrink-0">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21"/><circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21V19C23 17.5 22 16.2 20.6 15.8"/><path d="M16.5 3.1C17.9 3.6 19 5 19 6.5C19 8 17.9 9.4 16.5 9.9"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em]">Your submission week</p>
+                      <p className="text-sm font-bold text-sand-900 truncate">
+                        <span className="nums-tabular">{sameWeek.length}</span> {sameWeek.length === 1 ? "other" : "others"} submitted the same week
+                      </p>
+                      <p className="text-[10px] text-sand-400 truncate nums-tabular">
+                        {withAor.length > 0 ? <><span className="font-semibold text-brand-600">{withAor.length}</span> have AOR</> : "None have AOR yet"}
+                        {" · "}
+                        {sameWeek.slice(0, 4).map(a => a.initials).join(", ")}{sameWeek.length > 4 ? "…" : ""}
+                      </p>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-sand-300">
+                      <path d="M9 18L15 12L9 6"/>
+                    </svg>
+                  </div>
+                </a>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
-      {/* 3.5 Submission Week Cohort */}
-      {submittedDate && (() => {
-        const subDate = new Date(submittedDate + "T00:00:00");
-        const day = subDate.getDay();
-        const weekStart = new Date(subDate);
-        weekStart.setDate(weekStart.getDate() - day);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        const sameWeek = allApps.filter(a => {
-          if (a.id === app.id) return false;
-          const s = buildStepsMap(a.step_events || []);
-          if (!s.submitted) return false;
-          const d = new Date(s.submitted + "T00:00:00");
-          return d >= weekStart && d <= weekEnd;
-        });
-        const withAor = sameWeek.filter(a => a.step_events?.some(e => e.step_id === "aor"));
-        if (sameWeek.length === 0) return null;
-        return (
-          <a
-            href={`/cohort/${app.id}`}
-            className="block bg-white border border-sand-200 rounded-xl px-3.5 py-3 mb-3 hover:border-brand-300 hover:shadow-[0_4px_12px_rgba(26,26,24,0.06)] transition-all active:scale-[0.99]"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center flex-shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21"/><circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21V19C23 17.5 22 16.2 20.6 15.8"/><path d="M16.5 3.1C17.9 3.6 19 5 19 6.5C19 8 17.9 9.4 16.5 9.9"/>
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em]">Your submission week</p>
-                <p className="text-sm font-bold text-sand-900 truncate">
-                  <span className="nums-tabular">{sameWeek.length}</span> {sameWeek.length === 1 ? "other" : "others"} submitted the same week
-                </p>
-                <p className="text-[10px] text-sand-400 truncate nums-tabular">
-                  {withAor.length > 0 ? <><span className="font-semibold text-brand-600">{withAor.length}</span> have AOR</> : "None have AOR yet"}
-                  {" · "}
-                  {sameWeek.slice(0, 4).map(a => a.initials).join(", ")}{sameWeek.length > 4 ? "…" : ""}
-                </p>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-sand-300">
-                <path d="M9 18L15 12L9 6"/>
-              </svg>
-            </div>
-          </a>
-        );
-      })()}
-
-      </>}
-
-      {activeTab === "resources" && <>
-        {/* Visitor Visa Documentation Guide */}
-        <VisitorVisaChecklist />
-
-        {/* Find a Representative */}
-        <FindRepresentativeCard />
-      </>}
+      {activeTab === "resources" && (
+        <div className="xl:grid xl:grid-cols-2 xl:gap-4 xl:items-start">
+          <VisitorVisaChecklist />
+          <FindRepresentativeCard />
+        </div>
+      )}
 
       {/* Support card — always pinned at the bottom, regardless of tab */}
       <SupportCard isIndian={app.country_origin === "India"} />
