@@ -434,7 +434,7 @@ export function Nav() {
   return (
     <>
       <header className="bg-white/85 backdrop-blur-md border-b border-sand-200 sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+        <div className="max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto px-4 sm:px-6 xl:px-8 h-14 flex items-center justify-between gap-3">
           <Link href="/dashboard" className="flex items-center gap-2 group">
             <BrandMark />
             <span className="font-bold text-[15px] tracking-tight text-sand-900 group-hover:text-brand-600 transition-colors">

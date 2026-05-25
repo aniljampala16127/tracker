@@ -58,7 +58,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <main className="max-w-5xl mx-auto px-4 py-6">
+      {/* Widened content on xl+ screens. Mobile/sm/md stay max-w-5xl
+          so existing layouts don't shift. xl bumps to 1152px, 2xl to
+          1280px — uses horizontal space without making text lines too
+          long for comfortable reading. */}
+      <main className="max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto px-4 sm:px-6 xl:px-8 py-6">
         <PageTransition>{children}</PageTransition>
       </main>
       <Toaster />
