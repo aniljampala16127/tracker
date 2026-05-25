@@ -157,7 +157,15 @@ export function cn(...classes: (string | boolean | undefined | null)[]): string 
   return classes.filter(Boolean).join(" ");
 }
 
-// Quebec-aware outlier threshold: Quebec takes much longer (2+ years total)
+// Quebec-aware outlier threshold for community-average computations.
+//
+// Non-Quebec was previously 100 days, which silently dropped valid AOR
+// samples (Outland AOR commonly lands at 90–120 days). /me's
+// NextStepEstimate already used 200, so /calculator and /stats reported
+// lower averages than /me — confusing users.
+//
+// Aligned to 200 days everywhere so the three surfaces agree.
+// Quebec stays at 900 (2+ years for the slowest steps).
 export function getOutlierMax(province?: string): number {
-  return province === "Quebec" ? 900 : 100;
+  return province === "Quebec" ? 900 : 200;
 }

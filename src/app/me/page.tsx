@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Application, StepId, StepDefinition } from "@/lib/types";
 import { STEPS, getStepIndex, getVisibleSteps } from "@/lib/constants";
-import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
+import { formatDate, daysBetween, buildStepsMap, getOutlierMax } from "@/lib/utils";
 import { getSavedPinHash, hashPin, removeSavedPin, savePinForApp } from "@/lib/pin";
 import { toast } from "@/lib/toast";
 import { Confetti } from "@/components/Confetti";
@@ -789,7 +789,9 @@ function NextStepEstimate({ app, allApps }: { app: Application; allApps: Applica
       if (!communityBase) return;
 
       const d = daysBetween(communityBase, s[nextStep.id]!);
-      if (d >= 0 && d <= 200) durations.push(d);
+      // Use the shared outlier cap so /me, /calculator, and /stats all
+      // sample the same data window (200 days non-Quebec, 900 Quebec).
+      if (d >= 0 && d <= getOutlierMax(a.province)) durations.push(d);
     });
 
     if (durations.length < 1) return null;
