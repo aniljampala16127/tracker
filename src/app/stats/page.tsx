@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, Cell, LineChart, Line,
@@ -68,6 +69,7 @@ interface StepReporter {
 }
 
 export default function StatsPage() {
+  const router = useRouter();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   // When non-null, show a modal listing the reporters for that step.
@@ -495,16 +497,20 @@ export default function StatsPage() {
             </div>
             <div className="max-h-[55vh] overflow-y-auto -mr-2 pr-2">
               {reportersModal.reporters.map((r, i) => (
-                <div
+                <button
                   key={`${r.appId}-${i}`}
-                  className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-sand-50 transition-colors border-b border-sand-50/80 last:border-b-0"
+                  onClick={() => {
+                    setReportersModal(null);
+                    router.push(`/dashboard/${r.appId}`);
+                  }}
+                  className="w-full text-left flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-sand-50 active:bg-sand-100 transition-colors border-b border-sand-50/80 last:border-b-0 group"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-sand-100 flex items-center justify-center text-[10px] font-bold text-sand-700 shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-sand-100 group-hover:bg-brand-500/12 group-hover:text-brand-700 flex items-center justify-center text-[10px] font-bold text-sand-700 shrink-0 transition-colors">
                       {r.initials}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[12px] font-semibold text-sand-900 truncate">{r.country}</div>
+                      <div className="text-[12px] font-semibold text-sand-900 truncate group-hover:text-brand-700 transition-colors">{r.country}</div>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded ${
                           r.stream === "Outland" ? "bg-brand-500/12 text-brand-700" : "bg-warn/15 text-warn-dark"
@@ -517,10 +523,15 @@ export default function StatsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-[14px] font-bold text-sand-900 nums-tabular shrink-0">
-                    {r.days}<span className="text-[10px] font-normal text-sand-400 ml-0.5">d</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="text-[14px] font-bold text-sand-900 nums-tabular">
+                      {r.days}<span className="text-[10px] font-normal text-sand-400 ml-0.5">d</span>
+                    </div>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sand-300 group-hover:text-brand-500 t-icon-slide-x opacity-60 group-hover:opacity-100 transition-all">
+                      <path d="M9 18L15 12L9 6"/>
+                    </svg>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
             {reportersModal.reporters.length === 0 && (

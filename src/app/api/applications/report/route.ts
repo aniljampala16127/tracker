@@ -22,10 +22,8 @@ function getSupabase() {
  * Anti-abuse:
  *  - unique(application_id, reporter_pin_hash) at the DB level prevents the
  *    same user from inflating their own vote.
- *  - The client gates this button behind the "AOR ≤1 day after submission"
- *    suspicious-pattern check, so this isn't a generic destroy button.
- *  - Server-side double-check: rejects if the application has no step_events
- *    or doesn't actually match the suspicious pattern.
+ *  - Reporter must have a PIN (so anonymous one-shot reporters can't pile on).
+ *  - Self-report is rejected.
  */
 export async function POST(request: Request) {
   const supabase = getSupabase();
@@ -40,10 +38,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing application_id or reporter_pin_hash" }, { status: 400 });
   }
 
-  // Pull the app + step events to enforce the suspicious-pattern guard.
+  // Pull the app to verify it exists and to enforce self-report block.
   const { data: app, error: appErr } = await supabase
     .from("applications")
-    .select("id, pin_hash, step_events(step_id, event_date)")
+    .select("id, pin_hash")
     .eq("id", application_id)
     .single();
 
@@ -54,20 +52,6 @@ export async function POST(request: Request) {
   // Can't report your own entry.
   if (app.pin_hash && app.pin_hash === reporter_pin_hash) {
     return NextResponse.json({ error: "Cannot report your own entry" }, { status: 400 });
-  }
-
-  // Enforce the suspicious pattern: AOR step exists and event_date is within
-  // 1 day of submitted event_date.
-  const events = (app.step_events || []) as { step_id: string; event_date: string }[];
-  const sub = events.find(e => e.step_id === "submitted")?.event_date;
-  const aor = events.find(e => e.step_id === "aor")?.event_date;
-  if (!sub || !aor) {
-    return NextResponse.json({ error: "Application not eligible for spam report" }, { status: 400 });
-  }
-  const dayMs = 86400_000;
-  const gapDays = Math.abs(new Date(aor + "T00:00:00").getTime() - new Date(sub + "T00:00:00").getTime()) / dayMs;
-  if (gapDays > 1) {
-    return NextResponse.json({ error: "Application not eligible for spam report" }, { status: 400 });
   }
 
   // Insert the report. unique(application_id, reporter_pin_hash) means a

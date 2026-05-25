@@ -54,6 +54,18 @@ export function getSavedPinHash(appId: string): string | null {
   return getPinStore()[appId] || null;
 }
 
+/**
+ * Get *any* PIN hash this device has claimed — used as a reporter identity
+ * when the user reports someone else's entry (they don't own the target
+ * entry's PIN, but we still need to identify them for unique-vote counting).
+ * Returns null if the device has never claimed an entry.
+ */
+export function getAnyOwnedPinHash(): string | null {
+  const store = getPinStore();
+  const values = Object.values(store);
+  return values.length > 0 ? values[0] : null;
+}
+
 /** Remove saved PIN (after deletion). */
 export function removeSavedPin(appId: string) {
   const store = getPinStore();

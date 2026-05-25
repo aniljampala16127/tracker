@@ -7,13 +7,13 @@ import { STEPS, getStepIndex, getNextStep } from "@/lib/constants";
 import {
   formatDate, progressPercent, daysBetween, buildStepsMap, estimateCompletion,
 } from "@/lib/utils";
-import { getSavedPinHash, removeSavedPin } from "@/lib/pin";
+import { getSavedPinHash, removeSavedPin, getAnyOwnedPinHash } from "@/lib/pin";
 import { toast } from "@/lib/toast";
 import { StepTimeline } from "@/components/StepTimeline";
 import { PinModal } from "@/components/PinModal";
 import { ClaimPinModal } from "@/components/ClaimPinModal";
 import { ArrowLeftIcon, TrashIcon, ClockIcon } from "@/components/icons";
-import { Button, Avatar, Card } from "@/components/ui";
+import { Button, Avatar, Card, Modal } from "@/components/ui";
 import { playMilestoneSound, playSound } from "@/lib/sounds";
 import { DetailSkeleton } from "@/components/Skeletons";
 
@@ -28,6 +28,10 @@ export default function ApplicationDetailPage() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<"delete" | StepId | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const [alreadyReported, setAlreadyReported] = useState(false);
 
   const fetchApp = useCallback(async () => {
     const res = await fetch("/api/applications");
@@ -102,6 +106,44 @@ export default function ApplicationDetailPage() {
     router.push("/dashboard");
   };
 
+  const submitReport = async () => {
+    if (!app) return;
+    const reporterPinHash = getAnyOwnedPinHash();
+    if (!reporterPinHash) {
+      toast.error("Claim an entry first so we can verify the report");
+      return;
+    }
+    if (app.pin_hash && app.pin_hash === reporterPinHash) {
+      toast.error("You can't report your own entry");
+      return;
+    }
+    setReporting(true);
+    const res = await fetch("/api/applications/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        application_id: app.id,
+        reporter_pin_hash: reporterPinHash,
+        reason: reportReason.trim() || undefined,
+      }),
+    });
+    setReporting(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(data.error || "Could not submit report");
+      return;
+    }
+    setShowReportModal(false);
+    setReportReason("");
+    setAlreadyReported(true);
+    if (data.deleted) {
+      toast.success(`Entry removed — ${data.count} reports`);
+      router.push("/dashboard");
+    } else {
+      toast.success(`Report received · ${data.count}/${data.threshold || 2}`);
+    }
+  };
+
   if (loading) return <DetailSkeleton />;
 
   if (!app) {
@@ -162,9 +204,22 @@ export default function ApplicationDetailPage() {
               {app.notes && <p className="text-[11px] text-sand-400 italic mt-1">{app.notes}</p>}
             </div>
           </div>
-          <Button variant="danger" size="sm" onClick={() => requirePin("delete")} disabled={deleting}>
-            <TrashIcon size={13} /> Remove
-          </Button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => setShowReportModal(true)}
+              disabled={alreadyReported}
+              title={alreadyReported ? "You've already reported this entry" : "Report this entry"}
+              className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-sand-500 hover:text-error hover:bg-error/10 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-sand-500 disabled:cursor-not-allowed"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 22V4"/><path d="M4 4l13 0 -3 5 3 5 -13 0"/>
+              </svg>
+              <span className="hidden sm:inline">{alreadyReported ? "Reported" : "Report"}</span>
+            </button>
+            <Button variant="danger" size="sm" onClick={() => requirePin("delete")} disabled={deleting}>
+              <TrashIcon size={13} /> Remove
+            </Button>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <StepTimeline currentStep={app.current_step} stepsCompleted={stepsMap} />
@@ -277,6 +332,54 @@ export default function ApplicationDetailPage() {
           onClose={() => { setShowPinModal(false); setPendingAction(null); }}
           expectedHash={app.pin_hash} appId={app.id} onVerified={onPinVerified} />
       )}
+
+      {/* Report Modal */}
+      <Modal
+        open={showReportModal}
+        onClose={() => { setShowReportModal(false); setReportReason(""); }}
+        title="Report this entry"
+      >
+        <div className="space-y-4">
+          <div className="bg-warn/10 border border-warn/30 rounded-lg p-3">
+            <p className="text-[12px] text-sand-700 leading-relaxed">
+              Flag this entry if it looks fake, abusive, or impossible (e.g. AOR
+              the same day as submission). <strong>2 reports from different
+              users will auto-remove it.</strong>
+            </p>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] block mb-1.5">
+              Reason <span className="text-sand-400 font-normal normal-case tracking-normal">(optional)</span>
+            </label>
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value.slice(0, 200))}
+              placeholder="e.g. AOR same day as submission — impossible"
+              rows={3}
+              className="w-full text-[13px] px-3 py-2 rounded-lg border border-sand-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors resize-none"
+            />
+            <p className="text-[10px] text-sand-400 mt-1 nums-tabular text-right">{reportReason.length}/200</p>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setShowReportModal(false); setReportReason(""); }}
+              disabled={reporting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={submitReport}
+              disabled={reporting}
+            >
+              {reporting ? "Submitting…" : "Submit report"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Claim Modal */}
       {showClaimModal && !app.pin_hash && (
