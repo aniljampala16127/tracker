@@ -97,6 +97,14 @@ export default function DashboardPage() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [searchQuery, setSearchQuery] = useState("");
   const [showStale, setShowStale] = useState(false);
+  // Table density — power-user knob, persisted in localStorage.
+  const [density, setDensity] = useState<"compact" | "comfortable">(() => {
+    if (typeof window === "undefined") return "comfortable";
+    return (localStorage.getItem("sponsortrack-density") as "compact" | "comfortable") || "comfortable";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("sponsortrack-density", density);
+  }, [density]);
   const [celebrateApp, setCelebrateApp] = useState<Application | null>(null);
   const [celebratePin, setCelebratePin] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
@@ -525,34 +533,93 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
         </div>
       )}
 
-      {/* Filters */}
-      {apps.length > 0 && (
-        <FilterBar
-          filters={filters}
-          onChange={setFilters}
-          availableCountries={availableCountries}
-        />
-      )}
+      {/* xl+ 2-column area — Filters / Stale / Density live in a sticky
+          left sidebar; main column holds search + month pills + table.
+          Mobile/lg-and-below show filters inline as before. */}
+      <div className="xl:grid xl:grid-cols-[240px_minmax(0,1fr)] xl:gap-6 xl:items-start">
 
-      {/* Stale entries toggle — only show when we have enough data to detect them */}
-      {staleCount > 0 && (
-        <div className="flex items-center justify-between gap-2 mb-3 -mt-1">
-          <p className="text-[11px] text-sand-500 nums-tabular">
-            <span className="font-bold text-sand-700">{staleCount}</span> entries past <span className="nums-tabular font-medium">{avgAorDays! * 2}d</span> without AOR
-            {!showStale && <span className="text-sand-400"> · hidden</span>}
-          </p>
-          <button
-            onClick={() => setShowStale(v => !v)}
-            className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors ${
-              showStale
-                ? "bg-warn/15 text-warn-dark hover:bg-warn/25"
-                : "bg-white border border-sand-200 text-sand-600 hover:border-brand-300 hover:text-brand-700"
-            }`}
-          >
-            {showStale ? "Hide stale" : "Show stale"}
-          </button>
-        </div>
-      )}
+        {/* ── xl+ sidebar ────────────────────────────── */}
+        {apps.length > 0 && (
+          <aside className="hidden xl:flex xl:flex-col xl:gap-3 xl:sticky xl:top-20">
+            <FilterBar
+              filters={filters}
+              onChange={setFilters}
+              availableCountries={availableCountries}
+              orientation="vertical"
+            />
+
+            {/* Density toggle — table row padding */}
+            <div className="bg-white border border-sand-200 rounded-2xl p-3">
+              <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2 px-1">Density</p>
+              <div className="flex gap-1 p-1 rounded-lg bg-sand-100 border border-sand-200">
+                <button
+                  onClick={() => setDensity("compact")}
+                  className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${
+                    density === "compact" ? "bg-brand-500 text-white shadow-sm" : "text-sand-600 hover:text-sand-900"
+                  }`}
+                >Compact</button>
+                <button
+                  onClick={() => setDensity("comfortable")}
+                  className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${
+                    density === "comfortable" ? "bg-brand-500 text-white shadow-sm" : "text-sand-600 hover:text-sand-900"
+                  }`}
+                >Comfy</button>
+              </div>
+            </div>
+
+            {/* Stale toggle */}
+            {staleCount > 0 && (
+              <div className="bg-white border border-sand-200 rounded-2xl p-3">
+                <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-2 px-1">Stale entries</p>
+                <p className="text-[11px] text-sand-500 mb-2 px-1 nums-tabular">
+                  <span className="font-bold text-sand-700">{staleCount}</span> past <span className="font-medium">{avgAorDays! * 2}d</span> without AOR
+                </p>
+                <button
+                  onClick={() => setShowStale(v => !v)}
+                  className={`w-full text-[10px] font-bold uppercase tracking-wider py-1.5 rounded-md transition-colors ${
+                    showStale
+                      ? "bg-warn/15 text-warn-dark hover:bg-warn/25"
+                      : "bg-sand-100 text-sand-600 hover:bg-sand-200"
+                  }`}
+                >
+                  {showStale ? "Hide stale" : "Show stale"}
+                </button>
+              </div>
+            )}
+          </aside>
+        )}
+
+        {/* ── Mobile/lg-and-below: inline filters ─────── */}
+        {apps.length > 0 && (
+          <div className="xl:hidden">
+            <FilterBar
+              filters={filters}
+              onChange={setFilters}
+              availableCountries={availableCountries}
+            />
+            {staleCount > 0 && (
+              <div className="flex items-center justify-between gap-2 mb-3 -mt-1">
+                <p className="text-[11px] text-sand-500 nums-tabular">
+                  <span className="font-bold text-sand-700">{staleCount}</span> entries past <span className="nums-tabular font-medium">{avgAorDays! * 2}d</span> without AOR
+                  {!showStale && <span className="text-sand-400"> · hidden</span>}
+                </p>
+                <button
+                  onClick={() => setShowStale(v => !v)}
+                  className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors ${
+                    showStale
+                      ? "bg-warn/15 text-warn-dark hover:bg-warn/25"
+                      : "bg-white border border-sand-200 text-sand-600 hover:border-brand-300 hover:text-brand-700"
+                  }`}
+                >
+                  {showStale ? "Hide stale" : "Show stale"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Main column ─────────────────────────────── */}
+        <div className="min-w-0">
 
       {/* Bar Chart — collapsible */}
       {/* Average Days per Step — moved to Stats tab */}
@@ -797,7 +864,7 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
 
             {/* Desktop table */}
             <div className="hidden sm:block border-t border-sand-100 overflow-auto max-h-[70vh]">
-                <table className="w-full text-sm nums-tabular">
+                <table className="w-full text-sm nums-tabular" data-density={density}>
                   <thead className="sticky top-0 z-20 bg-sand-50 shadow-[0_1px_0_var(--sand-200)]">
                     <tr className="bg-sand-50 text-[9px] font-bold text-sand-500 uppercase tracking-[0.06em]">
                       <th className="text-left px-3 py-2.5 sticky left-0 bg-sand-50 z-30 border-r border-sand-200">Name</th>
@@ -1012,6 +1079,8 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
       <p className="text-[9px] text-sand-400 mt-3 text-center">
         Click any row to update steps · PIN required to edit · Unclaimed entries can be claimed
       </p>
+        </div>{/* end main column */}
+      </div>{/* end xl+ grid wrapper */}
 
       <IntentModal
         open={showIntent}

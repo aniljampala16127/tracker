@@ -272,6 +272,16 @@ body {
 .row-divide > * + * { border-top: 1px solid var(--sand-100); }
 .dark .row-divide > * + * { border-top-color: var(--sand-200); }
 
+/* Table density toggle — driven by data-density on the <table>.
+   Compact = 6px vertical padding (was 10px from Tailwind py-2.5).
+   Comfortable = unchanged (the default). */
+table[data-density="compact"] thead th,
+table[data-density="compact"] tbody td,
+table[data-density="compact"] tfoot td {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
 /* Hashed-hue avatar — author identity via stable color.
    Uses --avatar-hue (0–360) supplied inline. Lightness adapts to theme. */
 .avatar-hashed {
