@@ -3,6 +3,7 @@ import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { ClientLayout } from "@/components/ClientLayout";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
+import { SupportLink } from "@/components/SupportLink";
 
 export const metadata: Metadata = {
   title: "SponsorTrack — Canada Spousal Sponsorship Tracker | Real IRCC Processing Times",
@@ -119,10 +120,7 @@ export default function RootLayout({
           <footer className="border-t border-sand-200 sm:pb-0" style={{ paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
             <div className="max-w-5xl mx-auto px-4 py-4 text-center text-[10px] text-sand-400">
               <div>SponsorTrack · Not affiliated with IRCC · Community-reported data</div>
-              <a href="https://buymeacoffee.com/aniljampala" target="_blank" rel="noopener noreferrer"
-                className="inline-block mt-1.5 text-sand-400 hover:text-brand-600 transition-colors">
-                Support this project
-              </a>
+              <SupportLink />
             </div>
           </footer>
         </div>

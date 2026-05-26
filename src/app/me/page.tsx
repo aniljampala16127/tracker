@@ -48,6 +48,11 @@ export default function MyAppPage() {
       setApps(all);
       const mine = all.filter(a => a.pin_hash && getSavedPinHash(a.id) === a.pin_hash);
       setMyApps(mine);
+      // Remember the user's country so the global footer can hide the BMC
+      // link for India users (UPI/INR friction).
+      if (mine[0]?.country_origin) {
+        try { localStorage.setItem("sponsortrack-user-country", mine[0].country_origin); } catch {}
+      }
     }
     setLoading(false);
   }, []);

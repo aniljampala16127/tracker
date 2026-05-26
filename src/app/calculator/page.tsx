@@ -162,6 +162,7 @@ export default function CalculatorPage() {
         setCountry(myEntry.country_origin);
         setMyStepsMap(s);
         setAutoDetected(true);
+        try { localStorage.setItem("sponsortrack-user-country", myEntry.country_origin); } catch {}
       }
     }
   }, [apps, autoDetected]);
