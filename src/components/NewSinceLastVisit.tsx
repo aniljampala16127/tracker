@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Application } from "@/lib/types";
 import { STEPS } from "@/lib/constants";
 import { buildStepsMap } from "@/lib/utils";
+import { Modal } from "@/components/ui";
 
 const LAST_VISIT_KEY = "sponsortrack-last-visit";
 
@@ -16,13 +18,27 @@ function setLastVisit() {
   localStorage.setItem(LAST_VISIT_KEY, Date.now().toString());
 }
 
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return "—";
+  const parsed = new Date(d + "T00:00:00");
+  return parsed.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 interface NewSinceLastVisitProps {
   apps: Application[];
 }
 
+type AorRow = { appId: string; initials: string; country: string; submittedDate: string; aorDate: string };
+type MilestoneRow = { appId: string; initials: string; country: string; submittedDate: string; step: string; stepId: string; eventDate: string };
+type EntryRow = { appId: string; initials: string; country: string; submittedDate: string; createdAt: string };
+
+type ModalKind = "aor" | "milestone" | "entry";
+
 export function NewSinceLastVisit({ apps }: NewSinceLastVisitProps) {
+  const router = useRouter();
   const [lastVisit, setLV] = useState(0);
   const [dismissed, setDismissed] = useState(false);
+  const [openKind, setOpenKind] = useState<ModalKind | null>(null);
 
   useEffect(() => {
     const lv = getLastVisit();
@@ -35,32 +51,56 @@ export function NewSinceLastVisit({ apps }: NewSinceLastVisitProps) {
   const updates = useMemo(() => {
     if (!lastVisit || lastVisit === 0) return null;
 
-    // New AORs since last visit
-    const newAors: string[] = [];
-    const newEntries: string[] = [];
-    const milestones: { initials: string; step: string }[] = [];
+    const newAors: AorRow[] = [];
+    const newEntries: EntryRow[] = [];
+    const milestones: MilestoneRow[] = [];
 
     apps.forEach(a => {
-      // New entries
+      const s = buildStepsMap(a.step_events || []);
+      const submitted = s.submitted || "";
+
       if (new Date(a.created_at).getTime() > lastVisit) {
-        newEntries.push(a.initials);
+        newEntries.push({
+          appId: a.id,
+          initials: a.initials,
+          country: a.country_origin,
+          submittedDate: submitted,
+          createdAt: a.created_at,
+        });
       }
 
-      // Step milestones
       (a.step_events || []).forEach(e => {
         if (e.step_id === "submitted") return;
-        if (new Date(e.created_at).getTime() > lastVisit) {
-          if (e.step_id === "aor") {
-            newAors.push(a.initials);
-          } else {
-            const label = STEPS.find(s => s.id === e.step_id)?.label || e.step_id;
-            milestones.push({ initials: a.initials, step: label });
-          }
+        if (new Date(e.created_at).getTime() <= lastVisit) return;
+        if (e.step_id === "aor") {
+          newAors.push({
+            appId: a.id,
+            initials: a.initials,
+            country: a.country_origin,
+            submittedDate: submitted,
+            aorDate: e.event_date,
+          });
+        } else {
+          const label = STEPS.find(s => s.id === e.step_id)?.label || e.step_id;
+          milestones.push({
+            appId: a.id,
+            initials: a.initials,
+            country: a.country_origin,
+            submittedDate: submitted,
+            step: label,
+            stepId: e.step_id,
+            eventDate: e.event_date,
+          });
         }
       });
     });
 
     if (newAors.length === 0 && newEntries.length === 0 && milestones.length === 0) return null;
+
+    // Newest first within each category.
+    newAors.sort((a, b) => b.aorDate.localeCompare(a.aorDate));
+    milestones.sort((a, b) => b.eventDate.localeCompare(a.eventDate));
+    newEntries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     return { newAors, newEntries, milestones };
   }, [apps, lastVisit]);
@@ -68,6 +108,28 @@ export function NewSinceLastVisit({ apps }: NewSinceLastVisitProps) {
   if (!updates || dismissed) return null;
 
   const totalUpdates = updates.newAors.length + updates.newEntries.length + updates.milestones.length;
+
+  const go = (appId: string) => {
+    setOpenKind(null);
+    router.push(`/dashboard/${appId}`);
+  };
+
+  const modalRows: { appId: string; initials: string; country: string; submittedDate: string; rightLabel: string; rightDate: string }[] =
+    openKind === "aor"
+      ? updates.newAors.map(r => ({ appId: r.appId, initials: r.initials, country: r.country, submittedDate: r.submittedDate, rightLabel: "AOR", rightDate: r.aorDate }))
+      : openKind === "milestone"
+        ? updates.milestones.map(r => ({ appId: r.appId, initials: r.initials, country: r.country, submittedDate: r.submittedDate, rightLabel: r.step, rightDate: r.eventDate }))
+        : openKind === "entry"
+          ? updates.newEntries.map(r => ({ appId: r.appId, initials: r.initials, country: r.country, submittedDate: r.submittedDate, rightLabel: "Joined", rightDate: r.createdAt.slice(0, 10) }))
+          : [];
+
+  const modalTitle = openKind === "aor"
+    ? `New AORs · ${updates.newAors.length}`
+    : openKind === "milestone"
+      ? `Milestones · ${updates.milestones.length}`
+      : openKind === "entry"
+        ? `New entries · ${updates.newEntries.length}`
+        : "";
 
   return (
     <div className="bg-white border border-sand-200 rounded-2xl p-4 mb-4 animate-in relative shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
@@ -94,21 +156,30 @@ export function NewSinceLastVisit({ apps }: NewSinceLastVisitProps) {
         </span>
       </div>
 
-      <div className="space-y-1.5 nums-tabular">
+      <div className="space-y-1 nums-tabular">
         {updates.newAors.length > 0 && (
-          <div className="flex items-center gap-2.5 text-[13px]">
+          <button
+            onClick={() => setOpenKind("aor")}
+            className="w-full text-left flex items-center gap-2.5 text-[13px] py-1.5 px-1 -mx-1 rounded-md hover:bg-sand-50 active:bg-sand-100 transition-colors group"
+          >
             <div className="w-7 h-7 rounded-full bg-brand-500/15 flex items-center justify-center flex-shrink-0">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-600"><path d="M20 6L9 17L4 12" /></svg>
             </div>
             <span className="text-sand-700 truncate flex-1 min-w-0">
               <span className="font-bold text-brand-700">{updates.newAors.length} new AOR{updates.newAors.length > 1 ? "s" : ""}</span>
-              <span className="text-sand-500"> — {updates.newAors.slice(0, 4).join(", ")}{updates.newAors.length > 4 ? ` +${updates.newAors.length - 4} more` : ""}</span>
+              <span className="text-sand-500"> — {updates.newAors.slice(0, 4).map(a => a.initials).join(", ")}{updates.newAors.length > 4 ? ` +${updates.newAors.length - 4} more` : ""}</span>
             </span>
-          </div>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sand-300 group-hover:text-brand-500 transition-colors flex-shrink-0">
+              <path d="M9 18L15 12L9 6"/>
+            </svg>
+          </button>
         )}
 
         {updates.milestones.length > 0 && (
-          <div className="flex items-center gap-2.5 text-[13px]">
+          <button
+            onClick={() => setOpenKind("milestone")}
+            className="w-full text-left flex items-center gap-2.5 text-[13px] py-1.5 px-1 -mx-1 rounded-md hover:bg-sand-50 active:bg-sand-100 transition-colors group"
+          >
             <div className="w-7 h-7 rounded-full bg-warn/15 flex items-center justify-center flex-shrink-0">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-warn-dark"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" /></svg>
             </div>
@@ -116,21 +187,70 @@ export function NewSinceLastVisit({ apps }: NewSinceLastVisitProps) {
               <span className="font-bold text-warn-dark">{updates.milestones.length} milestone{updates.milestones.length > 1 ? "s" : ""}</span>
               <span className="text-sand-500"> — {updates.milestones.slice(0, 3).map(m => `${m.initials} hit ${m.step}`).join(", ")}</span>
             </span>
-          </div>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sand-300 group-hover:text-warn-dark transition-colors flex-shrink-0">
+              <path d="M9 18L15 12L9 6"/>
+            </svg>
+          </button>
         )}
 
         {updates.newEntries.length > 0 && (
-          <div className="flex items-center gap-2.5 text-[13px]">
+          <button
+            onClick={() => setOpenKind("entry")}
+            className="w-full text-left flex items-center gap-2.5 text-[13px] py-1.5 px-1 -mx-1 rounded-md hover:bg-sand-50 active:bg-sand-100 transition-colors group"
+          >
             <div className="w-7 h-7 rounded-full bg-sand-100 flex items-center justify-center flex-shrink-0">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-sand-600"><path d="M12 5V19M5 12H19" /></svg>
             </div>
-            <span className="text-sand-700">
+            <span className="text-sand-700 truncate flex-1 min-w-0">
               <span className="font-bold">{updates.newEntries.length} new {updates.newEntries.length === 1 ? "entry" : "entries"}</span>
-              <span className="text-sand-500"> joined</span>
+              <span className="text-sand-500"> joined — {updates.newEntries.slice(0, 4).map(e => e.initials).join(", ")}{updates.newEntries.length > 4 ? ` +${updates.newEntries.length - 4} more` : ""}</span>
             </span>
-          </div>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sand-300 group-hover:text-sand-700 transition-colors flex-shrink-0">
+              <path d="M9 18L15 12L9 6"/>
+            </svg>
+          </button>
         )}
       </div>
+
+      {/* Detail modal */}
+      <Modal open={openKind !== null} onClose={() => setOpenKind(null)} title={modalTitle}>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[10px] font-bold text-sand-500 uppercase tracking-[0.06em] px-3 pb-1.5 border-b border-sand-100">
+            <span>Entry</span>
+            <span>{openKind === "aor" ? "AOR date" : openKind === "milestone" ? "Step / date" : "Joined"}</span>
+          </div>
+          <div className="max-h-[55vh] overflow-y-auto -mr-2 pr-2">
+            {modalRows.map((r, i) => (
+              <button
+                key={`${r.appId}-${i}`}
+                onClick={() => go(r.appId)}
+                className="w-full text-left flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-sand-50 active:bg-sand-100 transition-colors border-b border-sand-50/80 last:border-b-0 group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-full bg-sand-100 group-hover:bg-brand-500/12 group-hover:text-brand-700 flex items-center justify-center text-[10px] font-bold text-sand-700 shrink-0 transition-colors">
+                    {r.initials}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-semibold text-sand-900 truncate group-hover:text-brand-700 transition-colors">{r.country}</div>
+                    <div className="text-[10px] text-sand-400 nums-tabular mt-0.5">Submitted {fmtDate(r.submittedDate)}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="text-right">
+                    {openKind === "milestone" && (
+                      <div className="text-[10px] font-bold text-warn-dark uppercase tracking-wider">{r.rightLabel}</div>
+                    )}
+                    <div className="text-[12px] font-bold text-sand-900 nums-tabular">{fmtDate(r.rightDate)}</div>
+                  </div>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sand-300 group-hover:text-brand-500 transition-colors">
+                    <path d="M9 18L15 12L9 6"/>
+                  </svg>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
