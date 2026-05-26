@@ -182,6 +182,7 @@ export function ActivityPanel() {
         step_id: e.step_id,
         event_date: e.event_date,
         created_at: e.created_at,
+        href: `/dashboard/${a.id}`,
       });
     });
   });
@@ -198,7 +199,7 @@ export function ActivityPanel() {
         created_at: c.created_at,
         author_name: c.author_name,
         text: c.text,
-        href: "/me",
+        href: `/dashboard/${c.application_id}`,
         context: app ? `on your entry (${app.initials})` : "on your entry",
       });
     });
@@ -339,8 +340,8 @@ export function ActivityPanel() {
                     }
 
                     // Step milestone
-                    return (
-                      <div key={a.id} className={`flex items-start gap-2.5 py-2 transition-colors ${isUnread ? "bg-brand-500/10 -mx-4 px-4 rounded-md" : ""}`}>
+                    const stepInner = (
+                      <div className={`flex items-start gap-2.5 py-2 transition-colors ${isUnread ? "bg-brand-500/10 -mx-4 px-4 rounded-md" : ""}`}>
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isUnread ? "bg-brand-500 shadow-sm" : "bg-brand-500/15"}`}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isUnread ? "text-white" : "text-brand-600"}>
                             <path d={stepIcon(a.step_id || "")} />
@@ -358,6 +359,11 @@ export function ActivityPanel() {
                         {isUnread && <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0 mt-2 animate-pulse" />}
                       </div>
                     );
+                    return a.href ? (
+                      <a key={a.id} href={a.href} onClick={handleClose} className="block hover:bg-sand-50/60 -mx-4 px-4 rounded-md transition-colors">
+                        {stepInner}
+                      </a>
+                    ) : <div key={a.id}>{stepInner}</div>;
                   })}
                 </div>
               )}
