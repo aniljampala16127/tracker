@@ -821,3 +821,32 @@ button, a, [role="button"] {
   .t-liquid-glass { background: rgba(255, 255, 255, 0.85); }
   .dark .t-liquid-glass { background: rgba(255, 255, 255, 0.12); }
 }
+
+/* ============================================
+   Buttery iOS-style spring transit for the nav
+   pill. Apple's signature easeOut quint curve,
+   long enough to feel like liquid settling, with
+   hardware compositing hints. The pill briefly
+   stretches in the direction of motion via a
+   keyframe wobble while `left`/`width` animate.
+   ============================================ */
+.t-glass-pill {
+  /* Apple's standard iOS motion curve — slow start, fast accel,
+     soft decel. Almost no overshoot, very fluid. */
+  transition:
+    left 0.55s cubic-bezier(0.32, 0.72, 0, 1),
+    width 0.55s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.3s ease-out,
+    background-color 0.4s ease-out,
+    box-shadow 0.4s ease-out,
+    border-color 0.4s ease-out;
+  will-change: left, width, transform;
+  /* Force compositor layer so the blur doesn't repaint each frame. */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-glass-pill {
+    transition: left 0.15s linear, width 0.15s linear, opacity 0.15s linear;
+  }
+}
