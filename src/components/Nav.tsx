@@ -214,9 +214,9 @@ function DesktopTabs({ pathname, unreadCount }: { pathname: string; unreadCount:
 
   return (
     <nav ref={containerRef} className="hidden sm:flex items-center gap-0.5 bg-sand-50 rounded-xl p-1 border border-sand-200 relative shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
-      {/* Sliding pill */}
+      {/* Sliding pill — iOS 26 liquid glass */}
       <div
-        className="absolute top-1 h-[calc(100%-8px)] bg-brand-500 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0 shadow-[0_2px_8px_rgba(45,106,79,0.25)]"
+        className="t-liquid-glass absolute top-1 h-[calc(100%-8px)] rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
         style={{ left: `${pill.left}px`, width: `${pill.width}px`, opacity: activeIdx >= 0 ? 1 : 0 }}
       />
       {DESKTOP_NAV.map((item) => {
@@ -230,7 +230,7 @@ function DesktopTabs({ pathname, unreadCount }: { pathname: string; unreadCount:
             data-tab
             className={cn(
               "relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors duration-200",
-              active ? "text-white" : "text-sand-500 hover:text-sand-800"
+              active ? "text-brand-700 dark:text-brand-200" : "text-sand-500 hover:text-sand-800"
             )}
           >
             <item.icon size={14} />
@@ -238,7 +238,7 @@ function DesktopTabs({ pathname, unreadCount }: { pathname: string; unreadCount:
             {item.href === "/community" && unreadCount > 0 && (
               <span key={unreadCount} className={cn(
                 "t-badge-slide-in w-4 h-4 rounded-full text-[8px] font-bold flex items-center justify-center leading-none",
-                active ? "bg-white text-brand-600" : "bg-error text-white"
+                active ? "bg-brand-600 text-white" : "bg-error text-white"
               )}>
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
@@ -276,9 +276,9 @@ function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCo
   return (
     <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-t border-sand-200 safe-area-bottom">
       <div ref={containerRef} className="flex items-center justify-around px-2 py-1.5 relative">
-        {/* Sliding highlight */}
+        {/* Sliding highlight — liquid glass */}
         <div
-          className="absolute top-1 h-[calc(100%-8px)] bg-brand-500/10 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
+          className="t-liquid-glass absolute top-1 h-[calc(100%-8px)] rounded-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-0"
           style={{ left: `${pill.left}px`, width: `${pill.width}px`, opacity: activeIdx >= 0 ? 1 : 0 }}
         />
         {BOTTOM_NAV.map((item) => {
@@ -296,15 +296,12 @@ function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCo
                 isTapped ? "scale-90" : "scale-100"
               )}
             >
-              <div className={cn(
-                "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300 relative",
-                active ? "bg-brand-500 shadow-[0_2px_8px_rgba(45,106,79,0.3)]" : ""
-              )}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300 relative">
                 <item.icon
                   size={16}
                   className={cn(
                     "transition-colors duration-200",
-                    active ? "text-white" : "text-sand-400"
+                    active ? "text-brand-700 dark:text-brand-200" : "text-sand-400"
                   )}
                 />
                 {item.href === "/community" && unreadCount > 0 && (
