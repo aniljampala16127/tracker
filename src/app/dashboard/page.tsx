@@ -256,9 +256,6 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
       const pinHash = app.pin_hash as string;
       const generatedPin = app.generated_pin as string | undefined;
       savePinForApp(app.id, pinHash);
-      // Remember the user's country so the footer can hide the BMC link
-      // for India users (UPI/INR friction).
-      try { localStorage.setItem("sponsortrack-user-country", form.country_origin); } catch {}
       setShowAdd(false);
       fetchApps();
       const appsRes = await fetch("/api/applications");
