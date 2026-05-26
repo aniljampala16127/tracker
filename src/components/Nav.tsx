@@ -197,27 +197,105 @@ const BOTTOM_NAV = [
   { href: "/me", label: "Me", icon: MeIcon },
 ];
 
+/**
+ * Drives the liquid-glass sliding pill via Web Animations API.
+ * On each activeIdx change, animates from prev rect → new rect with a
+ * 3-stop keyframe: a midway scaleY squish and width stretch toward the
+ * destination, then settles. This is the "liquid" feel CSS transitions
+ * alone can't achieve.
+ */
+function useLiquidPill(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  activeIdx: number,
+  tabSelector: string
+) {
+  const pillRef = useRef<HTMLDivElement>(null);
+  const prevPosRef = useRef<{ left: number; width: number } | null>(null);
+  const currentAnimRef = useRef<Animation | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !pillRef.current || activeIdx < 0) return;
+    const tabs = containerRef.current.querySelectorAll<HTMLAnchorElement>(tabSelector);
+    const el = tabs[activeIdx];
+    if (!el) return;
+
+    const pill = pillRef.current;
+    const newLeft = el.offsetLeft;
+    const newWidth = el.offsetWidth;
+    const prev = prevPosRef.current;
+
+    if (!prev) {
+      // First mount — place pill and fade it in, no slide animation.
+      pill.style.left = `${newLeft}px`;
+      pill.style.width = `${newWidth}px`;
+      pill.style.opacity = "1";
+    } else if (prev.left !== newLeft || prev.width !== newWidth) {
+      // Cancel any in-flight animation so rapid taps don't fight each other.
+      currentAnimRef.current?.cancel();
+
+      // Set inline style to the destination first, then animate FROM prev.
+      // With fill:'none', when the animation ends the computed values
+      // snap to inline style (= destination).
+      pill.style.left = `${newLeft}px`;
+      pill.style.width = `${newWidth}px`;
+
+      // Midpoint stretches the pill so it reaches from the source toward
+      // the destination, then settles. This is the "liquid" feel — like
+      // a water droplet elongating before snapping back.
+      const minStart = Math.min(prev.left, newLeft);
+      const maxEnd = Math.max(prev.left + prev.width, newLeft + newWidth);
+      const span = maxEnd - minStart;
+      const distance = Math.abs(newLeft - prev.left);
+      const stretchExtra = Math.min(distance * 0.08, 12);
+      const midLeft = minStart - stretchExtra / 2;
+      const midWidth = span + stretchExtra;
+
+      currentAnimRef.current = pill.animate(
+        [
+          {
+            left: `${prev.left}px`,
+            width: `${prev.width}px`,
+            transform: "translateZ(0) scaleY(1)",
+          },
+          {
+            left: `${midLeft}px`,
+            width: `${midWidth}px`,
+            transform: "translateZ(0) scaleY(0.86)",
+            offset: 0.45,
+          },
+          {
+            left: `${newLeft}px`,
+            width: `${newWidth}px`,
+            transform: "translateZ(0) scaleY(1)",
+          },
+        ],
+        {
+          duration: 680,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          fill: "none",
+        }
+      );
+    }
+
+    prevPosRef.current = { left: newLeft, width: newWidth };
+  }, [containerRef, activeIdx, tabSelector]);
+
+  return pillRef;
+}
+
 /** Desktop top nav with sliding pill */
 function DesktopTabs({ pathname, unreadCount }: { pathname: string; unreadCount: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [pill, setPill] = useState({ left: 0, width: 0 });
   const activeIdx = DESKTOP_NAV.findIndex(item => pathname.startsWith(item.href));
-
-  useEffect(() => {
-    if (!containerRef.current || activeIdx < 0) return;
-    const tabs = containerRef.current.querySelectorAll<HTMLAnchorElement>("a[data-tab]");
-    const el = tabs[activeIdx];
-    if (el) {
-      setPill({ left: el.offsetLeft, width: el.offsetWidth });
-    }
-  }, [activeIdx]);
+  const pillRef = useLiquidPill(containerRef, activeIdx, "a[data-tab]");
 
   return (
     <nav ref={containerRef} className="hidden sm:flex items-center gap-0.5 bg-sand-50 rounded-xl p-1 border border-sand-200 relative shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
-      {/* Sliding pill — iOS 26 liquid glass with buttery spring transit */}
+      {/* Sliding pill — iOS 26 liquid glass driven by WAAPI in useLiquidPill */}
       <div
+        ref={pillRef}
         className="t-liquid-glass t-glass-pill absolute top-1 h-[calc(100%-8px)] rounded-lg z-0"
-        style={{ left: `${pill.left}px`, width: `${pill.width}px`, opacity: activeIdx >= 0 ? 1 : 0 }}
+        style={{ opacity: 0 }}
       />
       {DESKTOP_NAV.map((item) => {
         const active = pathname.startsWith(item.href);
@@ -253,18 +331,9 @@ function DesktopTabs({ pathname, unreadCount }: { pathname: string; unreadCount:
 /** Mobile bottom nav with sliding pill + haptic tap */
 function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCount: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [pill, setPill] = useState({ left: 0, width: 0 });
   const [tapped, setTapped] = useState<string | null>(null);
   const activeIdx = BOTTOM_NAV.findIndex(item => pathname.startsWith(item.href));
-
-  useEffect(() => {
-    if (!containerRef.current || activeIdx < 0) return;
-    const tabs = containerRef.current.querySelectorAll<HTMLAnchorElement>("a[data-btab]");
-    const el = tabs[activeIdx];
-    if (el) {
-      setPill({ left: el.offsetLeft, width: el.offsetWidth });
-    }
-  }, [activeIdx]);
+  const pillRef = useLiquidPill(containerRef, activeIdx, "a[data-btab]");
 
   const handleTap = (href: string) => {
     setTapped(href);
@@ -276,10 +345,11 @@ function MobileBottomNav({ pathname, unreadCount }: { pathname: string; unreadCo
   return (
     <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-t border-sand-200 safe-area-bottom">
       <div ref={containerRef} className="flex items-center justify-around px-2 py-1.5 relative">
-        {/* Sliding highlight — liquid glass with buttery spring transit */}
+        {/* Sliding highlight — liquid glass driven by WAAPI in useLiquidPill */}
         <div
+          ref={pillRef}
           className="t-liquid-glass t-glass-pill absolute top-1 h-[calc(100%-8px)] rounded-xl z-0"
-          style={{ left: `${pill.left}px`, width: `${pill.width}px`, opacity: activeIdx >= 0 ? 1 : 0 }}
+          style={{ opacity: 0 }}
         />
         {BOTTOM_NAV.map((item) => {
           const active = pathname.startsWith(item.href);
