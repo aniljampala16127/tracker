@@ -212,14 +212,17 @@ export function NewSinceLastVisit({ apps }: NewSinceLastVisitProps) {
         )}
       </div>
 
-      {/* Detail modal */}
+      {/* Detail modal. NO nested scroll — Modal's own max-h-[85vh]
+          overflow-auto handles vertical overflow. Nested scroll on iOS
+          captures touches in a way that breaks both scrolling AND
+          backdrop-dismiss. */}
       <Modal open={openKind !== null} onClose={() => setOpenKind(null)} title={modalTitle}>
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-[10px] font-bold text-sand-500 uppercase tracking-[0.06em] px-3 pb-1.5 border-b border-sand-100">
+          <div className="flex items-center justify-between text-[10px] font-bold text-sand-500 uppercase tracking-[0.06em] px-3 pb-1.5 border-b border-sand-100 sticky top-0 bg-white z-10">
             <span>Entry</span>
             <span>{openKind === "aor" ? "AOR date" : openKind === "milestone" ? "Step / date" : "Joined"}</span>
           </div>
-          <div className="max-h-[55vh] overflow-y-auto -mr-2 pr-2">
+          <div>
             {modalRows.map((r, i) => (
               <button
                 key={`${r.appId}-${i}`}
