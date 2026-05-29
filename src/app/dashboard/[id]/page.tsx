@@ -33,8 +33,8 @@ export default function ApplicationDetailPage() {
   const [reporting, setReporting] = useState(false);
   const [alreadyReported, setAlreadyReported] = useState(false);
 
-  const fetchApp = useCallback(async () => {
-    const res = await fetch("/api/applications");
+  const fetchApp = useCallback(async (force = false) => {
+    const res = await fetch(force ? `/api/applications?t=${Date.now()}` : "/api/applications");
     const all = await res.json();
     const found = Array.isArray(all) ? all.find((a: Application) => a.id === id) : null;
 
@@ -86,7 +86,7 @@ export default function ApplicationDetailPage() {
       body: JSON.stringify({ application_id: app.id, step_id: stepId, event_date: date, pin_hash: pinHash || "" }),
     });
     setEditingStep(null);
-    fetchApp();
+    fetchApp(true);
     if (res.ok) {
       const stepLabel = STEPS.find(s => s.id === stepId)?.label || stepId;
       toast.success(`Marked ${stepLabel} · ${formatDate(date).replace(/, \d{4}/, "")}`);

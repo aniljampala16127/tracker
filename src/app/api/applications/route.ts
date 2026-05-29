@@ -99,6 +99,9 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const includeComments = url.searchParams.get("include")?.split(",").includes("comments");
 
+  // When comments aren't requested, ask PostgREST for the count only
+  // instead of an array of {id} rows. For 300+ apps this drops kilobytes
+  // off every response — significant against the 5GB egress cap.
   const select = includeComments
     ? `${APP_COLUMNS},
         step_events(step_id, event_date, created_at),
@@ -106,7 +109,7 @@ export async function GET(request: Request) {
         spam_reports(reporter_pin_hash)`
     : `${APP_COLUMNS},
         step_events(step_id, event_date, created_at),
-        comments(id),
+        comments(count),
         spam_reports(reporter_pin_hash)`;
 
   const { data, error } = await supabase
@@ -123,12 +126,19 @@ export async function GET(request: Request) {
       initials?: string;
       province?: string;
       step_events?: { event_date: string }[];
-      comments?: { id: string; created_at?: string }[];
+      // When include=comments is set, comments is an array of full rows.
+      // Otherwise, it's PostgREST's count aggregate: [{ count: N }].
+      comments?: { id: string; created_at?: string }[] | { count: number }[];
       spam_reports?: { reporter_pin_hash: string }[];
     };
     const reports = app.spam_reports || [];
     const reportCount = reports.length;
-    const commentRows = app.comments || [];
+    const commentRows = (app.comments || []) as Array<{ id?: string; count?: number; created_at?: string }>;
+    // Count derives from either the explicit aggregate (lite mode) or the
+    // full row array length (include=comments mode).
+    const commentCount = includeComments
+      ? commentRows.length
+      : (commentRows[0]?.count ?? 0);
 
     const out: Record<string, unknown> = {
       ...app,
@@ -136,16 +146,16 @@ export async function GET(request: Request) {
       step_events: (app.step_events || []).filter(e => e.event_date <= today),
       initials: app.is_anonymous ? "Anonymous" : app.initials,
       _real_initials: app.initials,
-      comment_count: commentRows.length,
+      comment_count: commentCount,
       spam_report_count: reportCount,
     };
 
     if (includeComments) {
-      out.comments = commentRows
+      out.comments = (commentRows as Array<{ id: string; created_at?: string }>)
         .slice()
         .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
     } else {
-      // Drop the {id: ...} placeholders — count is already on comment_count.
+      // Drop the aggregate placeholder — count is already on comment_count.
       delete out.comments;
     }
 
@@ -158,10 +168,11 @@ export async function GET(request: Request) {
 
   return NextResponse.json(cleaned, {
     headers: {
-      // Two distinct cache buckets so Vercel doesn't blend with/without
-      // comments. Vary forces separate edge entries per URL anyway, but
-      // the explicit hint keeps intermediaries honest.
-      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      // Aggressive edge caching: 5 min fresh + 1 day stale-while-revalidate.
+      // Community data doesn't need sub-minute freshness; the SWR window
+      // means active users still get background refreshes. This is the
+      // single biggest lever against the 5GB egress cap.
+      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400",
     },
   });
 }
@@ -259,7 +270,10 @@ export async function POST(request: Request) {
       pin_hash,
       submit_fingerprint: fingerprint,
     })
-    .select()
+    // Return only the fields the client actually consumes — id for the
+    // new entry route, pin_hash for localStorage. The client re-fetches
+    // /api/applications immediately after to get the full row.
+    .select("id, pin_hash")
     .single();
 
   if (appError) {

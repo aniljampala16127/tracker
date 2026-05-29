@@ -72,7 +72,7 @@ export default function MyAppPage() {
     matched.forEach(a => savePinForApp(a.id, pinHash));
     setClaiming(false);
     toast.success(`Reconnected ${matched.length} ${matched.length === 1 ? "entry" : "entries"}`);
-    fetchApps();
+    fetchApps(true);
   };
 
   if (loading) return <MeSkeleton />;
@@ -134,11 +134,11 @@ export default function MyAppPage() {
   }
 
   return (
-    <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
+    <PullToRefresh onRefresh={async () => { await fetchApps(true); }}>
     <div className="page-enter">
 
       {myApps.map((app) => (
-        <MyAppCard key={app.id} app={app} allApps={apps} onRefresh={fetchApps} />
+        <MyAppCard key={app.id} app={app} allApps={apps} onRefresh={() => fetchApps(true)} />
       ))}
     </div>
     </PullToRefresh>

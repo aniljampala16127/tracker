@@ -130,8 +130,10 @@ export default function DashboardPage() {
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
-  const fetchApps = useCallback(async () => {
-    const res = await fetch("/api/applications");
+  const fetchApps = useCallback(async (force = false) => {
+    // After a write, callers pass force=true so the request cache-busts
+    // the 5-min edge cache and the user sees their own change immediately.
+    const res = await fetch(force ? `/api/applications?t=${Date.now()}` : "/api/applications");
     const data = await res.json();
     if (Array.isArray(data)) {
       const sorted = (data as Application[]).sort((a, b) => {
@@ -257,8 +259,8 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
       const generatedPin = app.generated_pin as string | undefined;
       savePinForApp(app.id, pinHash);
       setShowAdd(false);
-      fetchApps();
-      const appsRes = await fetch("/api/applications");
+      fetchApps(true);
+      const appsRes = await fetch(`/api/applications?t=${Date.now()}`);
       const allApps = await appsRes.json();
       const fullApp = allApps.find((a: Application) => a.id === app.id);
       if (fullApp) {
@@ -290,9 +292,9 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ application_id: appId, step_id: stepId, event_date: date, pin_hash: pinHash || "" }),
     });
-    fetchApps();
-    // Refresh edit app if open
-    const appsRes = await fetch("/api/applications");
+    fetchApps(true);
+    // Refresh edit app if open — cache-bust so the latest step shows immediately.
+    const appsRes = await fetch(`/api/applications?t=${Date.now()}`);
     const allApps = await appsRes.json();
     const updated = allApps.find((a: Application) => a.id === appId);
     if (updated) setEditApp(updated);
@@ -303,7 +305,7 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
     const pinHash = getSavedPinHash(appId);
     const res = await fetch(`/api/applications?id=${appId}&pin_hash=${pinHash || ""}`, { method: "DELETE" });
     removeSavedPin(appId);
-    setEditApp(null); fetchApps();
+    setEditApp(null); fetchApps(true);
     if (res.ok) toast.success("Application deleted");
     else toast.error("Could not delete");
   };
@@ -452,7 +454,7 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
   return (
     <>
     <div ref={topRef} />
-    <PullToRefresh onRefresh={async () => { await fetchApps(); }}>
+    <PullToRefresh onRefresh={async () => { await fetchApps(true); }}>
     <div className="page-enter">
       {/* CTA for new users — compact with live stats */}
       {!hasMyEntry && (
@@ -1087,10 +1089,10 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
         onClose={() => setShowIntent(false)}
         onNewUser={() => { setShowIntent(false); setShowAdd(true); }}
         apps={apps}
-        onReconnected={() => { setShowIntent(false); fetchApps(); router.push("/me"); }}
+        onReconnected={() => { setShowIntent(false); fetchApps(true); router.push("/me"); }}
       />
       <AddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={submitting} existingApps={apps} />
-      {editApp && <EditModal app={editApp} allApps={apps} onClose={() => { setEditApp(null); fetchApps(); }} onMarkStep={handleMarkStep} onDelete={handleDelete} isOwner={!!editApp.pin_hash && getSavedPinHash(editApp.id) === editApp.pin_hash} onRefresh={fetchApps} />}
+      {editApp && <EditModal app={editApp} allApps={apps} onClose={() => { setEditApp(null); fetchApps(true); }} onMarkStep={handleMarkStep} onDelete={handleDelete} isOwner={!!editApp.pin_hash && getSavedPinHash(editApp.id) === editApp.pin_hash} onRefresh={() => fetchApps(true)} />}
 
       {/* PIN verification */}
       {pinTarget && pinTarget.pin_hash && (
@@ -1115,7 +1117,7 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
             const claimed = { ...claimTarget, pin_hash: pinHash };
             setClaimTarget(null);
             setEditApp(claimed);
-            fetchApps();
+            fetchApps(true);
           }}
         />
       )}
