@@ -99,6 +99,14 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const includeComments = url.searchParams.get("include")?.split(",").includes("comments");
 
+  // Scope params — egress savings come from clients asking for less data.
+  //   ?id=<uuid>  — one app, used by /dashboard/[id] and /cohort/[id]
+  //   ?limit=N    — cap row count (default unlimited for back-compat)
+  // ?t=... is also accepted and intentionally ignored (cache-bust marker).
+  const idParam = url.searchParams.get("id");
+  const limitParam = url.searchParams.get("limit");
+  const limit = limitParam ? Math.max(1, Math.min(1000, parseInt(limitParam, 10) || 0)) : null;
+
   // When comments aren't requested, ask PostgREST for the count only
   // instead of an array of {id} rows. For 300+ apps this drops kilobytes
   // off every response — significant against the 5GB egress cap.
@@ -112,10 +120,19 @@ export async function GET(request: Request) {
         comments(count),
         spam_reports(reporter_pin_hash)`;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("applications")
     .select(select)
     .order("created_at", { ascending: false });
+
+  if (idParam) {
+    query = query.eq("id", idParam);
+  }
+  if (limit) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

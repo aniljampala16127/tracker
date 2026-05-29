@@ -260,9 +260,10 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
       savePinForApp(app.id, pinHash);
       setShowAdd(false);
       fetchApps(true);
-      const appsRes = await fetch(`/api/applications?t=${Date.now()}`);
-      const allApps = await appsRes.json();
-      const fullApp = allApps.find((a: Application) => a.id === app.id);
+      // Fetch only the new app for the celebration modal, not all 700+.
+      const appsRes = await fetch(`/api/applications?id=${app.id}&t=${Date.now()}`);
+      const rows = await appsRes.json();
+      const fullApp = Array.isArray(rows) ? rows[0] : null;
       if (fullApp) {
         setCelebrateApp(fullApp);
         setCelebratePin(generatedPin || null);
@@ -294,9 +295,10 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
     });
     fetchApps(true);
     // Refresh edit app if open — cache-bust so the latest step shows immediately.
-    const appsRes = await fetch(`/api/applications?t=${Date.now()}`);
-    const allApps = await appsRes.json();
-    const updated = allApps.find((a: Application) => a.id === appId);
+    // Refresh only the one app being edited, not all of them.
+    const appsRes = await fetch(`/api/applications?id=${appId}&t=${Date.now()}`);
+    const rows = await appsRes.json();
+    const updated = Array.isArray(rows) ? rows[0] : null;
     if (updated) setEditApp(updated);
   };
 

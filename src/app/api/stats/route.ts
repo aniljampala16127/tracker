@@ -160,9 +160,11 @@ export async function GET(request: NextRequest) {
     sameWeekEntries,
   }, {
     headers: {
+      // Public branch: aggregates change slowly. 15 min fresh + 24h SWR
+      // keeps the Supabase round-trip rate to roughly 4/hour worst-case.
       "Cache-Control": myIds.length > 0
         ? "private, s-maxage=0, max-age=30"
-        : "public, s-maxage=300, stale-while-revalidate=600",
+        : "public, s-maxage=900, stale-while-revalidate=86400",
     },
   });
 }

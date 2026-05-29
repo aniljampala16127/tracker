@@ -34,9 +34,13 @@ export default function ApplicationDetailPage() {
   const [alreadyReported, setAlreadyReported] = useState(false);
 
   const fetchApp = useCallback(async (force = false) => {
-    const res = await fetch(force ? `/api/applications?t=${Date.now()}` : "/api/applications");
-    const all = await res.json();
-    const found = Array.isArray(all) ? all.find((a: Application) => a.id === id) : null;
+    // Use ?id= so the API returns only this one app instead of all 700+.
+    // ?t= busts the edge cache after a write so the user sees their own change.
+    const qs = new URLSearchParams({ id: String(id) });
+    if (force) qs.set("t", String(Date.now()));
+    const res = await fetch(`/api/applications?${qs.toString()}`);
+    const rows = await res.json();
+    const found = Array.isArray(rows) ? rows[0] || null : null;
 
     if (found) {
       setApp(found);
