@@ -835,7 +835,12 @@ button, a, [role="button"] {
     background-color 0.5s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1),
     border-color 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: left, width, transform;
+  /* Transform-only animations — keeps the pill on the compositor layer
+     so backdrop-filter doesn't repaint per frame. transform-origin: left
+     center means scaleX scales toward the right, preserving alignment
+     with inline style.left. */
+  transform-origin: left center;
+  will-change: transform;
   transform: translateZ(0);
   backface-visibility: hidden;
 }

@@ -233,40 +233,39 @@ function useLiquidPill(
       // Cancel any in-flight animation so rapid taps don't fight each other.
       currentAnimRef.current?.cancel();
 
-      // Set inline style to the destination first, then animate FROM prev.
-      // With fill:'none', when the animation ends the computed values
-      // snap to inline style (= destination).
+      // FLIP technique — pin the inline style to the destination NOW so the
+      // pill rests at its final rect after the animation. We then animate
+      // ONLY transforms (translateX + scaleX), which are GPU-composited and
+      // skip layout/paint on every frame. This is the difference between
+      // 30fps stutter and 60–120fps butter.
       pill.style.left = `${newLeft}px`;
       pill.style.width = `${newWidth}px`;
 
-      // Midpoint stretches the pill so it reaches from the source toward
-      // the destination, then settles. This is the "liquid" feel — like
-      // a water droplet elongating before snapping back.
+      // Inverse: where the pill needs to "start" relative to its new home.
+      const fromTranslateX = prev.left - newLeft;
+      const fromScaleX = prev.width / newWidth;
+
+      // Midpoint stretches the pill so it reaches across both source and
+      // destination before contracting — the iOS Liquid droplet morph.
       const minStart = Math.min(prev.left, newLeft);
       const maxEnd = Math.max(prev.left + prev.width, newLeft + newWidth);
       const span = maxEnd - minStart;
       const distance = Math.abs(newLeft - prev.left);
       const stretchExtra = Math.min(distance * 0.08, 12);
-      const midLeft = minStart - stretchExtra / 2;
-      const midWidth = span + stretchExtra;
+      const midTranslateX = (minStart - stretchExtra / 2) - newLeft;
+      const midScaleX = (span + stretchExtra) / newWidth;
 
       currentAnimRef.current = pill.animate(
         [
           {
-            left: `${prev.left}px`,
-            width: `${prev.width}px`,
-            transform: "translateZ(0) scaleY(1)",
+            transform: `translate3d(${fromTranslateX}px, 0, 0) scale(${fromScaleX}, 1)`,
           },
           {
-            left: `${midLeft}px`,
-            width: `${midWidth}px`,
-            transform: "translateZ(0) scaleY(0.86)",
+            transform: `translate3d(${midTranslateX}px, 0, 0) scale(${midScaleX}, 0.86)`,
             offset: 0.45,
           },
           {
-            left: `${newLeft}px`,
-            width: `${newWidth}px`,
-            transform: "translateZ(0) scaleY(1)",
+            transform: `translate3d(0, 0, 0) scale(1, 1)`,
           },
         ],
         {
@@ -275,6 +274,27 @@ function useLiquidPill(
           fill: "none",
         }
       );
+
+      // Pop the destination icon when the pill is landing — the tab
+      // "responds" to the glass arriving, makes the whole motion feel
+      // alive. Fires in parallel with the pill animation, peaks just
+      // as the pill settles.
+      const icon = el.querySelector<SVGSVGElement>("svg");
+      if (icon) {
+        icon.animate(
+          [
+            { transform: "translateZ(0) scale(1)" },
+            { transform: "translateZ(0) scale(1.18)", offset: 0.55 },
+            { transform: "translateZ(0) scale(1)" },
+          ],
+          {
+            duration: 520,
+            delay: 120,
+            easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+            fill: "none",
+          }
+        );
+      }
     }
 
     prevPosRef.current = { left: newLeft, width: newWidth };
