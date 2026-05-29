@@ -132,7 +132,7 @@ export function NewSinceLastVisit({ apps }: NewSinceLastVisitProps) {
         : "";
 
   return (
-    <div className="bg-white border border-sand-200 rounded-2xl p-4 mb-4 animate-in relative shadow-[0_1px_2px_rgba(26,26,24,0.04)]">
+    <div className="t-liquid-glass rounded-2xl p-4 mb-4 animate-in relative">
       <button
         onClick={() => setDismissed(true)}
         className="absolute top-2.5 right-2.5 w-7 h-7 rounded-md flex items-center justify-center text-sand-400 hover:text-sand-700 hover:bg-sand-100 transition-colors"

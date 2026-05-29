@@ -6,11 +6,11 @@ import { useCallback, useRef, useState, useEffect } from "react";
 // Skeleton Shimmer Components
 // ============================================
 function Shimmer({ className }: { className: string }) {
-  // Uses bg-sand-100 base which flips with the theme (light ≈ #F2F1ED,
-  // dark ≈ #171715) so the placeholder is visible in both modes against
-  // the surface-card.
+  // .t-shimmer adds a left→right gradient sweep on top of bg-sand-100.
+  // Sand-100 flips with the theme so the placeholder is visible in both
+  // modes against the surface-card.
   return (
-    <div className={`animate-pulse bg-sand-100 rounded ${className}`} />
+    <div className={`t-shimmer rounded ${className}`} />
   );
 }
 

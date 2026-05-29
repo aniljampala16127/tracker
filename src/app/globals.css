@@ -823,6 +823,49 @@ button, a, [role="button"] {
 }
 
 /* ============================================
+   Skeleton shimmer — a translucent highlight
+   sweeps left → right over the base color. More
+   convincing than animate-pulse (opacity blink)
+   and signals "actively loading" rather than
+   "stuck/disabled".
+   ============================================ */
+.t-shimmer {
+  position: relative;
+  background: var(--sand-100);
+  overflow: hidden;
+}
+.t-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: t-shimmer-sweep 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.dark .t-shimmer::after {
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+}
+@keyframes t-shimmer-sweep {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-shimmer::after { animation: none; }
+}
+
+/* ============================================
    Buttery iOS 26 spring transit for the nav
    pill. The pill itself uses CSS for the color
    transitions; position/width are driven by

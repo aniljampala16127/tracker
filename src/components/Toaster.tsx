@@ -55,10 +55,10 @@ export function Toaster() {
       {items.map(t => (
         <div
           key={t.id}
-          className={`pointer-events-auto bg-white border rounded-xl shadow-lg shadow-black/15 px-3.5 py-2.5 panel-enter flex items-center gap-2.5 cursor-pointer hover:shadow-xl transition-shadow ${
-            t.kind === "success" ? "border-brand-300"
-            : t.kind === "error" ? "border-error/40"
-            : "border-sand-200"
+          className={`pointer-events-auto t-liquid-glass rounded-xl px-3.5 py-2.5 panel-enter flex items-center gap-2.5 cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] ${
+            t.kind === "success" ? "!border-brand-400/50"
+            : t.kind === "error" ? "!border-error/50"
+            : ""
           }`}
           onClick={() => dismiss(t.id)}
         >

@@ -83,13 +83,31 @@ export default function ApplicationDetailPage() {
     if (navigator.vibrate) navigator.vibrate(stepId === "ecopr" ? [12, 30, 12, 30, 20] : 12);
     if (stepId === "ecopr") playSound("complete");
     else playMilestoneSound();
+    setEditingStep(null);
+    // Optimistic update — show the green check NOW, before the network
+    // round-trip. The fetchApp(true) below confirms with the server; if
+    // anything diverged we'll re-render with truth. id/application_id are
+    // unused by the UI in this view; safe placeholders until refetch.
+    const optimisticStep = {
+      id: `optimistic-${stepId}-${Date.now()}`,
+      application_id: app.id,
+      step_id: stepId,
+      event_date: date,
+      notes: null,
+      created_at: new Date().toISOString(),
+    };
+    setApp({
+      ...app,
+      current_step: stepId,
+      step_events: [...(app.step_events || []), optimisticStep],
+    });
+
     const pinHash = getSavedPinHash(app.id);
     const res = await fetch("/api/steps", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ application_id: app.id, step_id: stepId, event_date: date, pin_hash: pinHash || "" }),
     });
-    setEditingStep(null);
     fetchApp(true);
     if (res.ok) {
       const stepLabel = STEPS.find(s => s.id === stepId)?.label || stepId;
