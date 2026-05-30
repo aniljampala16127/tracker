@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Application, ApplicationFormData, StepId, Comment } from "@/lib/types";
 import { STEPS, COMMON_COUNTRIES, APPLICATION_SUBCATEGORIES, STREAMS, SPONSOR_STATUSES, MEI_TYPES, getNextStep, getVisibleSteps } from "@/lib/constants";
 import { formatDate, daysBetween, buildStepsMap } from "@/lib/utils";
+import { HelpLabel } from "@/components/HelpLabel";
 import { hashPin, savePinForApp, getSavedPinHash, removeSavedPin } from "@/lib/pin";
 import { toast } from "@/lib/toast";
 import { PlusIcon } from "@/components/icons";
@@ -33,6 +34,20 @@ import { playMilestoneSound, playSound } from "@/lib/sounds";
 const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // Local timezone today — prevents UTC date mismatch after 8 PM EDT
+// "updated 3m ago" / "updated 2h ago" / "just now" — used by the
+// dashboard freshness stamp. Coarse enough that a 30s tick keeps it
+// honest without spinning a per-second timer.
+function formatRelativeAgo(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "updated just now";
+  if (mins < 60) return `updated ${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `updated ${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `updated ${days}d ago`;
+}
+
 function localToday(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -130,6 +145,15 @@ export default function DashboardPage() {
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
+  // Bump every 30s so the "updated Xm ago" label re-renders without
+  // requiring user interaction. Cheap — just a number setState.
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(t => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const fetchApps = useCallback(async (force = false) => {
     // After a write, callers pass force=true so the request cache-busts
     // the 5-min edge cache and the user sees their own change immediately.
@@ -142,6 +166,7 @@ export default function DashboardPage() {
         return aD.localeCompare(bD);
       });
       setApps(sorted);
+      setLastFetchedAt(Date.now());
     }
     setLoading(false);
   }, []);
@@ -510,6 +535,15 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
               ? <><span className="font-bold text-sand-700">{filteredApps.length}</span> of {apps.length} entries</>
               : <><span className="font-bold text-sand-700">{apps.length}</span> entries</>}
           </span>
+          {lastFetchedAt && (
+            <span
+              className="hidden sm:inline text-[10px] text-sand-400 nums-tabular cursor-pointer hover:text-sand-700 transition-colors"
+              onClick={() => fetchApps(true)}
+              title="Click to refresh"
+            >
+              · {formatRelativeAgo(lastFetchedAt)}
+            </span>
+          )}
         </div>
         {!hasMyEntry && (
           <Button onClick={() => setShowIntent(true)} size="sm" className="group">
@@ -878,19 +912,19 @@ const submittingRef = useRef(false); // synchronous lock against double-clicks
                       <th className="text-center px-1.5 py-2.5 bg-sand-50">Class</th>
                       <th className="text-left px-1.5 py-2.5 bg-sand-50">App type</th>
                       <th className="text-left px-1.5 py-2.5 bg-sand-50">Submitted</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">AOR</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">BIL</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">Bio given</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">MEI</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">Sponsor elig</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">Medical req</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">Med attended</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">PA elig</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">Pre-arrival</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">Background</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">Portal 1</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">Portal 2</th>
-                      <th className="text-center px-1 py-2.5 bg-sand-50">eCoPR</th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="aor">AOR</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="bil">BIL</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="bio given">Bio given</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="mei">MEI</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="sponsor elig">Sponsor elig</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="medical req">Medical req</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="med attended">Med attended</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="pa elig">PA elig</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="pre-arrival">Pre-arrival</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="background">Background</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="portal 1">Portal 1</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="portal 2">Portal 2</HelpLabel></th>
+                      <th className="text-center px-1 py-2.5 bg-sand-50"><HelpLabel term="ecopr">eCoPR</HelpLabel></th>
                       <th className="text-center px-1.5 py-2.5 w-8 bg-sand-50">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline text-sand-400">
                           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />

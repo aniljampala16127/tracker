@@ -866,6 +866,52 @@ button, a, [role="button"] {
 }
 
 /* ============================================
+   Help tooltip — shown on hover for IRCC jargon
+   labels wrapped in <HelpLabel>. Uses ::after on
+   the parent and reads from data-tip. Pure CSS.
+   Falls back to native browser title on mobile.
+   ============================================ */
+.help-tip {
+  position: relative;
+}
+.help-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  white-space: normal;
+  width: max-content;
+  max-width: 240px;
+  padding: 6px 9px;
+  background: var(--sand-900);
+  color: var(--sand-50);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  line-height: 1.35;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease-out, transform 140ms ease-out;
+  z-index: 80;
+  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.25);
+}
+.help-tip:hover::after,
+.help-tip:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+/* Skip the custom tooltip on touch devices — the native title
+   handles long-press, and pseudo-element tooltips are awkward
+   without hover. */
+@media (hover: none) {
+  .help-tip::after { display: none; }
+}
+
+/* ============================================
    Buttery iOS 26 spring transit for the nav
    pill. The pill itself uses CSS for the color
    transitions; position/width are driven by
