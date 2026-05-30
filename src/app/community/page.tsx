@@ -87,13 +87,18 @@ export default function CommunityPage() {
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (force = false) => {
+    // After a write (post / reply / delete), callers pass force=true so
+    // the GET cache-busts the 5-min edge cache and the new reply lands
+    // in the feed immediately. Without this the comment is silently
+    // persisted but invisible until cache expiry.
+    const bust = force ? `?t=${Date.now()}` : "";
     const [appsRes, commentsRes] = await Promise.all([
       // Community no longer reads entry-level comments, so the default
       // (comment-less) applications payload is plenty — only needed for
       // myCohortMonth derivation.
-      fetch("/api/applications"),
-      fetch("/api/comments"),
+      fetch(`/api/applications${bust}`),
+      fetch(`/api/comments${bust}`),
     ]);
     const appsData = await appsRes.json();
     const commentsData = await commentsRes.json();
@@ -194,8 +199,9 @@ export default function CommunityPage() {
         body: JSON.stringify({ cohort_month: effectiveMonth, pin_hash: myPinHash, text: newQText.trim(), parent_id: null, anonymous }),
       });
       // Await the refetch so the spinner is visible until the new post
-      // actually appears in the feed.
-      await fetchData();
+      // actually appears in the feed. force=true so it bypasses the
+      // 5-min edge cache and shows the user's own post immediately.
+      await fetchData(true);
       setNewQText(""); setNewQMonth(""); setNewQ(false); setAnonymous(false);
     } finally {
       setPosting(false);
@@ -212,7 +218,7 @@ export default function CommunityPage() {
   }
 
   return (
-    <PullToRefresh onRefresh={async () => { await fetchData(); }}>
+    <PullToRefresh onRefresh={async () => { await fetchData(true); }}>
     <div className="page-enter">
       <div className="mb-5">
         <h1 className="text-2xl font-bold text-sand-900 tracking-tight">Community</h1>
@@ -336,7 +342,7 @@ export default function CommunityPage() {
                   key={t.root.id}
                   thread={t}
                   myPinHash={myPinHash}
-                  onRefresh={fetchData}
+                  onRefresh={() => fetchData(true)}
                   lastSeen={lastSeen}
                   onCohortClick={setSelectedCohort}
                   isOpen={openThreadId === t.root.id}
