@@ -43,15 +43,23 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 
   // Per-phase classes — same easing curve as the nav pill so the whole
   // app speaks one motion language.
+  //
+  // IMPORTANT: when phase === "idle" we render NO transform / will-change.
+  // Tailwind's translate-y-0 still emits `transform: translate(0,0)`, which
+  // is enough to establish a containing block for fixed-positioned
+  // descendants — that broke modals on mobile (Modal was sized to the main
+  // column instead of the viewport, so its bottom slid under the bottom
+  // nav and backdrop-dismiss only worked over the main area).
+  const animating = phase !== "idle";
   const cls = phase === "out"
-    ? "opacity-0 -translate-y-1"
+    ? "opacity-0 -translate-y-1 will-change-[opacity,transform]"
     : phase === "in"
-      ? "opacity-0 translate-y-1"
-      : "opacity-100 translate-y-0";
+      ? "opacity-0 translate-y-1 will-change-[opacity,transform]"
+      : "opacity-100";
 
   return (
     <div
-      className={`transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform] ${cls}`}
+      className={`${animating ? "transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]" : ""} ${cls}`}
     >
       {displayChildren}
     </div>
