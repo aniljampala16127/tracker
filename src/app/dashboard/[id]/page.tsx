@@ -205,7 +205,7 @@ export default function ApplicationDetailPage() {
       <Card className="mb-4">
         <div className="flex justify-between items-start mb-4 gap-3">
           <div className="flex items-start gap-3 min-w-0 flex-1">
-            <Avatar initials={app.initials} size="lg" />
+            <Avatar initials={app.initials} size="lg" seed={app.id} emoji={app.emoji} />
             <div className="min-w-0">
               <p className="text-[10px] font-bold text-sand-500 uppercase tracking-[0.08em] mb-0.5">Application</p>
               <div className="flex items-center gap-2 flex-wrap mb-1">

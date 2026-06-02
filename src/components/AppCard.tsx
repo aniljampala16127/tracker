@@ -24,7 +24,7 @@ export function AppCard({ app, onClick }: AppCardProps) {
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-3">
-          <Avatar initials={app.initials} size="sm" />
+          <Avatar initials={app.initials} size="sm" seed={app.id} emoji={app.emoji} />
           <div>
             <div className="font-semibold text-sm text-sand-900">{app.initials}</div>
             <div className="text-xs text-sand-500">

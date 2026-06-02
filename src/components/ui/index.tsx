@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { AvatarIcon, isAvatarKey } from "@/components/AvatarIcons";
 
 // ============================================
 // Button
@@ -416,29 +417,74 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 }
 
 // ============================================
-// Avatar (initials)
+// Avatar (initials, optional gradient seed, optional emoji DP)
 // ============================================
 interface AvatarProps {
   initials: string;
   size?: "sm" | "md" | "lg";
   className?: string;
+  // Optional stable seed (typically app.id). When given, the avatar
+  // background becomes a deterministic 2-color gradient — each entry
+  // ends up with its own "signature look" so the dashboard scans faster.
+  seed?: string;
+  // Optional user-chosen emoji shown as a badge in the bottom-right
+  // corner — acts as the user's display picture / personality marker.
+  emoji?: string | null;
 }
 
-export function Avatar({ initials, size = "md", className }: AvatarProps) {
+// 32-bit string hash → stable hue. Two near-complementary hues give
+// each entry a unique colorful gradient.
+function avatarHues(seed: string): { h1: number; h2: number } {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  }
+  const h1 = Math.abs(h) % 360;
+  const h2 = (h1 + 38) % 360; // small offset for a 2-tone, in-family feel
+  return { h1, h2 };
+}
+
+export function Avatar({ initials, size = "md", className, seed, emoji }: AvatarProps) {
   const sizes = {
     sm: "w-8 h-8 text-xs",
     md: "w-10 h-10 text-sm",
     lg: "w-12 h-12 text-lg",
   };
+  const iconPx = { sm: 18, md: 22, lg: 28 }[size];
+
+  const gradientStyle = seed
+    ? (() => {
+        const { h1, h2 } = avatarHues(seed);
+        return {
+          background: `linear-gradient(135deg, hsl(${h1} 55% 80%) 0%, hsl(${h2} 50% 62%) 100%)`,
+          color: `hsl(${h1} 60% 22%)`,
+        } as React.CSSProperties;
+      })()
+    : undefined;
+
+  // When the entry has picked an avatar (DP), it replaces the initials.
+  // Matches the existing /me + dashboard-mobile pattern. Falls back to
+  // initials when no emoji is set.
+  let content: React.ReactNode;
+  if (emoji && isAvatarKey(emoji)) {
+    content = <AvatarIcon icon={emoji} size={iconPx} />;
+  } else if (emoji) {
+    content = <span className="leading-none">{emoji}</span>;
+  } else {
+    content = initials.slice(0, 2).toUpperCase();
+  }
+
   return (
     <div
       className={cn(
-        "rounded-full bg-brand-100 flex items-center justify-center font-bold text-brand-600 flex-shrink-0",
+        "rounded-full flex items-center justify-center font-bold flex-shrink-0",
+        !seed && "bg-brand-100 text-brand-600",
         sizes[size],
         className
       )}
+      style={gradientStyle}
     >
-      {initials.slice(0, 2).toUpperCase()}
+      {content}
     </div>
   );
 }
