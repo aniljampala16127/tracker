@@ -100,10 +100,12 @@ export async function GET(request: Request) {
   const includeComments = url.searchParams.get("include")?.split(",").includes("comments");
 
   // Scope params — egress savings come from clients asking for less data.
-  //   ?id=<uuid>  — one app, used by /dashboard/[id] and /cohort/[id]
-  //   ?limit=N    — cap row count (default unlimited for back-compat)
+  //   ?id=<uuid>         — one app, used by /dashboard/[id] and /cohort/[id]
+  //   ?pin_hash=<sha256> — only the user's claimed apps (saves ~700x on /me)
+  //   ?limit=N           — cap row count (default unlimited for back-compat)
   // ?t=... is also accepted and intentionally ignored (cache-bust marker).
   const idParam = url.searchParams.get("id");
+  const pinHashParam = url.searchParams.get("pin_hash");
   const limitParam = url.searchParams.get("limit");
   const limit = limitParam ? Math.max(1, Math.min(1000, parseInt(limitParam, 10) || 0)) : null;
 
@@ -127,6 +129,9 @@ export async function GET(request: Request) {
 
   if (idParam) {
     query = query.eq("id", idParam);
+  }
+  if (pinHashParam) {
+    query = query.eq("pin_hash", pinHashParam);
   }
   if (limit) {
     query = query.limit(limit);

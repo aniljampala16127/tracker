@@ -3,6 +3,12 @@ import { NextResponse, NextRequest } from "next/server";
 
 // No force-dynamic — we want Vercel CDN caching for the public branch.
 // Private (logged-in) branch still emits no-cache headers below.
+//
+// ISR/data-cache layer: cache the route handler's result for 15 min.
+// Compounds with the Cache-Control headers — on a CDN miss, Vercel
+// checks the ISR cache before re-running the handler, so a single
+// origin computation serves many edges.
+export const revalidate = 900;
 
 const STEP_LABELS: Record<string, string> = {
   submitted: "Submitted", aor: "AOR", bil: "BIL",
